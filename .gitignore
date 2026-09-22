@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# playwright / captures locales
+# playwright / captures locales (les captures d'écran de travail vivent à la racine)
 /.playwright-mcp/
 *.tmp
-/dashboard-*.png
+/*.png
