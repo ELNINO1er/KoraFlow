@@ -59,9 +59,11 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  memberships     Membership[]
-  sentInvitations Invitation[] @relation("InvitationInviter")
-  auditLogs       AuditLog[]
+  memberships       Membership[]
+  sentInvitations   Invitation[]      @relation("InvitationInviter")
+  auditLogs         AuditLog[]
+  ownedContacts     Contact[]         @relation("ContactOwner")
+  contactActivities ContactActivity[] @relation("ContactActivityActor")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -108,9 +110,11 @@ model Organization {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // suppression logique
 
-  memberships Membership[]
-  invitations Invitation[]
-  auditLogs   AuditLog[]
+  memberships       Membership[]
+  invitations       Invitation[]
+  auditLogs         AuditLog[]
+  contacts          Contact[]
+  contactActivities ContactActivity[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -251,4 +255,86 @@ model TwoFactor {
   @@index([secret])
   @@index([userId])
   @@map("twoFactor")
+}
+
+// ---------------------------------------------------------------------------
+// CRM — Contacts (prospects & clients) et leur historique d'activités
+// ---------------------------------------------------------------------------
+
+/// Nature du contact.
+enum ContactType {
+  PROSPECT
+  CLIENT
+}
+
+/// Étape du pipeline commercial (§5).
+enum ContactStage {
+  NEW_REQUEST // nouvelle demande
+  TO_CONTACT // à contacter
+  APPOINTMENT_SCHEDULED // rendez-vous planifié
+  QUOTE_IN_PREPARATION // devis en préparation
+  QUOTE_SENT // devis envoyé
+  NEGOTIATION // négociation
+  CONVERTED // converti
+  LOST // perdu
+}
+
+/// Type d'entrée dans l'historique d'un contact.
+enum ContactActivityType {
+  CREATED
+  NOTE
+  STAGE_CHANGED
+  CALL
+  EMAIL
+  TASK
+}
+
+model Contact {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           ContactType  @default(PROSPECT)
+  stage          ContactStage @default(NEW_REQUEST)
+
+  firstName   String
+  lastName    String?
+  email       String?
+  phone       String?
+  companyName String?
+  source      String? // origine du prospect (formulaire, référence, etc.)
+  notes       String? // note interne rapide
+
+  ownerId String? // responsable (membre de l'organisation)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // suppression logique
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?             @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities   ContactActivity[]
+
+  @@index([organizationId, stage])
+  @@index([organizationId, type])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, ownerId])
+  @@map("contact")
+}
+
+model ContactActivity {
+  id             String              @id @default(cuid())
+  organizationId String
+  contactId      String
+  type           ContactActivityType
+  content        String?
+  metadata       Json?
+  actorUserId    String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  actor        User?        @relation("ContactActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, contactId, createdAt])
+  @@map("contact_activity")
 }

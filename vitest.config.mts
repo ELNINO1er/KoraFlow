@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     globals: false,
+    // Charge .env (DATABASE_URL) pour les tests d'intégration touchant PostgreSQL.
+    setupFiles: ["dotenv/config"],
   },
   resolve: {
     alias: {
