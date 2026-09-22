@@ -66,6 +66,8 @@ model User {
   contactActivities ContactActivity[] @relation("ContactActivityActor")
   createdQuotes     Quote[]           @relation("QuoteCreatedBy")
   createdContracts  Contract[]        @relation("ContractCreatedBy")
+  createdInvoices   Invoice[]         @relation("InvoiceCreatedBy")
+  confirmedPayments Payment[]         @relation("PaymentConfirmedBy")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -123,6 +125,9 @@ model Organization {
   contractTemplates ContractTemplate[]
   contracts         Contract[]
   signatureEvents   SignatureEvent[]
+  invoices          Invoice[]
+  invoiceItems      InvoiceItem[]
+  payments          Payment[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -322,6 +327,7 @@ model Contact {
   activities   ContactActivity[]
   quotes       Quote[]
   contracts    Contract[]
+  invoices     Invoice[]
 
   @@index([organizationId, stage])
   @@index([organizationId, type])
@@ -444,6 +450,7 @@ model Quote {
   createdBy    User?        @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items        QuoteItem[]
   contracts    Contract[]
+  invoices     Invoice[]
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -565,4 +572,128 @@ model SignatureEvent {
 
   @@index([organizationId, contractId, createdAt])
   @@map("signature_event")
+}
+
+// ---------------------------------------------------------------------------
+// Factures, lignes de facture et paiements
+// ---------------------------------------------------------------------------
+
+enum InvoiceStatus {
+  DRAFT // brouillon
+  SENT // envoyée
+  PARTIALLY_PAID // partiellement payée
+  PAID // payée
+  OVERDUE // en retard
+  CANCELED // annulée
+}
+
+/// Moyens de paiement (Mobile Money d'Afrique de l'Ouest + classiques).
+enum PaymentMethod {
+  WAVE
+  ORANGE_MONEY
+  MTN
+  MOOV
+  BANK_TRANSFER
+  CASH
+  OTHER
+}
+
+/// Statut d'un paiement. En MVP, la confirmation est MANUELLE (un responsable
+/// valide la réception). Aucune confirmation automatique.
+enum PaymentStatus {
+  PENDING // déclaré, en attente de validation
+  CONFIRMED // validé par un responsable
+  REJECTED // rejeté
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  contactId      String
+  quoteId        String?
+  number         String // ex. FAC-2026-0001 (unique par organisation)
+  status         InvoiceStatus @default(DRAFT)
+  currency       String
+
+  issueDate DateTime  @default(now())
+  dueDate   DateTime?
+  notes     String?
+
+  discountType  AmountKind?
+  discountValue Int         @default(0)
+  depositType   AmountKind?
+  depositValue  Int         @default(0)
+
+  // Totaux figés (plus petite unité)
+  subtotalMinor Int @default(0)
+  discountMinor Int @default(0)
+  taxMinor      Int @default(0)
+  totalMinor    Int @default(0)
+  depositMinor  Int @default(0)
+  /// Somme des paiements CONFIRMÉS (rapprochement).
+  paidMinor     Int @default(0)
+
+  publicToken String? @unique
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  quote        Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  items        InvoiceItem[]
+  payments     Payment[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId])
+  @@map("invoice")
+}
+
+model InvoiceItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  invoiceId      String
+  serviceId      String?
+  description    String
+  unitPriceMinor Int     @default(0)
+  quantity       Int     @default(1)
+  taxRate        Int     @default(0)
+  position       Int     @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, invoiceId])
+  @@map("invoice_item")
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  organizationId   String
+  invoiceId        String
+  amountMinor      Int
+  method           PaymentMethod @default(OTHER)
+  reference        String? // référence de transaction (déclarée par le client)
+  status           PaymentStatus @default(PENDING)
+  /// Vrai si déclaré par le client depuis le portail (vs saisi en interne).
+  declaredByClient Boolean       @default(false)
+  note             String?
+
+  confirmedById String?
+  confirmedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  confirmedBy  User?        @relation("PaymentConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, invoiceId])
+  @@index([organizationId, status])
+  @@map("payment")
 }

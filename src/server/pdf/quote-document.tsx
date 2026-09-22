@@ -31,11 +31,14 @@ export interface QuotePdfItem {
 }
 
 export interface QuotePdfData {
+  /** Titre du document (« DEVIS » par défaut, « FACTURE » pour une facture). */
+  docTitle?: string;
   org: QuotePdfOrg;
   contact: QuotePdfContact;
   number: string;
   issueDate: Date;
   expiryDate?: Date | null;
+  dueDate?: Date | null;
   currency: string;
   locale: string;
   items: QuotePdfItem[];
@@ -105,11 +108,14 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
             {data.org.taxId ? <Text style={styles.small}>N° fiscal : {data.org.taxId}</Text> : null}
           </View>
           <View>
-            <Text style={styles.docTitle}>DEVIS</Text>
+            <Text style={styles.docTitle}>{data.docTitle ?? "DEVIS"}</Text>
             <Text style={[styles.small, { textAlign: "right" }]}>N° {data.number}</Text>
             <Text style={[styles.small, { textAlign: "right" }]}>Émis le {dtf.format(data.issueDate)}</Text>
             {data.expiryDate ? (
               <Text style={[styles.small, { textAlign: "right" }]}>Valable jusqu’au {dtf.format(data.expiryDate)}</Text>
+            ) : null}
+            {data.dueDate ? (
+              <Text style={[styles.small, { textAlign: "right" }]}>Échéance : {dtf.format(data.dueDate)}</Text>
             ) : null}
           </View>
         </View>
@@ -179,7 +185,7 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
         ) : null}
 
         <Text style={styles.footer}>
-          {data.org.name} · Devis généré par KoraFlow — document non contractuel tant qu’il n’est pas accepté.
+          {data.org.name} · Document édité via KoraFlow.
         </Text>
       </Page>
     </Document>
