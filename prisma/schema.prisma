@@ -1,0 +1,182 @@
+// KoraFlow — Schéma Prisma
+// Sprint 1.2 : socle multi-tenant (User, Organization, Membership, Invitation, AuditLog).
+// Conventions transverses :
+//   - Toute donnée métier appartenant à une entreprise porte `organizationId`.
+//   - Montants stockés en ENTIERS (plus petite unité de la devise) + code ISO 4217.
+//   - Horodatage en UTC (Prisma stocke les DateTime en UTC).
+//   - Identifiants en cuid().
+//   - Rôles = enum ; la matrice de permissions vit dans le code serveur (typée, testée).
+// NB : les tables d'authentification propres à Better Auth (session, account,
+//      verification) seront ajoutées au sprint 1.3 via l'outil officiel Better Auth.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // En Prisma 7, l'URL de connexion vit dans prisma.config.ts (Migrate/CLI) et
+  // le PrismaClient runtime utilise un driver adapter (voir src/server/database/client.ts).
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/// Rôles d'un membre au sein d'une organisation (voir matrice §11).
+enum MembershipRole {
+  OWNER // propriétaire
+  ADMIN // administrateur
+  SALES // commercial
+  PROJECT_MANAGER // chef de projet
+  ACCOUNTANT // comptable
+  COLLABORATOR // collaborateur
+  CLIENT // client (acteur externe restreint au portail)
+}
+
+/// Cycle de vie d'une invitation de membre.
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+  EXPIRED
+}
+
+// ---------------------------------------------------------------------------
+// Utilisateur (compte global, indépendant de l'organisation)
+// Format aligné sur les attentes de Better Auth (email, emailVerified, image).
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships    Membership[]
+  sentInvitations Invitation[] @relation("InvitationInviter")
+  auditLogs      AuditLog[]
+
+  @@map("user")
+}
+
+// ---------------------------------------------------------------------------
+// Organisation (tenant) — profil enrichi (identité, fiscalité, préférences)
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id       String @id @default(cuid())
+  name     String
+  slug     String @unique
+  legalName String?
+  logoUrl  String?
+
+  // Coordonnées
+  email        String?
+  phone        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  country      String @default("CI") // ISO 3166-1 alpha-2
+
+  // Préférences internationalisation / facturation
+  currency String @default("XOF") // ISO 4217
+  timezone String @default("Africa/Abidjan")
+  locale   String @default("fr")
+
+  // Informations fiscales / facturation
+  taxId         String? // identifiant fiscal (ex. NCC en CI)
+  taxRegime     String?
+  invoicePrefix String  @default("FAC")
+  quotePrefix   String  @default("DEV")
+
+  // Personnalisation simple de la marque
+  brandColor String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // suppression logique
+
+  memberships Membership[]
+  invitations Invitation[]
+  auditLogs   AuditLog[]
+
+  @@index([deletedAt])
+  @@map("organization")
+}
+
+// ---------------------------------------------------------------------------
+// Membership — appartenance User × Organization + rôle
+// ---------------------------------------------------------------------------
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole @default(COLLABORATOR)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId]) // un utilisateur = un seul rôle par organisation
+  @@index([organizationId])
+  @@index([userId])
+  @@map("membership")
+}
+
+// ---------------------------------------------------------------------------
+// Invitation — jeton d'invitation d'un membre dans une organisation
+// ---------------------------------------------------------------------------
+
+model Invitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  email          String
+  role           MembershipRole   @default(COLLABORATOR)
+  status         InvitationStatus @default(PENDING)
+  token          String           @unique
+  expiresAt      DateTime
+  invitedById    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, email]) // une invitation active par e-mail et organisation
+  @@index([organizationId])
+  @@map("invitation")
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog — journal des opérations sensibles (§9, §10, §17)
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String  @id @default(cuid())
+  organizationId String?
+  actorUserId    String?
+  action         String // ex. "invitation.created", "membership.role_changed"
+  targetType     String? // ex. "Membership", "Organization"
+  targetId       String?
+  metadata       Json? // contexte non sensible uniquement
+  ipAddress      String?
+  userAgent      String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actor        User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+  @@map("audit_log")
+}
