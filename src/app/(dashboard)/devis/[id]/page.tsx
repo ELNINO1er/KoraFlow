@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { QuoteStatusControl, QuoteDeleteButton } from "@/features/quotes/quote-controls";
 import { SendQuoteButton } from "@/features/quotes/send-quote-button";
+import { GenerateContractButton } from "@/features/contracts/generate-contract-button";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Devis" };
@@ -63,6 +64,9 @@ export default async function QuoteDetailPage({
             </Button>
             {canUpdate ? (
               <SendQuoteButton id={quote.id} hasEmail={Boolean(quote.contact.email)} />
+            ) : null}
+            {quote.status === "ACCEPTED" && can(ctx.role, "contracts.create") ? (
+              <GenerateContractButton quoteId={quote.id} />
             ) : null}
             {canUpdate ? <QuoteStatusControl id={quote.id} current={quote.status} /> : null}
             {canDelete ? <QuoteDeleteButton id={quote.id} /> : null}

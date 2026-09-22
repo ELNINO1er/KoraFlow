@@ -65,6 +65,7 @@ model User {
   ownedContacts     Contact[]         @relation("ContactOwner")
   contactActivities ContactActivity[] @relation("ContactActivityActor")
   createdQuotes     Quote[]           @relation("QuoteCreatedBy")
+  createdContracts  Contract[]        @relation("ContractCreatedBy")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -119,6 +120,9 @@ model Organization {
   services          Service[]
   quotes            Quote[]
   quoteItems        QuoteItem[]
+  contractTemplates ContractTemplate[]
+  contracts         Contract[]
+  signatureEvents   SignatureEvent[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -317,6 +321,7 @@ model Contact {
   owner        User?             @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   activities   ContactActivity[]
   quotes       Quote[]
+  contracts    Contract[]
 
   @@index([organizationId, stage])
   @@index([organizationId, type])
@@ -438,6 +443,7 @@ model Quote {
   contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Restrict)
   createdBy    User?        @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items        QuoteItem[]
+  contracts    Contract[]
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -464,4 +470,99 @@ model QuoteItem {
 
   @@index([organizationId, quoteId])
   @@map("quote_item")
+}
+
+// ---------------------------------------------------------------------------
+// Contrats : modèles, contrats générés, événements de signature
+// ---------------------------------------------------------------------------
+
+enum ContractStatus {
+  DRAFT // brouillon
+  SENT // envoyé pour signature
+  SIGNED // signé
+  CANCELED // annulé
+}
+
+enum SignatureEventType {
+  VIEWED
+  CONSENT
+  SIGNED
+}
+
+model ContractTemplate {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String
+  /// Corps du modèle, avec variables {{client_name}}, {{quote_number}}, etc.
+  body           String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contracts    Contract[]
+
+  @@index([organizationId])
+  @@map("contract_template")
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  organizationId String
+  contactId      String
+  quoteId        String?
+  templateId     String?
+  number         String // ex. CTR-2026-0001 (unique par organisation)
+  title          String
+  status         ContractStatus @default(DRAFT)
+
+  /// Contenu figé du contrat (variables déjà substituées) — c'est ce qui est signé.
+  content     String
+  publicToken String? @unique // jeton pour la signature côté client
+
+  // Preuves de signature (renseignées à la signature)
+  signedAt    DateTime?
+  signerName  String?
+  signerEmail String?
+  signerIp    String?
+  /// Empreinte SHA-256 du contenu exact signé.
+  contentHash String?
+
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact           @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  quote        Quote?            @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  template     ContractTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdBy    User?             @relation("ContractCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  events       SignatureEvent[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId])
+  @@map("contract")
+}
+
+model SignatureEvent {
+  id             String             @id @default(cuid())
+  organizationId String
+  contractId     String
+  type           SignatureEventType
+  actorName      String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contract     Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, contractId, createdAt])
+  @@map("signature_event")
 }
