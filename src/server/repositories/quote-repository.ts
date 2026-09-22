@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Prisma, QuoteStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
 import { computeQuoteTotals } from "@/lib/quotes/totals";
@@ -72,6 +73,7 @@ export async function createQuote(
         contactId: input.contactId,
         number,
         currency: input.currency,
+        publicToken: randomBytes(24).toString("hex"),
         createdById: input.createdById,
         expiryDate: input.expiryDate ?? null,
         notes: input.notes,
@@ -165,6 +167,49 @@ export async function updateQuoteStatus(
   });
   if (result.count === 0) return null;
   return getQuoteById(organizationId, id);
+}
+
+// --- Accès public par jeton (portail client, hors authentification) ---------
+// Le jeton est le secret : ces fonctions ne sont PAS scopées par organisation.
+
+export function getQuoteByPublicToken(token: string) {
+  return prisma.quote.findFirst({
+    where: { publicToken: token, deletedAt: null },
+    include: {
+      items: { orderBy: { position: "asc" } },
+      contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },
+      organization: {
+        select: { name: true, legalName: true, email: true, phone: true, addressLine1: true, city: true, country: true, taxId: true, locale: true },
+      },
+    },
+  });
+}
+
+/** Marque le devis comme « consulté » lors du premier affichage (SENT -> VIEWED). */
+export async function markQuoteViewedByToken(token: string) {
+  await prisma.quote.updateMany({
+    where: { publicToken: token, status: "SENT", deletedAt: null },
+    data: { status: "VIEWED" },
+  });
+}
+
+/**
+ * Réponse du client : acceptation ou refus. N'agit que si le devis est encore
+ * en attente (SENT ou VIEWED). Renvoie true si le statut a changé.
+ */
+export async function respondToQuoteByToken(
+  token: string,
+  decision: "ACCEPTED" | "REJECTED",
+) {
+  const result = await prisma.quote.updateMany({
+    where: {
+      publicToken: token,
+      status: { in: ["SENT", "VIEWED"] },
+      deletedAt: null,
+    },
+    data: { status: decision },
+  });
+  return result.count > 0;
 }
 
 export async function softDeleteQuote(organizationId: string, id: string) {

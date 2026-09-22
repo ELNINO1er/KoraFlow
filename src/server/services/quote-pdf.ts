@@ -2,6 +2,7 @@ import "server-only";
 import type { AuthContext } from "../auth/context";
 import { prisma } from "../database/client";
 import { getQuote } from "./quote-service";
+import { getQuoteByPublicToken } from "../repositories/quote-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
 import type { QuotePdfData } from "../pdf/quote-document";
 
@@ -10,6 +11,7 @@ export interface GeneratedQuotePdf {
   filename: string;
   number: string;
   contactEmail: string | null;
+  publicToken: string | null;
 }
 
 /**
@@ -71,5 +73,60 @@ export async function generateQuotePdf(
     filename: `${quote.number}.pdf`,
     number: quote.number,
     contactEmail: quote.contact.email,
+    publicToken: quote.publicToken,
+  };
+}
+
+/** Génère le PDF d'un devis à partir de son jeton public (portail client). */
+export async function generateQuotePdfByToken(
+  token: string,
+): Promise<GeneratedQuotePdf | null> {
+  const quote = await getQuoteByPublicToken(token);
+  if (!quote) return null;
+
+  const org = quote.organization;
+  const localeTag = org.locale === "fr" ? "fr-FR" : org.locale;
+  const clientName = quote.contact.companyName
+    ? quote.contact.companyName
+    : `${quote.contact.firstName} ${quote.contact.lastName ?? ""}`.trim();
+
+  const data: QuotePdfData = {
+    org: {
+      name: org.name,
+      legalName: org.legalName,
+      email: org.email,
+      phone: org.phone,
+      addressLine1: org.addressLine1,
+      city: org.city,
+      country: org.country,
+      taxId: org.taxId,
+    },
+    contact: { name: clientName, email: quote.contact.email },
+    number: quote.number,
+    issueDate: quote.issueDate,
+    expiryDate: quote.expiryDate,
+    currency: quote.currency,
+    locale: localeTag,
+    items: quote.items.map((it) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unitPriceMinor: it.unitPriceMinor,
+      taxRate: it.taxRate,
+    })),
+    subtotalMinor: quote.subtotalMinor,
+    discountMinor: quote.discountMinor,
+    taxMinor: quote.taxMinor,
+    totalMinor: quote.totalMinor,
+    depositMinor: quote.depositMinor,
+    notes: quote.notes,
+  };
+
+  const buffer = await renderQuotePdf(data);
+  return {
+    buffer,
+    filename: `${quote.number}.pdf`,
+    number: quote.number,
+    contactEmail: quote.contact.email,
+    publicToken: token,
   };
 }

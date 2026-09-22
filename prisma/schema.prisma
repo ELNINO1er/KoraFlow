@@ -406,6 +406,7 @@ model Quote {
   number         String // ex. DEV-2026-0001 (unique par organisation)
   status         QuoteStatus @default(DRAFT)
   currency       String // devise figée à la création
+  publicToken    String?     @unique // jeton secret pour la consultation publique
 
   issueDate  DateTime  @default(now())
   expiryDate DateTime?

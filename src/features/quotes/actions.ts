@@ -117,14 +117,18 @@ export async function sendQuoteAction(
     return { ok: false, error: "Le client n'a pas d'adresse e-mail renseignée." };
   }
 
+  const appUrl = process.env.APP_URL ?? "";
+  const portalLink = pdf.publicToken ? `${appUrl}/q/${pdf.publicToken}` : null;
+
   try {
     await sendEmail({
       to: pdf.contactEmail,
       subject: `Votre devis ${pdf.number}`,
       html: `<p>Bonjour,</p>
 <p>Veuillez trouver ci-joint votre devis <strong>${pdf.number}</strong>.</p>
+${portalLink ? `<p>Vous pouvez le consulter et y répondre en ligne : <a href="${portalLink}">${portalLink}</a></p>` : ""}
 <p>Cordialement,<br/>${ctx.organization.name}</p>`,
-      text: `Votre devis ${pdf.number} est en pièce jointe.`,
+      text: `Votre devis ${pdf.number} est en pièce jointe.${portalLink ? ` Consultez-le en ligne : ${portalLink}` : ""}`,
       attachments: [
         { filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" },
       ],
