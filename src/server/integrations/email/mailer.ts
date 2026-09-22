@@ -37,11 +37,18 @@ function getTransporter(): Transporter {
   return transporter;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 export interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
@@ -52,5 +59,6 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     subject: input.subject,
     html: input.html,
     text: input.text,
+    attachments: input.attachments,
   });
 }

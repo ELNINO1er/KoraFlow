@@ -7,6 +7,8 @@ import type { QuoteStatus } from "@prisma/client";
 import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as quoteService from "@/server/services/quote-service";
 import { InvalidQuoteError } from "@/server/services/quote-service";
+import { generateQuotePdf } from "@/server/services/quote-pdf";
+import { sendEmail } from "@/server/integrations/email/mailer";
 import { PermissionError } from "@/server/permissions/permissions";
 
 async function getContext(): Promise<AuthContext> {
@@ -103,6 +105,41 @@ export async function changeQuoteStatusAction(id: string, status: QuoteStatus) {
   }
   revalidatePath("/devis");
   revalidatePath(`/devis/${id}`);
+}
+
+export async function sendQuoteAction(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  const pdf = await generateQuotePdf(ctx, id);
+  if (!pdf) return { ok: false, error: "Devis introuvable." };
+  if (!pdf.contactEmail) {
+    return { ok: false, error: "Le client n'a pas d'adresse e-mail renseignée." };
+  }
+
+  try {
+    await sendEmail({
+      to: pdf.contactEmail,
+      subject: `Votre devis ${pdf.number}`,
+      html: `<p>Bonjour,</p>
+<p>Veuillez trouver ci-joint votre devis <strong>${pdf.number}</strong>.</p>
+<p>Cordialement,<br/>${ctx.organization.name}</p>`,
+      text: `Votre devis ${pdf.number} est en pièce jointe.`,
+      attachments: [
+        { filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" },
+      ],
+    });
+    await quoteService.changeQuoteStatus(ctx, id, "SENT");
+  } catch (e) {
+    if (e instanceof PermissionError) {
+      return { ok: false, error: "Vous n'avez pas la permission d'envoyer ce devis." };
+    }
+    throw e;
+  }
+
+  revalidatePath(`/devis/${id}`);
+  revalidatePath("/devis");
+  return { ok: true };
 }
 
 export async function deleteQuoteAction(id: string) {
