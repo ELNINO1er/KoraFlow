@@ -64,6 +64,7 @@ model User {
   auditLogs         AuditLog[]
   ownedContacts     Contact[]         @relation("ContactOwner")
   contactActivities ContactActivity[] @relation("ContactActivityActor")
+  createdQuotes     Quote[]           @relation("QuoteCreatedBy")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -116,6 +117,8 @@ model Organization {
   contacts          Contact[]
   contactActivities ContactActivity[]
   services          Service[]
+  quotes            Quote[]
+  quoteItems        QuoteItem[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -313,6 +316,7 @@ model Contact {
   organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner        User?             @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   activities   ContactActivity[]
+  quotes       Quote[]
 
   @@index([organizationId, stage])
   @@index([organizationId, type])
@@ -367,8 +371,96 @@ model Service {
   deletedAt DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  quoteItems   QuoteItem[]
 
   @@index([organizationId, active])
   @@index([organizationId, category])
   @@map("service")
+}
+
+// ---------------------------------------------------------------------------
+// Devis (Quote) et lignes de devis (QuoteItem)
+// ---------------------------------------------------------------------------
+
+/// Statuts d'un devis (§5).
+enum QuoteStatus {
+  DRAFT // brouillon
+  SENT // envoyé
+  VIEWED // consulté
+  ACCEPTED // accepté
+  REJECTED // refusé
+  EXPIRED // expiré
+  CANCELED // annulé
+}
+
+/// Mode de remise/acompte : pourcentage ou montant fixe.
+enum AmountKind {
+  PERCENT
+  AMOUNT
+}
+
+model Quote {
+  id             String      @id @default(cuid())
+  organizationId String
+  contactId      String
+  number         String // ex. DEV-2026-0001 (unique par organisation)
+  status         QuoteStatus @default(DRAFT)
+  currency       String // devise figée à la création
+
+  issueDate  DateTime  @default(now())
+  expiryDate DateTime?
+  notes      String?
+  terms      String?
+
+  // Remise globale
+  discountType  AmountKind?
+  discountValue Int         @default(0) // points de % ou montant (plus petite unité)
+
+  // Acompte demandé
+  depositType  AmountKind?
+  depositValue Int         @default(0)
+
+  // Totaux figés (plus petite unité de la devise) — recalculés à chaque écriture.
+  subtotalMinor Int @default(0) // HT avant remise
+  discountMinor Int @default(0)
+  taxMinor      Int @default(0)
+  totalMinor    Int @default(0) // TTC
+  depositMinor  Int @default(0)
+
+  createdById String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("QuoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  items        QuoteItem[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId])
+  @@index([organizationId, createdAt])
+  @@map("quote")
+}
+
+model QuoteItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  quoteId        String
+  serviceId      String? // lien optionnel vers le catalogue (snapshot des valeurs ci-dessous)
+
+  description    String
+  unitPriceMinor Int    @default(0) // prix unitaire HT
+  quantity       Int    @default(1)
+  taxRate        Int    @default(0) // %
+  position       Int    @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  quote        Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  service      Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, quoteId])
+  @@map("quote_item")
 }
