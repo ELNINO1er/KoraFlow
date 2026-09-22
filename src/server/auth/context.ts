@@ -1,5 +1,6 @@
 import "server-only";
 import { headers, cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { MembershipRole } from "@prisma/client";
 import { auth } from "./auth";
 import { prisma } from "../database/client";
@@ -99,14 +100,12 @@ export async function resolveSession(): Promise<SessionResolution> {
 }
 
 /**
- * Variante stricte : renvoie le contexte ou lève une erreur.
- * À utiliser dans les zones où l'utilisateur DOIT être authentifié avec une org
- * (la protection de route/redirection reste la responsabilité de l'appelant).
+ * Variante stricte pour les pages/actions de l'espace authentifié : renvoie le
+ * contexte, ou REDIRIGE (login / création d'organisation) si indisponible.
  */
 export async function requireAuthContext(): Promise<AuthContext> {
   const result = await resolveSession();
-  if (result.status !== "ok") {
-    throw new Error(`Contexte d'authentification indisponible (${result.status}).`);
-  }
+  if (result.status === "unauthenticated") redirect("/login");
+  if (result.status === "no-organization") redirect("/create-organization");
   return result.context;
 }
