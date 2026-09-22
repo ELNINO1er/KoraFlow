@@ -23,7 +23,11 @@ export const metadata: Metadata = {
     "KoraFlow centralise clients, contrats, paiements et projets dans un seul espace, de la première demande jusqu'à la livraison.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="fr"
