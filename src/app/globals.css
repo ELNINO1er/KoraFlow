@@ -31,6 +31,9 @@
   --color-border: var(--kf-border);
   --color-input: var(--kf-border);
   --color-ring: var(--kf-ink-400);
+  --color-muted: #f1ede6;
+  --color-secondary: #eef1f4;
+  --color-secondary-foreground: var(--kf-ink);
 
   --color-primary: var(--kf-ink);
   --color-primary-foreground: var(--kf-white);
@@ -54,6 +57,9 @@
     --color-border: #24405a;
     --color-input: #24405a;
     --color-ring: #4f7396;
+    --color-muted: #14283a;
+    --color-secondary: #1a3350;
+    --color-secondary-foreground: #f2f5f8;
 
     --color-primary: #f2f5f8;
     --color-primary-foreground: #12263a;
@@ -75,6 +81,9 @@
   --color-border: var(--color-border);
   --color-input: var(--color-input);
   --color-ring: var(--color-ring);
+  --color-muted: var(--color-muted);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
 
   --color-primary: var(--color-primary);
   --color-primary-foreground: var(--color-primary-foreground);
