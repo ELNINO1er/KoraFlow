@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   KoraFlow — Design tokens
+   Palette et typographie de référence (voir cahier des charges §11).
+   Tailwind v4 : les tokens déclarés dans @theme génèrent les utilitaires
+   correspondants (bg-*, text-*, border-*, font-*, etc.).
+   ========================================================================== */
+
+:root {
+  /* --- Palette de marque brute (valeurs fixes, ne pas utiliser directement
+         dans les composants : préférer les tokens sémantiques ci-dessous) --- */
+  --kf-ink: #12263a; /* bleu nuit principal */
+  --kf-ink-600: #1c3a57;
+  --kf-ink-400: #3d5c7a;
+  --kf-terracotta: #c8553d; /* accent chaud */
+  --kf-terracotta-600: #a8412c;
+  --kf-ivory: #faf7f2; /* fond chaleureux */
+  --kf-white: #ffffff;
+  --kf-success: #2f855a;
+  --kf-muted: #667085; /* gris secondaire */
+  --kf-border: #e4e7ec;
+  --kf-danger: #d92d20;
+  --kf-warning: #f59e0b;
+
+  /* --- Tokens sémantiques — thème clair --- */
+  --color-background: var(--kf-ivory);
+  --color-surface: var(--kf-white);
+  --color-foreground: var(--kf-ink);
+  --color-muted-foreground: var(--kf-muted);
+  --color-border: var(--kf-border);
+  --color-input: var(--kf-border);
+  --color-ring: var(--kf-ink-400);
+
+  --color-primary: var(--kf-ink);
+  --color-primary-foreground: var(--kf-white);
+  --color-accent: var(--kf-terracotta);
+  --color-accent-foreground: var(--kf-white);
+
+  --color-success: var(--kf-success);
+  --color-success-foreground: var(--kf-white);
+  --color-warning: var(--kf-warning);
+  --color-warning-foreground: #3a2a05;
+  --color-danger: var(--kf-danger);
+  --color-danger-foreground: var(--kf-white);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0e1a26;
+    --color-surface: #12263a;
+    --color-foreground: #f2f5f8;
+    --color-muted-foreground: #9aa7b5;
+    --color-border: #24405a;
+    --color-input: #24405a;
+    --color-ring: #4f7396;
+
+    --color-primary: #f2f5f8;
+    --color-primary-foreground: #12263a;
+    --color-accent: #e0765f;
+    --color-accent-foreground: #12263a;
+
+    --color-success: #48a878;
+    --color-warning: #f5b041;
+    --color-danger: #ef6a60;
+  }
+}
+
+/* Exposition des tokens à Tailwind (utilitaires générés à partir de ces vars). */
+@theme inline {
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-foreground: var(--color-foreground);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-border: var(--color-border);
+  --color-input: var(--color-input);
+  --color-ring: var(--color-ring);
+
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+
+  --color-success: var(--color-success);
+  --color-success-foreground: var(--color-success-foreground);
+  --color-warning: var(--color-warning);
+  --color-warning-foreground: var(--color-warning-foreground);
+  --color-danger: var(--color-danger);
+  --color-danger-foreground: var(--color-danger-foreground);
+
+  /* Typographie : Inter pour l'application, Manrope pour les titres/marketing. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), var(--font-inter), sans-serif;
+
+  --radius: 0.625rem;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

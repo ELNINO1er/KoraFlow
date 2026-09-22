@@ -1,0 +1,28 @@
+# KoraFlow — services de développement local.
+# Usage : docker compose up -d
+# NB : ne contient AUCUN secret de production. Les identifiants ci-dessous
+# sont réservés au développement local.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: koraflow_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: koraflow
+      POSTGRES_PASSWORD: koraflow_dev_password
+      POSTGRES_DB: koraflow
+    ports:
+      # Hôte 5433 -> conteneur 5432, pour éviter tout conflit avec un
+      # PostgreSQL déjà installé localement. Ajuster côté hôte si besoin.
+      - "5433:5432"
+    volumes:
+      - koraflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koraflow -d koraflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  koraflow_pgdata:
+    name: koraflow_pgdata
