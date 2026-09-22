@@ -115,6 +115,7 @@ model Organization {
   auditLogs         AuditLog[]
   contacts          Contact[]
   contactActivities ContactActivity[]
+  services          Service[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -337,4 +338,37 @@ model ContactActivity {
 
   @@index([organizationId, contactId, createdAt])
   @@map("contact_activity")
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue de services (offres facturables par organisation)
+// ---------------------------------------------------------------------------
+
+model Service {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+
+  /// Prix HORS TAXE, en entier, dans la plus petite unité de la devise de l'organisation.
+  priceMinor               Int     @default(0)
+  /// Unité de vente (ex. « heure », « jour », « forfait », « mois »).
+  unit                     String  @default("forfait")
+  category                 String?
+  /// Taux de taxe en points de pourcentage (ex. 18 pour une TVA à 18 %).
+  taxRate                  Int     @default(0)
+  /// Durée estimée en minutes (optionnelle).
+  estimatedDurationMinutes Int?
+
+  active Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, active])
+  @@index([organizationId, category])
+  @@map("service")
 }

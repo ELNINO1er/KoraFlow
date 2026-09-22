@@ -6,6 +6,7 @@ import {
   ScrollText,
   ReceiptText,
   FolderKanban,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +25,11 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Contrats", href: "/contrats", icon: ScrollText },
   { label: "Factures", href: "/factures", icon: ReceiptText },
   { label: "Projets", href: "/projets", icon: FolderKanban },
+];
+
+/** Navigation secondaire (configuration §12). */
+export const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { label: "Catalogue de services", href: "/services", icon: Package },
 ];
 
 /** Navigation mobile (bottom-nav §12). */
