@@ -23,6 +23,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Serveur SMTP de développement : capture les e-mails sans rien envoyer.
+  # Interface web : http://localhost:8025  ·  SMTP : localhost:1025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: koraflow_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # UI web
+    environment:
+      MP_MAX_MESSAGES: 500
+
 volumes:
   koraflow_pgdata:
     name: koraflow_pgdata

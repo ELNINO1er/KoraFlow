@@ -24,6 +24,7 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 /// Rôles d'un membre au sein d'une organisation (voir matrice §11).
+
 enum MembershipRole {
   OWNER // propriétaire
   ADMIN // administrateur
@@ -35,6 +36,7 @@ enum MembershipRole {
 }
 
 /// Cycle de vie d'une invitation de membre.
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -57,9 +59,14 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  memberships    Membership[]
+  memberships     Membership[]
   sentInvitations Invitation[] @relation("InvitationInviter")
-  auditLogs      AuditLog[]
+  auditLogs       AuditLog[]
+
+  twoFactorEnabled Boolean?    @default(false)
+  sessions         Session[]
+  accounts         Account[]
+  twofactors       TwoFactor[]
 
   @@map("user")
 }
@@ -69,11 +76,11 @@ model User {
 // ---------------------------------------------------------------------------
 
 model Organization {
-  id       String @id @default(cuid())
-  name     String
-  slug     String @unique
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
   legalName String?
-  logoUrl  String?
+  logoUrl   String?
 
   // Coordonnées
   email        String?
@@ -81,7 +88,7 @@ model Organization {
   addressLine1 String?
   addressLine2 String?
   city         String?
-  country      String @default("CI") // ISO 3166-1 alpha-2
+  country      String  @default("CI") // ISO 3166-1 alpha-2
 
   // Préférences internationalisation / facturation
   currency String @default("XOF") // ISO 4217
@@ -125,7 +132,8 @@ model Membership {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId]) // un utilisateur = un seul rôle par organisation
+  // un utilisateur = un seul rôle par organisation
+  @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
   @@map("membership")
@@ -151,7 +159,8 @@ model Invitation {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invitedBy    User?        @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
 
-  @@unique([organizationId, email]) // une invitation active par e-mail et organisation
+  // une invitation active par e-mail et organisation
+  @@unique([organizationId, email])
   @@index([organizationId])
   @@map("invitation")
 }
@@ -179,4 +188,67 @@ model AuditLog {
   @@index([organizationId, createdAt])
   @@index([action])
   @@map("audit_log")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
 }
