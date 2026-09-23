@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StageSelect } from "@/features/contacts/stage-select";
 import { NoteForm } from "@/features/contacts/note-form";
+import { ConvertToClientButton } from "@/features/contacts/convert-button";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
 export const metadata: Metadata = { title: "Fiche contact" };
 
@@ -76,14 +79,27 @@ export default async function ContactDetailPage({
           <ArrowLeft className="size-4" />
           Retour aux clients
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            {fullName}
-          </h1>
-          <Badge variant={stageVariant(contact.stage)}>
-            {stageLabel(contact.stage)}
-          </Badge>
-          <Badge variant="outline">{contactTypeLabel(contact.type)}</Badge>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              {fullName}
+            </h1>
+            <Badge variant={stageVariant(contact.stage)}>
+              {stageLabel(contact.stage)}
+            </Badge>
+            <Badge variant="outline">{contactTypeLabel(contact.type)}</Badge>
+          </div>
+          {canUpdate ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {contact.type === "PROSPECT" ? <ConvertToClientButton id={contact.id} /> : null}
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/clients/${contact.id}/modifier`}>
+                  <Pencil className="size-4" />
+                  Modifier
+                </Link>
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
 
