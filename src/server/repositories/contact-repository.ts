@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Prisma, ContactStage, ContactType } from "@prisma/client";
 import { prisma } from "../database/client";
 
@@ -43,7 +44,54 @@ const MAX_PAGE_SIZE = 100;
 
 export function createContact(organizationId: string, data: ContactCreateData) {
   return prisma.contact.create({
-    data: { ...data, organizationId },
+    data: { ...data, organizationId, portalToken: randomBytes(24).toString("hex") },
+  });
+}
+
+/** Génère le jeton de portail d'un contact s'il n'en a pas encore (idempotent, scopé). */
+export async function ensurePortalToken(organizationId: string, contactId: string): Promise<string | null> {
+  const contact = await prisma.contact.findFirst({
+    where: { id: contactId, organizationId, deletedAt: null },
+    select: { portalToken: true },
+  });
+  if (!contact) return null;
+  if (contact.portalToken) return contact.portalToken;
+  const token = randomBytes(24).toString("hex");
+  await prisma.contact.updateMany({ where: { id: contactId, organizationId }, data: { portalToken: token } });
+  return token;
+}
+
+export function getContactByPortalToken(token: string) {
+  return prisma.contact.findFirst({
+    where: { portalToken: token, deletedAt: null },
+    include: {
+      organization: { select: { name: true, locale: true, currency: true } },
+      quotes: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, number: true, status: true, totalMinor: true, currency: true, publicToken: true },
+      },
+      contracts: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, number: true, title: true, status: true, publicToken: true },
+      },
+      invoices: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, number: true, status: true, totalMinor: true, paidMinor: true, currency: true, publicToken: true },
+      },
+      projects: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, title: true, status: true, progress: true },
+      },
+      appointments: {
+        where: { status: "CONFIRMED" },
+        orderBy: { startAt: "asc" },
+        select: { id: true, startAt: true, appointmentType: { select: { name: true } } },
+      },
+    },
   });
 }
 

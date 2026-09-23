@@ -328,6 +328,7 @@ model Contact {
   companyName String?
   source      String? // origine du prospect (formulaire, référence, etc.)
   notes       String? // note interne rapide
+  portalToken String? @unique // jeton d'accès au portail client unifié
 
   ownerId String? // responsable (membre de l'organisation)
 

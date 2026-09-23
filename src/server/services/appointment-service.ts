@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import type { AuthContext } from "../auth/context";
 import { assertCan } from "../permissions/permissions";
 import { prisma } from "../database/client";
@@ -171,6 +172,7 @@ export async function bookAppointment(
         email: input.email.trim(),
         phone: input.phone,
         source: `Rendez-vous : ${type.name}`,
+        portalToken: randomBytes(24).toString("hex"),
       },
     });
     await tx.appointment.create({

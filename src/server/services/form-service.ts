@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import type { FormFieldType } from "@prisma/client";
 import type { AuthContext } from "../auth/context";
 import { assertCan } from "../permissions/permissions";
@@ -115,6 +116,7 @@ export async function submitPublicForm(
         phone: mapped.phone,
         companyName: mapped.companyName,
         source: `Formulaire : ${form.name}`,
+        portalToken: randomBytes(24).toString("hex"),
       },
     });
     await tx.formSubmission.create({

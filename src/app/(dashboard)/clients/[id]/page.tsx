@@ -63,6 +63,8 @@ export default async function ContactDetailPage({
   const { contact, activities } = result;
   const canUpdate = can(ctx.role, "contacts.update");
   const fullName = `${contact.firstName} ${contact.lastName ?? ""}`.trim();
+  const appUrl = process.env.APP_URL ?? "";
+  const portalUrl = contact.portalToken ? `${appUrl}/portail/${contact.portalToken}` : null;
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -147,6 +149,23 @@ export default async function ContactDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {portalUrl ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Portail client</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Lien à partager : le client y retrouve ses devis, contrats,
+                  factures, projets et rendez-vous.
+                </p>
+                <code className="break-all rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  {portalUrl}
+                </code>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </div>
