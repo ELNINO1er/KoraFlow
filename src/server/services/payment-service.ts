@@ -131,10 +131,14 @@ export async function declarePaymentByToken(
       metadata: { amountMinor: data.amountMinor, method: data.method, via: "public_portal" },
     },
   });
-  await notifyOrg(invoice.organizationId, {
-    type: "payment.declared",
-    title: `Paiement déclaré à valider — ${invoice.number}`,
-    link: `/factures/${invoice.id}`,
-  });
+  await notifyOrg(
+    invoice.organizationId,
+    {
+      type: "payment.declared",
+      title: `Paiement déclaré à valider — ${invoice.number}`,
+      link: `/factures/${invoice.id}`,
+    },
+    { email: true },
+  );
   return { ok: true as const };
 }

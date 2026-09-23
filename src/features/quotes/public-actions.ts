@@ -37,11 +37,15 @@ export async function respondToQuoteAction(
     },
   });
 
-  await notifyOrg(quote.organizationId, {
-    type: decision === "ACCEPTED" ? "quote.accepted" : "quote.rejected",
-    title: decision === "ACCEPTED" ? `Devis ${quote.number} accepté` : `Devis ${quote.number} refusé`,
-    link: `/devis/${quote.id}`,
-  });
+  await notifyOrg(
+    quote.organizationId,
+    {
+      type: decision === "ACCEPTED" ? "quote.accepted" : "quote.rejected",
+      title: decision === "ACCEPTED" ? `Devis ${quote.number} accepté` : `Devis ${quote.number} refusé`,
+      link: `/devis/${quote.id}`,
+    },
+    { email: true },
+  );
 
   revalidatePath(`/q/${token}`);
   return { ok: true };

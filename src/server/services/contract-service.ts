@@ -183,12 +183,16 @@ export async function signContractByToken(token: string, input: SignInput) {
       metadata: { contentHash },
     },
   });
-  await notifyOrg(contract.organizationId, {
-    type: "contract.signed",
-    title: `Contrat ${contract.number} signé`,
-    body: input.signerName,
-    link: `/contrats/${contract.id}`,
-  });
+  await notifyOrg(
+    contract.organizationId,
+    {
+      type: "contract.signed",
+      title: `Contrat ${contract.number} signé`,
+      body: input.signerName,
+      link: `/contrats/${contract.id}`,
+    },
+    { email: true },
+  );
 
   return { ok: true as const, contractId: contract.id };
 }
