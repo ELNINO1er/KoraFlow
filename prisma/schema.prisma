@@ -70,6 +70,7 @@ model User {
   confirmedPayments Payment[]         @relation("PaymentConfirmedBy")
   createdProjects   Project[]         @relation("ProjectCreatedBy")
   assignedTasks     Task[]            @relation("TaskAssignee")
+  createdForms      Form[]            @relation("FormCreatedBy")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -133,6 +134,9 @@ model Organization {
   projects          Project[]
   projectStages     ProjectStage[]
   tasks             Task[]
+  forms             Form[]
+  formFields        FormField[]
+  formSubmissions   FormSubmission[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -327,13 +331,14 @@ model Contact {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // suppression logique
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  owner        User?             @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  activities   ContactActivity[]
-  quotes       Quote[]
-  contracts    Contract[]
-  invoices     Invoice[]
-  projects     Project[]
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner           User?             @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities      ContactActivity[]
+  quotes          Quote[]
+  contracts       Contract[]
+  invoices        Invoice[]
+  projects        Project[]
+  formSubmissions FormSubmission[]
 
   @@index([organizationId, stage])
   @@index([organizationId, type])
@@ -804,4 +809,77 @@ model Task {
 
   @@index([organizationId, projectId])
   @@map("task")
+}
+
+// ---------------------------------------------------------------------------
+// Formulaires publics et soumissions
+// ---------------------------------------------------------------------------
+
+enum FormFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  CONSENT
+}
+
+model Form {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String  @unique // URL publique /f/[slug]
+  description    String?
+  active         Boolean @default(true)
+  createdById    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?            @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  fields       FormField[]
+  submissions  FormSubmission[]
+
+  @@index([organizationId])
+  @@map("form")
+}
+
+model FormField {
+  id             String        @id @default(cuid())
+  organizationId String
+  formId         String
+  label          String
+  type           FormFieldType @default(TEXT)
+  placeholder    String?
+  required       Boolean       @default(false)
+  options        String[] // pour les listes déroulantes (SELECT)
+  position       Int           @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  form         Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, formId])
+  @@map("form_field")
+}
+
+model FormSubmission {
+  id             String  @id @default(cuid())
+  organizationId String
+  formId         String
+  contactId      String? // prospect créé automatiquement
+  data           Json // réponses brutes {label: valeur}
+  ipAddress      String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  form         Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, formId, createdAt])
+  @@map("form_submission")
 }

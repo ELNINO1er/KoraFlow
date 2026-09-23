@@ -7,6 +7,7 @@ import {
   ReceiptText,
   FolderKanban,
   Package,
+  FormInput,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 /** Navigation secondaire (configuration §12). */
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { label: "Formulaires", href: "/formulaires", icon: FormInput },
   { label: "Catalogue de services", href: "/services", icon: Package },
 ];
 
