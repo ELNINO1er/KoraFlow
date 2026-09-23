@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SendInvoiceButton, InvoiceStatusControl, DeleteInvoiceButton } from "@/features/invoices/invoice-controls";
+import { PaymentValidation } from "@/features/payments/payment-validation";
 
 export const metadata: Metadata = { title: "Facture" };
 
@@ -30,6 +31,9 @@ export default async function InvoiceDetailPage({
   const dtfp = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short" });
   const canUpdate = can(ctx.role, "invoices.update");
   const canDelete = can(ctx.role, "invoices.delete");
+  const canValidatePayments = can(ctx.role, "payments.update");
+  const appUrl = process.env.APP_URL ?? "";
+  const payUrl = invoice.publicToken ? `${appUrl}/i/${invoice.publicToken}` : null;
   const clientName = invoice.contact.companyName ?? `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim();
   const remaining = invoice.totalMinor - invoice.paidMinor;
 
@@ -117,21 +121,36 @@ export default async function InvoiceDetailPage({
                   portail (validation manuelle à venir).
                 </p>
               ) : (
-                <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col gap-3">
                   {invoice.payments.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between text-sm">
-                      <div>
-                        <span className="text-foreground">{money(p.amountMinor)}</span>
-                        <span className="text-muted-foreground"> · {paymentMethodLabel(p.method)}</span>
-                        <p className="text-xs text-muted-foreground">{dtfp.format(p.createdAt)}</p>
+                    <li key={p.id} className="flex flex-col gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="text-foreground">{money(p.amountMinor)}</span>
+                          <span className="text-muted-foreground"> · {paymentMethodLabel(p.method)}</span>
+                          <p className="text-xs text-muted-foreground">
+                            {p.declaredByClient ? "Déclaré par le client · " : ""}
+                            {p.reference ? `Réf. ${p.reference} · ` : ""}
+                            {dtfp.format(p.createdAt)}
+                          </p>
+                        </div>
+                        <Badge variant={p.status === "CONFIRMED" ? "success" : p.status === "REJECTED" ? "danger" : "warning"}>
+                          {p.status === "CONFIRMED" ? "Confirmé" : p.status === "REJECTED" ? "Rejeté" : "En attente"}
+                        </Badge>
                       </div>
-                      <Badge variant={p.status === "CONFIRMED" ? "success" : p.status === "REJECTED" ? "danger" : "warning"}>
-                        {p.status === "CONFIRMED" ? "Confirmé" : p.status === "REJECTED" ? "Rejeté" : "En attente"}
-                      </Badge>
+                      {p.status === "PENDING" && canValidatePayments ? (
+                        <PaymentValidation id={p.id} />
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               )}
+              {payUrl && invoice.status !== "DRAFT" && invoice.status !== "CANCELED" ? (
+                <div className="mt-3 rounded-lg bg-muted/40 px-3 py-2">
+                  <p className="text-xs font-medium text-foreground">Lien de paiement client</p>
+                  <code className="break-all text-xs text-muted-foreground">{payUrl}</code>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </div>
