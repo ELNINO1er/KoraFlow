@@ -59,18 +59,19 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  memberships       Membership[]
-  sentInvitations   Invitation[]      @relation("InvitationInviter")
-  auditLogs         AuditLog[]
-  ownedContacts     Contact[]         @relation("ContactOwner")
-  contactActivities ContactActivity[] @relation("ContactActivityActor")
-  createdQuotes     Quote[]           @relation("QuoteCreatedBy")
-  createdContracts  Contract[]        @relation("ContractCreatedBy")
-  createdInvoices   Invoice[]         @relation("InvoiceCreatedBy")
-  confirmedPayments Payment[]         @relation("PaymentConfirmedBy")
-  createdProjects   Project[]         @relation("ProjectCreatedBy")
-  assignedTasks     Task[]            @relation("TaskAssignee")
-  createdForms      Form[]            @relation("FormCreatedBy")
+  memberships             Membership[]
+  sentInvitations         Invitation[]      @relation("InvitationInviter")
+  auditLogs               AuditLog[]
+  ownedContacts           Contact[]         @relation("ContactOwner")
+  contactActivities       ContactActivity[] @relation("ContactActivityActor")
+  createdQuotes           Quote[]           @relation("QuoteCreatedBy")
+  createdContracts        Contract[]        @relation("ContractCreatedBy")
+  createdInvoices         Invoice[]         @relation("InvoiceCreatedBy")
+  confirmedPayments       Payment[]         @relation("PaymentConfirmedBy")
+  createdProjects         Project[]         @relation("ProjectCreatedBy")
+  assignedTasks           Task[]            @relation("TaskAssignee")
+  createdForms            Form[]            @relation("FormCreatedBy")
+  createdAppointmentTypes AppointmentType[] @relation("AppointmentTypeCreatedBy")
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -137,6 +138,9 @@ model Organization {
   forms             Form[]
   formFields        FormField[]
   formSubmissions   FormSubmission[]
+  appointmentTypes  AppointmentType[]
+  availabilities    Availability[]
+  appointments      Appointment[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -339,6 +343,7 @@ model Contact {
   invoices        Invoice[]
   projects        Project[]
   formSubmissions FormSubmission[]
+  appointments    Appointment[]
 
   @@index([organizationId, stage])
   @@index([organizationId, type])
@@ -882,4 +887,79 @@ model FormSubmission {
 
   @@index([organizationId, formId, createdAt])
   @@map("form_submission")
+}
+
+// ---------------------------------------------------------------------------
+// Rendez-vous : types, disponibilités hebdomadaires, réservations
+// ---------------------------------------------------------------------------
+
+enum AppointmentStatus {
+  CONFIRMED
+  CANCELED
+}
+
+model AppointmentType {
+  id                 String  @id @default(cuid())
+  organizationId     String
+  name               String
+  slug               String  @unique // URL publique /rdv/[slug]
+  description        String?
+  durationMinutes    Int     @default(30)
+  bufferAfterMinutes Int     @default(0)
+  minNoticeHours     Int     @default(1)
+  active             Boolean @default(true)
+  createdById        String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User?          @relation("AppointmentTypeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  availabilities Availability[]
+  appointments   Appointment[]
+
+  @@index([organizationId])
+  @@map("appointment_type")
+}
+
+model Availability {
+  id                String @id @default(cuid())
+  organizationId    String
+  appointmentTypeId String
+  /// Jour de la semaine (0 = dimanche … 6 = samedi).
+  dayOfWeek         Int
+  /// Minutes depuis minuit (heure locale de l'organisation).
+  startMinutes      Int
+  endMinutes        Int
+
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, appointmentTypeId])
+  @@map("availability")
+}
+
+model Appointment {
+  id                String            @id @default(cuid())
+  organizationId    String
+  appointmentTypeId String
+  contactId         String?
+  name              String
+  email             String
+  phone             String?
+  startAt           DateTime
+  endAt             DateTime
+  status            AppointmentStatus @default(CONFIRMED)
+  notes             String?
+
+  createdAt DateTime @default(now())
+
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
+  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, startAt])
+  @@index([organizationId, appointmentTypeId, startAt])
+  @@map("appointment")
 }
