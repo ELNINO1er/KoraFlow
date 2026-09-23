@@ -9,6 +9,7 @@ import {
   Package,
   FormInput,
   Users2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 /** Navigation secondaire (configuration §12). */
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { label: "Rapports", href: "/rapports", icon: BarChart3 },
   { label: "Formulaires", href: "/formulaires", icon: FormInput },
   { label: "Catalogue de services", href: "/services", icon: Package },
   { label: "Équipe", href: "/equipe", icon: Users2 },
