@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Package,
   FormInput,
+  Users2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
   { label: "Formulaires", href: "/formulaires", icon: FormInput },
   { label: "Catalogue de services", href: "/services", icon: Package },
+  { label: "Équipe", href: "/equipe", icon: Users2 },
 ];
 
 /** Navigation mobile (bottom-nav §12). */
