@@ -8,6 +8,7 @@ import {
   getInvoiceByToken,
   recomputeInvoicePayment,
 } from "../repositories/invoice-repository";
+import { ensureProjectForInvoice } from "./project-service";
 
 export class PaymentError extends Error {}
 
@@ -20,7 +21,7 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
   const done = await payments.confirmPayment(ctx.organizationId, paymentId, ctx.user.id);
   if (!done) return { ok: false as const, error: "Paiement déjà traité." };
 
-  await recomputeInvoicePayment(ctx.organizationId, payment.invoiceId);
+  const invoice = await recomputeInvoicePayment(ctx.organizationId, payment.invoiceId);
   await prisma.auditLog.create({
     data: {
       organizationId: ctx.organizationId,
@@ -31,6 +32,11 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
       metadata: { invoiceId: payment.invoiceId, amountMinor: payment.amountMinor },
     },
   });
+
+  // Facture soldée -> création automatique du projet (idempotente).
+  if (invoice?.status === "PAID") {
+    await ensureProjectForInvoice(ctx.organizationId, payment.invoiceId, ctx.user.id);
+  }
   return { ok: true as const };
 }
 
@@ -75,7 +81,7 @@ export async function recordPayment(
     confirmedById: ctx.user.id,
     confirmedAt: new Date(),
   });
-  await recomputeInvoicePayment(ctx.organizationId, invoiceId);
+  const invoice = await recomputeInvoicePayment(ctx.organizationId, invoiceId);
   await prisma.auditLog.create({
     data: {
       organizationId: ctx.organizationId,
@@ -86,6 +92,9 @@ export async function recordPayment(
       metadata: { amountMinor: data.amountMinor, method: data.method },
     },
   });
+  if (invoice?.status === "PAID") {
+    await ensureProjectForInvoice(ctx.organizationId, invoiceId, ctx.user.id);
+  }
   return { ok: true as const };
 }
 
