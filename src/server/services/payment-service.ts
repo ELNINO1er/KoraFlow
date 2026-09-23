@@ -9,6 +9,7 @@ import {
   recomputeInvoicePayment,
 } from "../repositories/invoice-repository";
 import { ensureProjectForInvoice } from "./project-service";
+import { notifyOrg } from "./notification-service";
 
 export class PaymentError extends Error {}
 
@@ -129,6 +130,11 @@ export async function declarePaymentByToken(
       targetId: invoice.id,
       metadata: { amountMinor: data.amountMinor, method: data.method, via: "public_portal" },
     },
+  });
+  await notifyOrg(invoice.organizationId, {
+    type: "payment.declared",
+    title: `Paiement déclaré à valider — ${invoice.number}`,
+    link: `/factures/${invoice.id}`,
   });
   return { ok: true as const };
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { resolveSession } from "@/server/auth/context";
 import { listUserOrganizations } from "@/server/services/organization-service";
+import { listNotifications, unreadCount } from "@/server/services/notification-service";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -25,11 +26,16 @@ export default async function DashboardLayout({
   }
 
   const { context } = session;
-  const memberships = await listUserOrganizations(context.user.id);
+  const [memberships, notifications, unread] = await Promise.all([
+    listUserOrganizations(context.user.id),
+    listNotifications(context),
+    unreadCount(context),
+  ]);
   const organizations = memberships.map((m) => ({
     id: m.organization.id,
     name: m.organization.name,
   }));
+  const localeTag = context.organization.locale === "fr" ? "fr-FR" : context.organization.locale;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -39,6 +45,9 @@ export default async function DashboardLayout({
           user={context.user}
           organizations={organizations}
           activeOrgId={context.organizationId}
+          notifications={notifications}
+          unread={unread}
+          localeTag={localeTag}
         />
         <main className="flex-1 px-4 pb-24 pt-6 lg:px-8 lg:pb-8">
           {children}

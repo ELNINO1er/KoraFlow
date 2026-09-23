@@ -72,6 +72,7 @@ model User {
   assignedTasks           Task[]            @relation("TaskAssignee")
   createdForms            Form[]            @relation("FormCreatedBy")
   createdAppointmentTypes AppointmentType[] @relation("AppointmentTypeCreatedBy")
+  notifications           Notification[]
 
   twoFactorEnabled Boolean?    @default(false)
   sessions         Session[]
@@ -141,6 +142,7 @@ model Organization {
   appointmentTypes  AppointmentType[]
   availabilities    Availability[]
   appointments      Appointment[]
+  notifications     Notification[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -963,4 +965,28 @@ model Appointment {
   @@index([organizationId, startAt])
   @@index([organizationId, appointmentTypeId, startAt])
   @@map("appointment")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications in-app (par utilisateur)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  type           String // ex. "payment.declared", "quote.accepted"
+  title          String
+  body           String?
+  link           String?
+  readAt         DateTime?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([organizationId, createdAt])
+  @@map("notification")
 }

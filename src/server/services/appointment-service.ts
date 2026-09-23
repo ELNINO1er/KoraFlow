@@ -6,6 +6,7 @@ import { prisma } from "../database/client";
 import * as appts from "../repositories/appointment-repository";
 import { slugify } from "@/lib/formatting/slug";
 import { computeSlots } from "@/lib/appointments/slots";
+import { notifyOrg } from "./notification-service";
 
 /**
  * ⚠️ Fuseau horaire : le MVP suppose que l'organisation opère à UTC+0
@@ -193,6 +194,13 @@ export async function bookAppointment(
     await tx.auditLog.create({
       data: { organizationId, action: "appointment.booked", targetType: "AppointmentType", targetId: type.id, ipAddress: meta.ipAddress, metadata: { startAt: startAt.toISOString() } },
     });
+  });
+
+  await notifyOrg(organizationId, {
+    type: "appointment.booked",
+    title: `Nouveau rendez-vous : ${type.name}`,
+    body: `${input.name} — ${startAt.toISOString().slice(0, 16).replace("T", " ")} UTC`,
+    link: "/rendez-vous",
   });
 
   // Confirmation par e-mail (best-effort).

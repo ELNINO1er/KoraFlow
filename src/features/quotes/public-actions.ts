@@ -6,6 +6,7 @@ import {
   getQuoteByPublicToken,
   respondToQuoteByToken,
 } from "@/server/repositories/quote-repository";
+import { notifyOrg } from "@/server/services/notification-service";
 
 /**
  * Réponse du client à un devis via son jeton public (aucune authentification).
@@ -34,6 +35,12 @@ export async function respondToQuoteAction(
       targetId: quote.id,
       metadata: { via: "public_portal" },
     },
+  });
+
+  await notifyOrg(quote.organizationId, {
+    type: decision === "ACCEPTED" ? "quote.accepted" : "quote.rejected",
+    title: decision === "ACCEPTED" ? `Devis ${quote.number} accepté` : `Devis ${quote.number} refusé`,
+    link: `/devis/${quote.id}`,
   });
 
   revalidatePath(`/q/${token}`);

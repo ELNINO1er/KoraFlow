@@ -1,15 +1,22 @@
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { OrgSwitcher, type OrgOption } from "./org-switcher";
 import { UserMenu } from "./user-menu";
+import { NotificationBell, type NotificationItem } from "./notification-bell";
 
 export function Topbar({
   user,
   organizations,
   activeOrgId,
+  notifications,
+  unread,
+  localeTag,
 }: {
   user: { name: string | null; email: string; image: string | null };
   organizations: OrgOption[];
   activeOrgId: string;
+  notifications: NotificationItem[];
+  unread: number;
+  localeTag: string;
 }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
@@ -23,16 +30,7 @@ export function Topbar({
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Bell className="size-5" />
-          <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
-            3
-          </span>
-        </button>
+        <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         <OrgSwitcher organizations={organizations} activeId={activeOrgId} />
         <UserMenu name={user.name} email={user.email} image={user.image} />

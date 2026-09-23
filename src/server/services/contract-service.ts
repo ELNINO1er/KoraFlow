@@ -8,6 +8,7 @@ import * as contracts from "../repositories/contract-repository";
 import { getQuoteById } from "../repositories/quote-repository";
 import { renderTemplate } from "@/lib/contracts/render";
 import { formatCurrency } from "@/lib/formatting/currency";
+import { notifyOrg } from "./notification-service";
 
 export class ContractError extends Error {}
 
@@ -181,6 +182,12 @@ export async function signContractByToken(token: string, input: SignInput) {
       targetId: contract.id,
       metadata: { contentHash },
     },
+  });
+  await notifyOrg(contract.organizationId, {
+    type: "contract.signed",
+    title: `Contrat ${contract.number} signé`,
+    body: input.signerName,
+    link: `/contrats/${contract.id}`,
   });
 
   return { ok: true as const, contractId: contract.id };

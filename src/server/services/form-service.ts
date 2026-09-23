@@ -7,6 +7,7 @@ import { prisma } from "../database/client";
 import * as forms from "../repositories/form-repository";
 import { slugify } from "@/lib/formatting/slug";
 import { mapSubmissionToContact } from "@/lib/forms/mapping";
+import { notifyOrg } from "./notification-service";
 
 export async function listForms(ctx: AuthContext) {
   assertCan(ctx.role, "forms.view");
@@ -128,6 +129,13 @@ export async function submitPublicForm(
     await tx.auditLog.create({
       data: { organizationId, action: "form.submitted", targetType: "Form", targetId: form.id, metadata: { contactId: contact.id } },
     });
+  });
+
+  await notifyOrg(organizationId, {
+    type: "form.submitted",
+    title: `Nouvelle demande via « ${form.name} »`,
+    body: mapped.firstName,
+    link: "/clients",
   });
 
   return { ok: true };
