@@ -59,6 +59,13 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Administration de la PLATEFORME (transverse aux organisations).
+  // Réservé à l'exploitant du SaaS ; accordé hors interface (script/console),
+  // jamais assignable depuis l'espace d'une organisation. Voir /admin.
+  isPlatformAdmin Boolean   @default(false)
+  // Suspension d'un compte par un admin plateforme : bloque toute connexion.
+  suspendedAt     DateTime?
+
   memberships             Membership[]
   sentInvitations         Invitation[]      @relation("InvitationInviter")
   auditLogs               AuditLog[]
@@ -115,9 +122,10 @@ model Organization {
   // Personnalisation simple de la marque
   brandColor String?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime? // suppression logique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // suppression logique
+  suspendedAt DateTime? // suspension par un admin plateforme (accès bloqué)
 
   memberships       Membership[]
   invitations       Invitation[]

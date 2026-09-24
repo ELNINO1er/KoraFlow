@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, ShieldAlert } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,10 +19,12 @@ export function UserMenu({
   name,
   email,
   image,
+  isPlatformAdmin = false,
 }: {
   name: string | null;
   email: string;
   image: string | null;
+  isPlatformAdmin?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -57,6 +60,17 @@ export function UserMenu({
           <UserIcon className="size-4" />
           Mon profil
         </DropdownMenuItem>
+        {isPlatformAdmin ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="text-accent focus:bg-accent/10">
+                <ShieldAlert className="size-4" />
+                Console plateforme
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           disabled={pending}

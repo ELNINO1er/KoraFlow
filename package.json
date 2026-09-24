@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
+    "admin:grant": "tsx scripts/grant-platform-admin.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

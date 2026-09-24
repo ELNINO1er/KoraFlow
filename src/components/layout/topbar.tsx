@@ -10,6 +10,7 @@ export function Topbar({
   notifications,
   unread,
   localeTag,
+  isPlatformAdmin = false,
 }: {
   user: { name: string | null; email: string; image: string | null };
   organizations: OrgOption[];
@@ -17,6 +18,7 @@ export function Topbar({
   notifications: NotificationItem[];
   unread: number;
   localeTag: string;
+  isPlatformAdmin?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
@@ -26,7 +28,7 @@ export function Topbar({
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         <OrgSwitcher organizations={organizations} activeId={activeOrgId} />
-        <UserMenu name={user.name} email={user.email} image={user.image} />
+        <UserMenu name={user.name} email={user.email} image={user.image} isPlatformAdmin={isPlatformAdmin} />
       </div>
     </header>
   );

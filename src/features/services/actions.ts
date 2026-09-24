@@ -12,6 +12,7 @@ import type { ServiceWriteData } from "@/server/repositories/service-repository"
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
   if (session.status === "unauthenticated") redirect("/login");
+  if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
   return session.context;
 }

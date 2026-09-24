@@ -38,6 +38,26 @@ export function formatCurrency(
   }).format(value);
 }
 
+/** Formate une date courte (ex. « 27/05/2025 »). */
+export function formatShortDate(date: Date, locale = "fr-FR"): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+/** Formate une date + heure courtes (ex. « 27/05/2025 14:30 »). */
+export function formatDateTime(date: Date, locale = "fr-FR"): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 /** Formate une date en toutes lettres (ex. « mardi 27 mai 2025 »). */
 export function formatLongDate(date: Date, locale = "fr-FR"): string {
   return new Intl.DateTimeFormat(locale, {

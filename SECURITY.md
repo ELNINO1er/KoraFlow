@@ -31,6 +31,27 @@ L'isolation entre organisations est appliquée **au niveau applicatif**, dans la
 - **Journal d'audit** sur les opérations sensibles ; aucune donnée sensible dans les pages d'erreur (loguées côté serveur/client).
 - **Sonde de santé** : `GET /api/health` (connexion DB), sans donnée sensible.
 
+## Administration de plateforme (super admin)
+
+Un périmètre d'exploitation **transverse aux organisations** existe (`/admin`),
+distinct de l'espace d'une organisation. Il franchit délibérément l'isolation
+multi-tenant et fait donc l'objet de garde-fous stricts :
+
+- **Rôle dédié** : drapeau `User.isPlatformAdmin`, **non assignable** depuis
+  l'espace d'une organisation. Amorçage hors interface via `npm run admin:grant`,
+  puis gestion entre pairs depuis la console.
+- **Garde d'accès** : `requirePlatformAdmin()` — non connecté → `/login` ;
+  connecté mais non-admin → **404** (l'existence de la console n'est pas révélée).
+- **Requêtes non scopées** isolées dans un module unique
+  (`server/services/platform-admin.ts`), appelées uniquement après la garde.
+- **Suspension** : un admin plateforme peut suspendre un **compte** ou une
+  **organisation** (`suspendedAt`). L'accès est bloqué **à chaque requête** dans
+  `resolveSession` (défense côté serveur, indépendante de la session Better Auth) ;
+  la suspension d'un compte **révoque immédiatement** ses sessions.
+- **Garde-fous anti-verrouillage** : impossible de se suspendre soi-même, de
+  retirer son propre accès plateforme, ni de retirer le **dernier** admin.
+- **Traçabilité** : toute action est journalisée dans l'audit (`platform.*`).
+
 ## Feuille de route — RLS PostgreSQL (défense en profondeur)
 
 Objectif : ajouter une **seconde barrière** au niveau base, en complément de l'enforcement applicatif.

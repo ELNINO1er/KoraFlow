@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { resolveSession } from "@/server/auth/context";
+import { resolvePlatformAdmin } from "@/server/auth/platform";
 import { listUserOrganizations } from "@/server/services/organization-service";
 import { listNotifications, unreadCount } from "@/server/services/notification-service";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -21,15 +22,19 @@ export default async function DashboardLayout({
   if (session.status === "unauthenticated") {
     redirect("/login");
   }
+  if (session.status === "suspended") {
+    redirect("/compte-suspendu");
+  }
   if (session.status === "no-organization") {
     redirect("/create-organization");
   }
 
   const { context } = session;
-  const [memberships, notifications, unread] = await Promise.all([
+  const [memberships, notifications, unread, platformAdmin] = await Promise.all([
     listUserOrganizations(context.user.id),
     listNotifications(context),
     unreadCount(context),
+    resolvePlatformAdmin(),
   ]);
   const organizations = memberships.map((m) => ({
     id: m.organization.id,
@@ -48,6 +53,7 @@ export default async function DashboardLayout({
           notifications={notifications}
           unread={unread}
           localeTag={localeTag}
+          isPlatformAdmin={Boolean(platformAdmin)}
         />
         <main className="flex-1 px-4 pb-24 pt-6 lg:px-8 lg:pb-8">
           {children}

@@ -9,6 +9,7 @@ import * as paymentService from "@/server/services/payment-service";
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
   if (session.status === "unauthenticated") redirect("/login");
+  if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
   return session.context;
 }

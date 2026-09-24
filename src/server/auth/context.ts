@@ -38,6 +38,7 @@ export interface AuthContext {
 
 export type SessionResolution =
   | { status: "unauthenticated" }
+  | { status: "suspended"; user: AuthenticatedUser }
   | { status: "no-organization"; user: AuthenticatedUser }
   | { status: "ok"; context: AuthContext };
 
@@ -62,21 +63,39 @@ export async function resolveSession(): Promise<SessionResolution> {
     image: session.user.image ?? null,
   };
 
+  // Suspension du compte par un admin plateforme : accès bloqué, quel que soit
+  // l'état de la session Better Auth (défense côté serveur, à chaque requête).
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { suspendedAt: true },
+  });
+  if (account?.suspendedAt) {
+    return { status: "suspended", user };
+  }
+
   const memberships = await prisma.membership.findMany({
     where: { userId: user.id },
     include: { organization: true },
     orderBy: { createdAt: "asc" },
   });
 
-  const first = memberships[0];
-  if (!first) {
+  if (memberships.length === 0) {
     return { status: "no-organization", user };
+  }
+
+  // Une organisation suspendue est inaccessible ; on ne conserve que les
+  // organisations actives. Si toutes celles de l'utilisateur sont suspendues,
+  // l'accès est bloqué comme pour une suspension de compte.
+  const selectable = memberships.filter((m) => !m.organization.suspendedAt);
+  const first = selectable[0];
+  if (!first) {
+    return { status: "suspended", user };
   }
 
   const cookieStore = await cookies();
   const desiredOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
   const membership =
-    memberships.find((m) => m.organizationId === desiredOrgId) ?? first;
+    selectable.find((m) => m.organizationId === desiredOrgId) ?? first;
 
   const org = membership.organization;
 
@@ -106,6 +125,7 @@ export async function resolveSession(): Promise<SessionResolution> {
 export async function requireAuthContext(): Promise<AuthContext> {
   const result = await resolveSession();
   if (result.status === "unauthenticated") redirect("/login");
+  if (result.status === "suspended") redirect("/compte-suspendu");
   if (result.status === "no-organization") redirect("/create-organization");
   return result.context;
 }

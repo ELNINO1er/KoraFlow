@@ -46,6 +46,13 @@ export async function createOrganizationAction(
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login");
 
+  // Un compte suspendu ne peut rien créer.
+  const account = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { suspendedAt: true },
+  });
+  if (account?.suspendedAt) redirect("/compte-suspendu");
+
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2) {
     return { error: "Le nom de l'entreprise doit comporter au moins 2 caractères." };
