@@ -86,6 +86,12 @@ export function LoginForm() {
             {loading ? <Loader2 className="size-4 animate-spin" /> : null}
             Se connecter
           </Button>
+          <Link
+            href="/mot-de-passe-oublie"
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Mot de passe oublié ?
+          </Link>
           <p className="text-sm text-muted-foreground">
             Pas encore de compte ?{" "}
             <Link href="/register" className="font-medium text-accent hover:underline">

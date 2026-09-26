@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Ban } from "lucide-react";
+import { ArrowLeft, Ban, Database } from "lucide-react";
 import { getOrganizationDetail } from "@/server/services/platform-admin";
-import { roleLabel } from "@/lib/constants/roles";
 import { formatCurrency, formatShortDate, formatDateTime } from "@/lib/formatting/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgSuspendToggle } from "@/features/admin/admin-controls";
+import {
+  OrgEditForm,
+  OrgDeleteRestore,
+  AddMemberForm,
+  MemberRoleControl,
+} from "@/features/admin/org-controls";
 
 export const metadata: Metadata = { title: "Fiche organisation" };
 
@@ -21,6 +26,7 @@ export default async function AdminOrganizationDetailPage({
   if (!data) notFound();
 
   const { org, stats, recentAudit } = data;
+  const deleted = Boolean(org.deletedAt);
 
   const cards = [
     { label: "Contacts", value: stats.contactCount },
@@ -42,7 +48,9 @@ export default async function AdminOrganizationDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl font-bold text-foreground">{org.name}</h1>
-            {org.suspendedAt ? (
+            {deleted ? (
+              <Badge variant="danger">supprimée</Badge>
+            ) : org.suspendedAt ? (
               <Badge variant="danger">
                 <Ban className="size-3" /> suspendue
               </Badge>
@@ -54,7 +62,17 @@ export default async function AdminOrganizationDetailPage({
             /{org.slug} · {org.currency} · créée le {formatShortDate(org.createdAt)}
           </p>
         </div>
-        <OrgSuspendToggle orgId={org.id} suspended={Boolean(org.suspendedAt)} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/organizations/${org.id}/donnees`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            <Database className="size-4" />
+            Voir les données
+          </Link>
+          {!deleted ? <OrgSuspendToggle orgId={org.id} suspended={Boolean(org.suspendedAt)} /> : null}
+          <OrgDeleteRestore orgId={org.id} deleted={deleted} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -78,12 +96,35 @@ export default async function AdminOrganizationDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Membres ({org.memberships.length})</CardTitle>
+          <CardTitle>Profil de l&apos;organisation</CardTitle>
         </CardHeader>
         <CardContent>
+          <OrgEditForm
+            orgId={org.id}
+            initial={{
+              name: org.name,
+              legalName: org.legalName,
+              email: org.email,
+              phone: org.phone,
+              city: org.city,
+              country: org.country,
+              currency: org.currency,
+              timezone: org.timezone,
+              locale: org.locale,
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Membres ({org.memberships.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <AddMemberForm orgId={org.id} />
           <ul className="flex flex-col divide-y divide-border">
             {org.memberships.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+              <li key={m.id} className="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">
                     {m.user.name ?? "—"}
@@ -91,7 +132,7 @@ export default async function AdminOrganizationDetailPage({
                   <p className="truncate text-xs text-muted-foreground">{m.user.email}</p>
                 </div>
                 {m.user.suspendedAt ? <Badge variant="danger">compte suspendu</Badge> : null}
-                <Badge variant="outline">{roleLabel(m.role)}</Badge>
+                <MemberRoleControl orgId={org.id} membershipId={m.id} current={m.role} />
               </li>
             ))}
           </ul>

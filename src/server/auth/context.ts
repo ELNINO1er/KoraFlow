@@ -34,6 +34,8 @@ export interface AuthContext {
   organization: ActiveOrganization;
   role: MembershipRole;
   permissions: ReadonlySet<Permission>;
+  /** Id de l'admin plateforme si la session est une impersonation, sinon null. */
+  impersonatedBy: string | null;
 }
 
 export type SessionResolution =
@@ -83,10 +85,12 @@ export async function resolveSession(): Promise<SessionResolution> {
     return { status: "no-organization", user };
   }
 
-  // Une organisation suspendue est inaccessible ; on ne conserve que les
-  // organisations actives. Si toutes celles de l'utilisateur sont suspendues,
-  // l'accès est bloqué comme pour une suspension de compte.
-  const selectable = memberships.filter((m) => !m.organization.suspendedAt);
+  // Une organisation suspendue ou supprimée est inaccessible ; on ne conserve que
+  // les organisations actives. Si toutes celles de l'utilisateur sont
+  // suspendues/supprimées, l'accès est bloqué comme pour une suspension de compte.
+  const selectable = memberships.filter(
+    (m) => !m.organization.suspendedAt && !m.organization.deletedAt,
+  );
   const first = selectable[0];
   if (!first) {
     return { status: "suspended", user };
@@ -114,6 +118,7 @@ export async function resolveSession(): Promise<SessionResolution> {
       },
       role: membership.role,
       permissions: permissionsForRole(membership.role),
+      impersonatedBy: session.session?.impersonatedBy ?? null,
     },
   };
 }

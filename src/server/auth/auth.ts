@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { twoFactor } from "better-auth/plugins";
+import { admin } from "better-auth/plugins/admin";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "../database/client";
 
@@ -51,6 +52,11 @@ export const auth = betterAuth({
       });
     },
   },
-  // twoFactor : MFA (TOTP). nextCookies doit rester le dernier plugin.
-  plugins: [twoFactor(), nextCookies()],
+  // twoFactor : MFA (TOTP).
+  // admin : administration de plateforme (impersonation, gestion de comptes).
+  //   Les admins sont identifiés par le rôle "admin" (synchronisé avec le drapeau
+  //   isPlatformAdmin de notre couche métier). Le bannissement du plugin n'est pas
+  //   utilisé (suspension gérée via suspendedAt).
+  // nextCookies doit rester le DERNIER plugin.
+  plugins: [twoFactor(), admin({ adminRoles: ["admin"] }), nextCookies()],
 });

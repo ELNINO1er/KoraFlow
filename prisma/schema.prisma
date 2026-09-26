@@ -66,6 +66,16 @@ model User {
   // Suspension d'un compte par un admin plateforme : bloque toute connexion.
   suspendedAt     DateTime?
 
+  // Champs requis par le plugin admin Better Auth. `role` porte "admin" pour les
+  // admins plateforme (synchronisé avec isPlatformAdmin) afin d'autoriser les
+  // endpoints admin (impersonation, création/suppression de compte, etc.).
+  // Les champs de bannissement Better Auth ne sont PAS utilisés (on gère la
+  // suspension via `suspendedAt`), mais la colonne doit exister pour le plugin.
+  role       String?
+  banned     Boolean?  @default(false)
+  banReason  String?
+  banExpires DateTime?
+
   memberships             Membership[]
   sentInvitations         Invitation[]      @relation("InvitationInviter")
   auditLogs               AuditLog[]
@@ -240,6 +250,9 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Renseigné par le plugin admin pendant une impersonation (id de l'admin).
+  impersonatedBy String?
 
   @@unique([token])
   @@index([userId])

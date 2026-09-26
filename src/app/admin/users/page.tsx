@@ -7,11 +7,8 @@ import { roleLabel } from "@/lib/constants/roles";
 import { formatShortDate } from "@/lib/formatting/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  UserSuspendToggle,
-  PlatformAdminToggle,
-  RevokeSessionsButton,
-} from "@/features/admin/admin-controls";
+import { UserActionsMenu } from "@/features/admin/user-actions-menu";
+import { CreateUserForm } from "@/features/admin/create-user-form";
 
 export const metadata: Metadata = { title: "Utilisateurs" };
 
@@ -21,13 +18,16 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">
-          Utilisateurs ({users.length})
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Tous les comptes de la plateforme, toutes organisations confondues.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            Utilisateurs ({users.length})
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Tous les comptes de la plateforme, toutes organisations confondues.
+          </p>
+        </div>
+        <CreateUserForm />
       </div>
 
       <Card>
@@ -67,17 +67,13 @@ export default async function AdminUsersPage() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                  <PlatformAdminToggle
+                <div className="flex items-center gap-2 lg:justify-end">
+                  <UserActionsMenu
                     userId={u.id}
+                    isSelf={isSelf}
                     isAdmin={u.isPlatformAdmin}
-                    isSelf={isSelf}
-                  />
-                  <RevokeSessionsButton userId={u.id} />
-                  <UserSuspendToggle
-                    userId={u.id}
                     suspended={Boolean(u.suspendedAt)}
-                    isSelf={isSelf}
+                    emailVerified={u.emailVerified}
                   />
                 </div>
               </div>

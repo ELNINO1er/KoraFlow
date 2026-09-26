@@ -6,6 +6,13 @@ import {
   setUserSuspended,
   setUserPlatformAdmin,
   revokeUserSessions,
+  updateOrganization,
+  softDeleteOrganization,
+  restoreOrganization,
+  addOrgMember,
+  changeOrgMemberRole,
+  removeOrgMember,
+  forceVerifyEmail,
   PlatformAdminError,
 } from "./platform-admin";
 
@@ -122,5 +129,96 @@ describe("platform-admin — gestion des accès", () => {
     const count = await revokeUserSessions(admin(), targetUserId);
     expect(count).toBe(1);
     expect(await prisma.session.count({ where: { userId: targetUserId } })).toBe(0);
+  });
+
+  it("édite le profil d'une organisation", async () => {
+    await updateOrganization(admin(), orgId, {
+      name: "Org Plat Renommée",
+      legalName: "SARL Test",
+      email: "contact@test.local",
+      phone: null,
+      city: "Abidjan",
+      country: "ci",
+      currency: "eur",
+      timezone: "Africa/Abidjan",
+      locale: "fr",
+    });
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    expect(org?.name).toBe("Org Plat Renommée");
+    expect(org?.country).toBe("CI"); // normalisé en majuscules
+    expect(org?.currency).toBe("EUR");
+  });
+
+  it("refuse un nom d'organisation trop court", async () => {
+    await expect(
+      updateOrganization(admin(), orgId, {
+        name: "x",
+        legalName: null,
+        email: null,
+        phone: null,
+        city: null,
+        country: "CI",
+        currency: "XOF",
+        timezone: "Africa/Abidjan",
+        locale: "fr",
+      }),
+    ).rejects.toBeInstanceOf(PlatformAdminError);
+  });
+
+  it("supprime puis restaure une organisation (soft delete)", async () => {
+    await softDeleteOrganization(admin(), orgId);
+    let org = await prisma.organization.findUnique({ where: { id: orgId } });
+    expect(org?.deletedAt).not.toBeNull();
+
+    await restoreOrganization(admin(), orgId);
+    org = await prisma.organization.findUnique({ where: { id: orgId } });
+    expect(org?.deletedAt).toBeNull();
+  });
+
+  it("ajoute un membre, change son rôle, protège le dernier propriétaire, puis le retire", async () => {
+    // targetUser devient OWNER de l'org
+    await addOrgMember(admin(), orgId, `target-${SUFFIX}@test.local`, "OWNER");
+    const m = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId: targetUserId, organizationId: orgId } },
+    });
+    expect(m?.role).toBe("OWNER");
+
+    // Impossible de rétrograder le dernier propriétaire
+    await expect(
+      changeOrgMemberRole(admin(), orgId, m!.id, "SALES"),
+    ).rejects.toBeInstanceOf(PlatformAdminError);
+
+    // Impossible de retirer le dernier propriétaire
+    await expect(removeOrgMember(admin(), orgId, m!.id)).rejects.toBeInstanceOf(
+      PlatformAdminError,
+    );
+
+    // Ajout d'un 2e propriétaire → on peut alors retirer le 1er
+    const other = await prisma.user.create({
+      data: { email: `owner2-${SUFFIX}@test.local`, name: "Owner2" },
+    });
+    await addOrgMember(admin(), orgId, `owner2-${SUFFIX}@test.local`, "OWNER");
+    await removeOrgMember(admin(), orgId, m!.id);
+    expect(
+      await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId: targetUserId, organizationId: orgId } },
+      }),
+    ).toBeNull();
+
+    await prisma.membership.deleteMany({ where: { organizationId: orgId } });
+    await prisma.user.deleteMany({ where: { id: other.id } });
+  });
+
+  it("refuse d'ajouter un membre dont l'e-mail n'a pas de compte", async () => {
+    await expect(
+      addOrgMember(admin(), orgId, "inexistant@nulle-part.local", "SALES"),
+    ).rejects.toBeInstanceOf(PlatformAdminError);
+  });
+
+  it("force la vérification de l'e-mail d'un compte", async () => {
+    await prisma.user.update({ where: { id: targetUserId }, data: { emailVerified: false } });
+    await forceVerifyEmail(admin(), targetUserId);
+    const u = await prisma.user.findUnique({ where: { id: targetUserId } });
+    expect(u?.emailVerified).toBe(true);
   });
 });

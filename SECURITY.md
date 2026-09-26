@@ -47,9 +47,21 @@ multi-tenant et fait donc l'objet de garde-fous stricts :
 - **Suspension** : un admin plateforme peut suspendre un **compte** ou une
   **organisation** (`suspendedAt`). L'accès est bloqué **à chaque requête** dans
   `resolveSession` (défense côté serveur, indépendante de la session Better Auth) ;
-  la suspension d'un compte **révoque immédiatement** ses sessions.
-- **Garde-fous anti-verrouillage** : impossible de se suspendre soi-même, de
-  retirer son propre accès plateforme, ni de retirer le **dernier** admin.
+  la suspension d'un compte **révoque immédiatement** ses sessions. Idem pour la
+  **suppression logique** d'une organisation (`deletedAt`, réversible).
+- **Gestion des comptes** : création/suppression de comptes, envoi d'un lien de
+  réinitialisation de mot de passe, vérification forcée de l'e-mail, révocation
+  des sessions — via le **plugin admin Better Auth** (`role: "admin"` synchronisé
+  avec `isPlatformAdmin`).
+- **Gestion des organisations** : édition du profil, gestion des membres (ajout,
+  rôle, retrait) avec protection du **dernier propriétaire**, et consultation en
+  **lecture seule** des données d'une organisation (support).
+- **Impersonation** (« se connecter en tant que ») : via le plugin admin, la
+  session porte `impersonatedBy`. Un **bandeau** l'indique en continu et permet
+  de revenir à son compte. Interdite sur un compte suspendu ou sur soi-même.
+- **Garde-fous anti-verrouillage** : impossible de se suspendre/supprimer
+  soi-même, de retirer son propre accès plateforme, ni de retirer le **dernier**
+  admin plateforme ou le **dernier propriétaire** d'une organisation.
 - **Traçabilité** : toute action est journalisée dans l'audit (`platform.*`).
 
 ## Feuille de route — RLS PostgreSQL (défense en profondeur)

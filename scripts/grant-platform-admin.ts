@@ -40,7 +40,8 @@ async function main() {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { isPlatformAdmin: !revoke },
+    // `role` = "admin" est requis par le plugin admin Better Auth (impersonation…).
+    data: { isPlatformAdmin: !revoke, role: revoke ? null : "admin" },
   });
 
   await prisma.auditLog.create({

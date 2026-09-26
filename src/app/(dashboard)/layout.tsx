@@ -6,6 +6,7 @@ import { listNotifications, unreadCount } from "@/server/services/notification-s
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ImpersonationBanner } from "@/features/admin/impersonation-banner";
 
 /**
  * Shell de l'espace administrateur.
@@ -46,6 +47,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
+        {context.impersonatedBy ? <ImpersonationBanner /> : null}
         <Topbar
           user={context.user}
           organizations={organizations}

@@ -1,5 +1,5 @@
 import "server-only";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, MembershipRole } from "@prisma/client";
 import type { PlatformAdmin } from "../auth/platform";
 import { prisma } from "../database/client";
 
@@ -34,6 +34,18 @@ async function audit(
   });
 }
 
+/** Journalise une action plateforme (exposé pour la couche actions). */
+export async function recordPlatformAudit(
+  adminId: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+  metadata?: Prisma.InputJsonValue,
+  organizationId?: string | null,
+) {
+  await audit(adminId, action, targetType, targetId, metadata, organizationId);
+}
+
 // ---------------------------------------------------------------------------
 // Lectures (agrégats transverses)
 // ---------------------------------------------------------------------------
@@ -52,8 +64,8 @@ export async function getPlatformOverview() {
     recentOrgs,
     recentUsers,
   ] = await Promise.all([
-    prisma.organization.count(),
-    prisma.organization.count({ where: { suspendedAt: { not: null } } }),
+    prisma.organization.count({ where: { deletedAt: null } }),
+    prisma.organization.count({ where: { deletedAt: null, suspendedAt: { not: null } } }),
     prisma.user.count(),
     prisma.user.count({ where: { suspendedAt: { not: null } } }),
     prisma.user.count({ where: { isPlatformAdmin: true } }),
@@ -66,6 +78,7 @@ export async function getPlatformOverview() {
     }),
     prisma.organization.findMany({ select: { id: true, currency: true } }),
     prisma.organization.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 6,
       select: { id: true, name: true, slug: true, createdAt: true, suspendedAt: true },
@@ -104,6 +117,7 @@ export async function getPlatformOverview() {
 export async function listOrganizations() {
   const [orgs, members, contacts, invoices, revenue] = await Promise.all([
     prisma.organization.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -298,9 +312,11 @@ export async function setUserPlatformAdmin(
     }
   }
 
+  // On synchronise `role` avec le drapeau : le plugin admin Better Auth autorise
+  // ses endpoints (impersonation, gestion de comptes) via role === "admin".
   await prisma.user.update({
     where: { id: userId },
-    data: { isPlatformAdmin: value },
+    data: { isPlatformAdmin: value, role: value ? "admin" : null },
   });
   await audit(
     admin.id,
@@ -324,4 +340,204 @@ export async function revokeUserSessions(admin: PlatformAdmin, userId: string) {
     count,
   });
   return count;
+}
+
+// ---------------------------------------------------------------------------
+// Gestion des organisations (édition, membres, suppression logique)
+// ---------------------------------------------------------------------------
+
+export interface OrgEditableFields {
+  name: string;
+  legalName: string | null;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  country: string;
+  currency: string;
+  timezone: string;
+  locale: string;
+}
+
+export async function updateOrganization(
+  admin: PlatformAdmin,
+  orgId: string,
+  data: OrgEditableFields,
+) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true },
+  });
+  if (!org) throw new PlatformAdminError("Organisation introuvable.");
+  if (data.name.trim().length < 2) {
+    throw new PlatformAdminError("Le nom doit comporter au moins 2 caractères.");
+  }
+
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: {
+      name: data.name.trim(),
+      legalName: data.legalName?.trim() || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      city: data.city?.trim() || null,
+      country: (data.country || "CI").toUpperCase().slice(0, 2),
+      currency: (data.currency || "XOF").toUpperCase().slice(0, 3),
+      timezone: data.timezone || "Africa/Abidjan",
+      locale: data.locale || "fr",
+    },
+  });
+  await audit(admin.id, "platform.org_updated", "Organization", orgId, undefined, orgId);
+}
+
+export async function softDeleteOrganization(admin: PlatformAdmin, orgId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, name: true, deletedAt: true },
+  });
+  if (!org) throw new PlatformAdminError("Organisation introuvable.");
+  if (org.deletedAt) throw new PlatformAdminError("Organisation déjà supprimée.");
+
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: { deletedAt: new Date() },
+  });
+  await audit(admin.id, "platform.org_deleted", "Organization", orgId, { name: org.name }, orgId);
+}
+
+export async function restoreOrganization(admin: PlatformAdmin, orgId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, name: true },
+  });
+  if (!org) throw new PlatformAdminError("Organisation introuvable.");
+
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: { deletedAt: null },
+  });
+  await audit(admin.id, "platform.org_restored", "Organization", orgId, { name: org.name }, orgId);
+}
+
+export async function addOrgMember(
+  admin: PlatformAdmin,
+  orgId: string,
+  email: string,
+  role: MembershipRole,
+) {
+  const normalized = email.toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email: normalized } });
+  if (!user) {
+    throw new PlatformAdminError(
+      "Aucun compte avec cet e-mail. Créez d'abord l'utilisateur.",
+    );
+  }
+  const existing = await prisma.membership.findUnique({
+    where: { userId_organizationId: { userId: user.id, organizationId: orgId } },
+  });
+  if (existing) throw new PlatformAdminError("Cet utilisateur est déjà membre.");
+
+  const membership = await prisma.membership.create({
+    data: { userId: user.id, organizationId: orgId, role },
+  });
+  await audit(admin.id, "platform.member_added", "Membership", membership.id, { email: normalized, role }, orgId);
+}
+
+export async function changeOrgMemberRole(
+  admin: PlatformAdmin,
+  orgId: string,
+  membershipId: string,
+  role: MembershipRole,
+) {
+  const membership = await prisma.membership.findFirst({
+    where: { id: membershipId, organizationId: orgId },
+  });
+  if (!membership) throw new PlatformAdminError("Membre introuvable.");
+
+  if (membership.role === "OWNER" && role !== "OWNER") {
+    const owners = await prisma.membership.count({
+      where: { organizationId: orgId, role: "OWNER" },
+    });
+    if (owners <= 1) {
+      throw new PlatformAdminError("Impossible de rétrograder le dernier propriétaire.");
+    }
+  }
+
+  await prisma.membership.update({ where: { id: membershipId }, data: { role } });
+  await audit(admin.id, "platform.member_role_changed", "Membership", membershipId, { role }, orgId);
+}
+
+export async function removeOrgMember(
+  admin: PlatformAdmin,
+  orgId: string,
+  membershipId: string,
+) {
+  const membership = await prisma.membership.findFirst({
+    where: { id: membershipId, organizationId: orgId },
+  });
+  if (!membership) throw new PlatformAdminError("Membre introuvable.");
+
+  if (membership.role === "OWNER") {
+    const owners = await prisma.membership.count({
+      where: { organizationId: orgId, role: "OWNER" },
+    });
+    if (owners <= 1) {
+      throw new PlatformAdminError("Impossible de retirer le dernier propriétaire.");
+    }
+  }
+
+  await prisma.membership.delete({ where: { id: membershipId } });
+  await audit(admin.id, "platform.member_removed", "Membership", membershipId, undefined, orgId);
+}
+
+export async function forceVerifyEmail(admin: PlatformAdmin, userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, emailVerified: true },
+  });
+  if (!user) throw new PlatformAdminError("Utilisateur introuvable.");
+  if (user.emailVerified) return;
+
+  await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
+  await audit(admin.id, "platform.email_verified", "User", userId, { email: user.email });
+}
+
+// ---------------------------------------------------------------------------
+// Consultation en lecture seule des données d'une organisation (support)
+// ---------------------------------------------------------------------------
+
+export async function getOrganizationData(orgId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, name: true, currency: true },
+  });
+  if (!org) return null;
+
+  const [contacts, quotes, invoices, projects] = await Promise.all([
+    prisma.contact.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, firstName: true, lastName: true, email: true, type: true, stage: true, createdAt: true },
+    }),
+    prisma.quote.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, number: true, status: true, totalMinor: true, currency: true, createdAt: true },
+    }),
+    prisma.invoice.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, number: true, status: true, totalMinor: true, currency: true, createdAt: true },
+    }),
+    prisma.project.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, title: true, status: true, progress: true, createdAt: true },
+    }),
+  ]);
+
+  return { org, contacts, quotes, invoices, projects };
 }
