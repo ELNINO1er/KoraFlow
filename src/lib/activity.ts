@@ -5,8 +5,10 @@ const ACTION_LABELS: Record<string, string> = {
   "contact.deleted": "Contact supprimé",
   "service.created": "Service ajouté",
   "service.updated": "Service modifié",
+  "service.deleted": "Service supprimé",
   "quote.created": "Devis créé",
   "quote.status_changed": "Devis mis à jour",
+  "quote.deleted": "Devis supprimé",
   "quote.accepted_by_client": "Devis accepté par le client",
   "quote.rejected_by_client": "Devis refusé par le client",
   "contract.created": "Contrat généré",
@@ -18,6 +20,16 @@ const ACTION_LABELS: Record<string, string> = {
   "payment.confirmed": "Paiement confirmé",
   "payment.rejected": "Paiement rejeté",
   "payment.recorded": "Paiement enregistré",
+  "project.auto_created": "Projet créé",
+  "project.status_changed": "Projet mis à jour",
+  "form.created": "Formulaire créé",
+  "form.submitted": "Nouvelle réponse au formulaire",
+  "appointment_type.created": "Type de rendez-vous créé",
+  "appointment.booked": "Rendez-vous réservé",
+  "invitation.created": "Invitation envoyée",
+  "invitation.accepted": "Invitation acceptée",
+  "membership.role_changed": "Rôle d'un membre modifié",
+  "membership.removed": "Membre retiré",
 };
 
 export function actionLabel(action: string): string {
