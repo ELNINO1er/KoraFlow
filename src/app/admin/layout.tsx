@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: { default: "Console plateforme", template: "%s · Console plateforme" },
 };
 
+// La console interroge la base par requête (données de toutes les organisations)
+// et dépend de la session : jamais de pré-rendu statique au build.
+export const dynamic = "force-dynamic";
+
 /**
  * Shell de la console d'administration de PLATEFORME.
  * Garde d'accès stricte : seul un admin plateforme (non suspendu) entre ici ;
