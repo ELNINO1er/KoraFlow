@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ==========================================================================
    KoraFlow — Design tokens
@@ -46,6 +47,27 @@
   --color-warning-foreground: #3a2a05;
   --color-danger: var(--kf-danger);
   --color-danger-foreground: var(--kf-white);
+
+  /* --- Élévations (ombres teintées ink pour la chaleur) --- */
+  --elevation-1: 0 1px 2px rgba(18, 38, 58, 0.06);
+  --elevation-2: 0 2px 8px rgba(18, 38, 58, 0.08);
+  --elevation-3: 0 10px 28px rgba(18, 38, 58, 0.1);
+  --elevation-4: 0 24px 56px rgba(18, 38, 58, 0.16);
+
+  /* --- Mouvement (partagé CSS ; miroir JS dans features/marketing/motion.ts) --- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* entrées */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* changements d'état */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1); /* transitions marquées */
+  --duration-fast: 150ms; /* micro-interactions (hover, focus) */
+  --duration-base: 300ms; /* transitions d'interface */
+  --duration-slow: 550ms; /* entrées de section */
+
+  /* --- Échelle de z-index (référence unique) --- */
+  --z-raised: 10;
+  --z-sticky: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,6 +91,12 @@
     --color-success: #48a878;
     --color-warning: #f5b041;
     --color-danger: #ef6a60;
+
+    /* Ombres plus profondes sur fond sombre (le noir porte mieux) */
+    --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elevation-2: 0 2px 10px rgba(0, 0, 0, 0.45);
+    --elevation-3: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --elevation-4: 0 28px 60px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -102,6 +130,16 @@
   --font-display: var(--font-manrope), var(--font-inter), sans-serif;
 
   --radius: 0.625rem;
+
+  /* Élévations exposées comme utilitaires : shadow-e1 … shadow-e4 */
+  --shadow-e1: var(--elevation-1);
+  --shadow-e2: var(--elevation-2);
+  --shadow-e3: var(--elevation-3);
+  --shadow-e4: var(--elevation-4);
+
+  /* Courbes exposées comme utilitaires : ease-brand, ease-emphasized */
+  --ease-brand: var(--ease-out);
+  --ease-emphasized: var(--ease-emphasized);
 }
 
 * {
@@ -116,27 +154,10 @@ body {
 }
 
 /* ==========================================================================
-   Animations marketing (landing page)
-   Boucles continues (float/glow) + révélation au scroll (data-reveal).
-   On n'anime que transform/opacity (GPU, 60fps).
+   Mouvement réduit — filet de sécurité global.
+   Le motion piloté par JS (Motion) respecte déjà la préférence via
+   MotionPreferencesProvider ; cette règle couvre les animations/transitions CSS.
    ========================================================================== */
-@keyframes kf-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-@keyframes kf-float-sm {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-@keyframes kf-glow {
-  0%, 100% { opacity: 0.45; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.12); }
-}
-
-.kf-float { animation: kf-float 6s ease-in-out infinite; }
-.kf-float-sm { animation: kf-float-sm 4.5s ease-in-out infinite; }
-.kf-glow { animation: kf-glow 7s ease-in-out infinite; }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -144,5 +165,4 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  [data-reveal] { opacity: 1 !important; transform: none !important; }
 }
