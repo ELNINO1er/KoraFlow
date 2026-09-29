@@ -1011,3 +1011,19 @@ model Notification {
   @@index([organizationId, createdAt])
   @@map("notification")
 }
+
+// ---------------------------------------------------------------------------
+// WaitlistEntry — inscriptions à la liste d'attente (landing publique)
+// Aucune donnée sensible ; e-mail unique pour éviter les doublons.
+// ---------------------------------------------------------------------------
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  firstName String
+  email     String   @unique
+  activity  String?
+  country   String?
+  createdAt DateTime @default(now())
+
+  @@map("waitlist_entry")
+}
