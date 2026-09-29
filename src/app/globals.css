@@ -154,6 +154,25 @@ body {
 }
 
 /* ==========================================================================
+   Entrée sobre pour l'espace de travail (dashboard/portail/admin).
+   Purement CSS (pas de JS) : rapide, fonctionnelle. Décaler via animation-delay.
+   Neutralisée par le bloc prefers-reduced-motion ci-dessous.
+   ========================================================================== */
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.app-enter {
+  animation: app-enter var(--duration-base) var(--ease-out) both;
+}
+
+/* ==========================================================================
    Mouvement réduit — filet de sécurité global.
    Le motion piloté par JS (Motion) respecte déjà la préférence via
    MotionPreferencesProvider ; cette règle couvre les animations/transitions CSS.
