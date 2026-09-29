@@ -2,30 +2,26 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import {
   createOrganizationAction,
   type CreateOrgState,
 } from "@/features/organizations/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { AuthShell } from "@/features/auth/auth-shell";
+import { AuthStepper } from "@/features/auth/auth-stepper";
 
 const initialState: CreateOrgState = { error: null };
+
+const PHRASES = ["Votre espace prend forme.", "Plus qu'une étape."];
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+    <Button type="submit" size="lg" disabled={pending} className="w-full">
+      {pending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
       Créer mon entreprise
     </Button>
   );
@@ -35,41 +31,33 @@ export function CreateOrgForm() {
   const [state, action] = useActionState(createOrganizationAction, initialState);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Créez votre entreprise</CardTitle>
-        <CardDescription>
-          Dernière étape avant d’accéder à votre espace KoraFlow.
-        </CardDescription>
-      </CardHeader>
-      <form action={action}>
-        <CardContent className="flex flex-col gap-4">
-          {state.error ? (
-            <p
-              role="alert"
-              className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger"
-            >
-              {state.error}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Nom de l’entreprise</Label>
-            <Input
-              id="name"
-              name="name"
-              required
-              minLength={2}
-              placeholder="Ex. Agence Baobab"
-            />
-            <p className="text-xs text-muted-foreground">
-              Devise par défaut : FCFA (XOF) · Fuseau : Abidjan · modifiable ensuite.
-            </p>
-          </div>
-        </CardContent>
-        <CardFooter className="pt-0">
-          <SubmitButton />
-        </CardFooter>
+    <AuthShell phrases={PHRASES}>
+      <AuthStepper current={2} />
+
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          Créez votre entreprise
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Dernière étape avant d&apos;accéder à votre espace KoraFlow.
+        </p>
+      </div>
+
+      <form action={action} className="mt-8 flex flex-col gap-4">
+        {state.error ? (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {state.error}
+          </p>
+        ) : null}
+        <Field
+          id="org-name"
+          label="Nom de l'entreprise"
+          hint="Devise par défaut : FCFA (XOF) · Fuseau : Abidjan · modifiable ensuite."
+        >
+          <Input name="name" required minLength={2} placeholder="Ex. Agence Baobab" />
+        </Field>
+        <SubmitButton />
       </form>
-    </Card>
+    </AuthShell>
   );
 }

@@ -3,103 +3,107 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { authClient } from "@/server/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
+import { AuthShell } from "./auth-shell";
 
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (status === "loading") return; // anti double-soumission
     setError(null);
-    setLoading(true);
-    const { error } = await authClient.signIn.email({ email, password });
+    setStatus("loading");
+    const { error } = await authClient.signIn.email({ email, password, rememberMe: remember });
     if (error) {
       setError(
         error.code === "EMAIL_NOT_VERIFIED"
-          ? "Veuillez d’abord confirmer votre adresse e-mail (lien reçu par courriel)."
+          ? "Veuillez d'abord confirmer votre adresse e-mail (lien reçu par courriel)."
           : (error.message ?? "Identifiants invalides."),
       );
-      setLoading(false);
+      setStatus("idle");
       return;
     }
+    setStatus("success");
     router.push("/dashboard");
     router.refresh();
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Connexion</CardTitle>
-        <CardDescription>Accédez à votre espace KoraFlow.</CardDescription>
-      </CardHeader>
-      <form onSubmit={onSubmit}>
-        <CardContent className="flex flex-col gap-4">
-          {error ? (
-            <p
-              role="alert"
-              className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger"
-            >
-              {error}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">Adresse e-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+    <AuthShell>
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          Heureux de vous revoir
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Connectez-vous pour reprendre votre activité.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+        {error ? (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+
+        <Field id="email" label="Adresse e-mail">
+          <Input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+
+        <Field id="password" label="Mot de passe">
+          <PasswordInput
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="size-4 rounded border-input accent-[var(--color-accent)]"
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-3 pt-0">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-            Se connecter
-          </Button>
-          <Link
-            href="/mot-de-passe-oublie"
-            className="text-sm text-muted-foreground hover:underline"
-          >
+            Se souvenir de moi
+          </label>
+          <Link href="/mot-de-passe-oublie" className="text-sm font-medium text-accent hover:underline">
             Mot de passe oublié ?
           </Link>
-          <p className="text-sm text-muted-foreground">
-            Pas encore de compte ?{" "}
-            <Link href="/register" className="font-medium text-accent hover:underline">
-              Créer un compte
-            </Link>
-          </p>
-        </CardFooter>
+        </div>
+
+        <Button type="submit" size="lg" disabled={status !== "idle"} className="mt-1 w-full">
+          {status === "loading" ? <Loader2 className="size-4 animate-spin" /> : null}
+          {status === "success" ? <Check className="size-4" /> : null}
+          {status === "success" ? "Connexion réussie" : "Se connecter"}
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Pas encore de compte ?{" "}
+          <Link href="/register" className="font-medium text-accent hover:underline">
+            Créer un compte
+          </Link>
+        </p>
       </form>
-    </Card>
+    </AuthShell>
   );
 }

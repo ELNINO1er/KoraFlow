@@ -3,19 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { authClient } from "@/server/auth/auth-client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrength } from "@/components/ui/password-strength";
+import { AuthShell } from "./auth-shell";
+
+const PHRASES = ["Un nouveau départ, en sécurité.", "Votre accès se rétablit."];
 
 export function ResetPasswordForm({ token, error }: { token?: string; error?: string }) {
   const router = useRouter();
@@ -29,6 +25,7 @@ export function ResetPasswordForm({ token, error }: { token?: string; error?: st
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setFormError(null);
     if (password.length < 8) {
       setFormError("Le mot de passe doit comporter au moins 8 caractères.");
@@ -39,10 +36,7 @@ export function ResetPasswordForm({ token, error }: { token?: string; error?: st
       return;
     }
     setLoading(true);
-    const { error: resetError } = await authClient.resetPassword({
-      newPassword: password,
-      token,
-    });
+    const { error: resetError } = await authClient.resetPassword({ newPassword: password, token });
     if (resetError) {
       setFormError(resetError.message ?? "Lien invalide ou expiré.");
       setLoading(false);
@@ -50,78 +44,76 @@ export function ResetPasswordForm({ token, error }: { token?: string; error?: st
     }
     setDone(true);
     setLoading(false);
-    setTimeout(() => router.push("/login"), 1500);
-  }
-
-  if (invalidLink) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Lien invalide</CardTitle>
-          <CardDescription>
-            Ce lien de réinitialisation est invalide ou a expiré.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/mot-de-passe-oublie" className="text-sm font-medium text-accent hover:underline">
-            Demander un nouveau lien
-          </Link>
-        </CardContent>
-      </Card>
-    );
+    setTimeout(() => router.push("/login"), 1400);
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Nouveau mot de passe</CardTitle>
-        <CardDescription>Choisissez un nouveau mot de passe pour votre compte.</CardDescription>
-      </CardHeader>
-      {done ? (
-        <CardContent>
-          <p className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-            Mot de passe mis à jour. Redirection vers la connexion…
+    <AuthShell phrases={PHRASES} tone="calm">
+      {invalidLink ? (
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            Lien invalide
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Ce lien de réinitialisation est invalide ou a expiré.
           </p>
-        </CardContent>
+          <Link
+            href="/mot-de-passe-oublie"
+            className="mt-6 inline-block text-sm font-medium text-accent hover:underline"
+          >
+            Demander un nouveau lien
+          </Link>
+        </div>
+      ) : done ? (
+        <div className="flex flex-col items-start">
+          <span className="flex size-12 items-center justify-center rounded-full bg-success/15 text-success">
+            <ShieldCheck className="size-6" />
+          </span>
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-foreground">
+            Mot de passe mis à jour
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Redirection vers la connexion…</p>
+        </div>
       ) : (
-        <form onSubmit={onSubmit}>
-          <CardContent className="flex flex-col gap-4">
+        <>
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Nouveau mot de passe
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Choisissez un nouveau mot de passe pour votre compte.
+            </p>
+          </div>
+          <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
             {formError ? (
               <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
                 {formError}
               </p>
             ) : null}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Nouveau mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
+            <Field id="password" label="Nouveau mot de passe">
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm">Confirmer le mot de passe</Label>
-              <Input
-                id="confirm"
-                type="password"
+            </Field>
+            <PasswordStrength value={password} />
+            <Field id="confirm" label="Confirmer le mot de passe">
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
               />
-            </div>
-          </CardContent>
-          <CardFooter className="pt-0">
-            <Button type="submit" className="w-full" disabled={loading}>
+            </Field>
+            <Button type="submit" size="lg" disabled={loading} className="w-full">
               {loading ? <Loader2 className="size-4 animate-spin" /> : null}
               Mettre à jour le mot de passe
             </Button>
-          </CardFooter>
-        </form>
+          </form>
+        </>
       )}
-    </Card>
+    </AuthShell>
   );
 }
