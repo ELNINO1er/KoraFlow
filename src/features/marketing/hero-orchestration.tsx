@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./reveal";
+import { Aurora } from "./aurora";
 import { useMotionPref } from "./motion-preferences";
 
 const STAGES = [
@@ -30,11 +31,8 @@ const STAGES = [
 export function HeroOrchestration() {
   return (
     <section className="relative overflow-hidden pt-28 sm:pt-32">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-16 left-1/2 h-80 w-[46rem] max-w-full -translate-x-1/2 rounded-full bg-accent/15 blur-3xl"
-      />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:gap-10 lg:pb-24 lg:pl-16">
+      <Aurora />
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:gap-10 lg:pb-24 lg:pl-16">
         <div>
           <Reveal variant="up">
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -109,7 +107,12 @@ function OrchestrationDemo() {
     : (STAGES[step]?.caption ?? "");
 
   return (
-    <div className="relative rounded-2xl border border-border bg-surface p-5 shadow-xl">
+    <div className="kf-floaty relative rounded-2xl border border-border bg-surface p-5 shadow-e4">
+      {/* Reflet qui balaie la carte (clippé à ses bords, sans masquer les chips) */}
+      <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+        <span className="kf-sheen absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-foreground/5 to-transparent" />
+      </span>
+
       <div className="flex items-center justify-between border-b border-border pb-3">
         <span className="font-display text-sm font-semibold text-foreground">Activité en direct</span>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -180,6 +183,17 @@ function OrchestrationDemo() {
         >
           {activeCaption}
         </motion.p>
+        {/* Minuterie visuelle synchronisée sur le rythme des étapes */}
+        {!complete && !reduced ? (
+          <motion.div
+            key={step}
+            className="mt-3 h-0.5 rounded-full bg-accent/70"
+            style={{ transformOrigin: "left" }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 1.7, ease: "linear" }}
+          />
+        ) : null}
       </div>
 
       {/* Chips flottantes contextuelles */}

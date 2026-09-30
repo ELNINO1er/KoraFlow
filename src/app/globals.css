@@ -173,6 +173,38 @@ body {
 }
 
 /* ==========================================================================
+   Motion « showreel » de la landing (décoratif, GPU : transform/opacity only).
+   Neutralisé par le bloc prefers-reduced-motion ci-dessous.
+   ========================================================================== */
+@keyframes kf-aurora-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8%, 6%, 0) scale(1.18); }
+}
+@keyframes kf-aurora-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-6%, -4%, 0) scale(0.92); }
+}
+@keyframes kf-aurora-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4%, -7%, 0) scale(1.12); }
+}
+.kf-aurora-a { animation: kf-aurora-a 15s ease-in-out infinite; }
+.kf-aurora-b { animation: kf-aurora-b 19s ease-in-out infinite; }
+.kf-aurora-c { animation: kf-aurora-c 17s ease-in-out infinite; }
+
+@keyframes kf-floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.kf-floaty { animation: kf-floaty 6s ease-in-out infinite; }
+
+@keyframes kf-sheen {
+  0% { transform: translateX(-140%) skewX(-12deg); }
+  55%, 100% { transform: translateX(360%) skewX(-12deg); }
+}
+.kf-sheen { animation: kf-sheen 5.5s ease-in-out infinite; }
+
+/* ==========================================================================
    Mouvement réduit — filet de sécurité global.
    Le motion piloté par JS (Motion) respecte déjà la préférence via
    MotionPreferencesProvider ; cette règle couvre les animations/transitions CSS.

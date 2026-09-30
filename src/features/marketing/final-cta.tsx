@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Aurora } from "./aurora";
 import { useMotionPref } from "./motion-preferences";
 
 const FRAGMENTS = [
@@ -20,6 +21,7 @@ export function FinalCTA() {
   return (
     <section className="px-4 pb-24 sm:px-6 lg:px-8">
       <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-primary px-6 py-20 text-center sm:px-12">
+        <Aurora className="opacity-60" />
         {/* Fragments qui se rassemblent */}
         {FRAGMENTS.map((f, i) => (
           <motion.span
