@@ -13,6 +13,20 @@ import { notifyOrg } from "./notification-service";
 
 export class PaymentError extends Error {}
 
+function paymentCreateErrorMessage(error: unknown): string | null {
+  if (!(error instanceof payments.PaymentCreateError)) return null;
+  switch (error.code) {
+    case "INVOICE_NOT_FOUND":
+      return "Facture introuvable.";
+    case "INVOICE_NOT_PAYABLE":
+      return "Cette facture n'accepte plus de paiement.";
+    case "AMOUNT_EXCEEDS_BALANCE":
+      return "Le montant dépasse le solde restant disponible.";
+    case "DUPLICATE_REFERENCE":
+      return "Cette référence de paiement a déjà été déclarée.";
+  }
+}
+
 /** Confirme (valide) un paiement en attente, puis rapproche la facture. */
 export async function confirmPayment(ctx: AuthContext, paymentId: string) {
   assertCan(ctx.role, "payments.update");
@@ -20,7 +34,12 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
   if (!payment) return { ok: false as const, error: "Paiement introuvable." };
 
   const done = await payments.confirmPayment(ctx.organizationId, paymentId, ctx.user.id);
-  if (!done) return { ok: false as const, error: "Paiement déjà traité." };
+  if (!done) {
+    return {
+      ok: false as const,
+      error: "Paiement déjà traité, facture non payable ou montant supérieur au solde.",
+    };
+  }
 
   const invoice = await recomputeInvoicePayment(ctx.organizationId, payment.invoiceId);
   await prisma.auditLog.create({
@@ -71,17 +90,23 @@ export async function recordPayment(
   assertCan(ctx.role, "payments.create");
   if (data.amountMinor <= 0) return { ok: false as const, error: "Montant invalide." };
 
-  await payments.createPayment(ctx.organizationId, {
-    invoiceId,
-    amountMinor: data.amountMinor,
-    method: data.method,
-    reference: data.reference,
-    note: data.note,
-    status: "CONFIRMED",
-    declaredByClient: false,
-    confirmedById: ctx.user.id,
-    confirmedAt: new Date(),
-  });
+  try {
+    await payments.createPayment(ctx.organizationId, {
+      invoiceId,
+      amountMinor: data.amountMinor,
+      method: data.method,
+      reference: data.reference,
+      note: data.note,
+      status: "CONFIRMED",
+      declaredByClient: false,
+      confirmedById: ctx.user.id,
+      confirmedAt: new Date(),
+    });
+  } catch (error) {
+    const message = paymentCreateErrorMessage(error);
+    if (message) return { ok: false as const, error: message };
+    throw error;
+  }
   const invoice = await recomputeInvoicePayment(ctx.organizationId, invoiceId);
   await prisma.auditLog.create({
     data: {
@@ -114,14 +139,20 @@ export async function declarePaymentByToken(
   }
   if (data.amountMinor <= 0) return { ok: false as const, error: "Montant invalide." };
 
-  await payments.createPayment(invoice.organizationId, {
-    invoiceId: invoice.id,
-    amountMinor: data.amountMinor,
-    method: data.method,
-    reference: data.reference,
-    status: "PENDING",
-    declaredByClient: true,
-  });
+  try {
+    await payments.createPayment(invoice.organizationId, {
+      invoiceId: invoice.id,
+      amountMinor: data.amountMinor,
+      method: data.method,
+      reference: data.reference,
+      status: "PENDING",
+      declaredByClient: true,
+    });
+  } catch (error) {
+    const message = paymentCreateErrorMessage(error);
+    if (message) return { ok: false as const, error: message };
+    throw error;
+  }
   await prisma.auditLog.create({
     data: {
       organizationId: invoice.organizationId,

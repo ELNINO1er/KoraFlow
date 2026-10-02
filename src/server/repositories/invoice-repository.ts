@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { Prisma, InvoiceStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
 import { computeQuoteTotals } from "@/lib/quotes/totals";
+import { nextDocumentSequence } from "./document-sequence-repository";
 
 /**
  * Couche d'accès aux factures — enforcement multi-tenant (organizationId
@@ -49,9 +50,9 @@ export async function createInvoice(
       select: { invoicePrefix: true },
     });
     const prefix = org?.invoicePrefix ?? "FAC";
-    const count = await tx.invoice.count({ where: { organizationId } });
     const year = new Date().getFullYear();
-    const number = `${prefix}-${year}-${String(count + 1).padStart(4, "0")}`;
+    const sequence = await nextDocumentSequence(tx, organizationId, "INVOICE", year);
+    const number = `${prefix}-${year}-${String(sequence).padStart(4, "0")}`;
 
     const totals = computeQuoteTotals({
       lines: input.items,

@@ -51,4 +51,33 @@ describe("isolation multi-tenant des rendez-vous", () => {
     expect(type?.id).toBe(typeBId);
     expect(type?.availabilities.length).toBe(1);
   });
+
+  it("la base refuse deux rendez-vous confirmés qui se chevauchent", async () => {
+    const startAt = new Date("2030-01-07T10:00:00.000Z");
+    const endAt = new Date("2030-01-07T10:30:00.000Z");
+
+    await prisma.appointment.create({
+      data: {
+        organizationId: orgBId,
+        appointmentTypeId: typeBId,
+        name: "Premier client",
+        email: "premier@example.test",
+        startAt,
+        endAt,
+      },
+    });
+
+    await expect(
+      prisma.appointment.create({
+        data: {
+          organizationId: orgBId,
+          appointmentTypeId: typeBId,
+          name: "Second client",
+          email: "second@example.test",
+          startAt: new Date("2030-01-07T10:15:00.000Z"),
+          endAt: new Date("2030-01-07T10:45:00.000Z"),
+        },
+      }),
+    ).rejects.toThrow();
+  });
 });

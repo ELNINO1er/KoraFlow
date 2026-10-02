@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { InvoiceStatus } from "@prisma/client";
+import { z } from "zod";
 import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as invoiceService from "@/server/services/invoice-service";
 import { InvoiceError } from "@/server/services/invoice-service";
@@ -37,6 +38,11 @@ export async function sendInvoiceAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
+  const invoice = await invoiceService.getInvoice(ctx, id);
+  if (!invoice) return { ok: false, error: "Facture introuvable." };
+  if (invoice.status === "CANCELED") {
+    return { ok: false, error: "Une facture annulée ne peut pas être envoyée." };
+  }
   const pdf = await generateInvoicePdf(ctx, id);
   if (!pdf) return { ok: false, error: "Facture introuvable." };
   if (!pdf.contactEmail) return { ok: false, error: "Le client n'a pas d'adresse e-mail." };
@@ -55,9 +61,12 @@ ${portalLink ? `<p>Consultez-la et déclarez votre paiement en ligne : <a href="
       text: `Votre facture ${pdf.number} est en pièce jointe.${portalLink ? ` En ligne : ${portalLink}` : ""}`,
       attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" }],
     });
-    await invoiceService.changeInvoiceStatus(ctx, id, "SENT");
+    if (invoice.status === "DRAFT") {
+      await invoiceService.changeInvoiceStatus(ctx, id, "SENT");
+    }
   } catch (e) {
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (e instanceof InvoiceError) return { ok: false, error: e.message };
     throw e;
   }
 
@@ -68,14 +77,18 @@ ${portalLink ? `<p>Consultez-la et déclarez votre paiement en ligne : <a href="
 
 export async function changeInvoiceStatusAction(id: string, status: InvoiceStatus) {
   const ctx = await getContext();
+  const parsed = z.enum(["DRAFT", "SENT", "OVERDUE", "CANCELED"]).safeParse(status);
+  if (!parsed.success) return { ok: false, error: "Statut de facture invalide." };
   try {
-    await invoiceService.changeInvoiceStatus(ctx, id, status);
+    await invoiceService.changeInvoiceStatus(ctx, id, parsed.data);
   } catch (e) {
-    if (e instanceof PermissionError) return;
+    if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (e instanceof InvoiceError) return { ok: false, error: e.message };
     throw e;
   }
   revalidatePath(`/factures/${id}`);
   revalidatePath("/factures");
+  return { ok: true };
 }
 
 export async function deleteInvoiceAction(id: string) {

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Prisma, ContractStatus, SignatureEventType } from "@prisma/client";
 import { prisma } from "../database/client";
+import { nextDocumentSequence } from "./document-sequence-repository";
 
 /**
  * Couche d'accès aux contrats — enforcement multi-tenant (organizationId
@@ -32,9 +33,9 @@ export async function createContract(
   data: ContractCreateData,
 ) {
   return prisma.$transaction(async (tx) => {
-    const count = await tx.contract.count({ where: { organizationId } });
     const year = new Date().getFullYear();
-    const number = `CTR-${year}-${String(count + 1).padStart(4, "0")}`;
+    const sequence = await nextDocumentSequence(tx, organizationId, "CONTRACT", year);
+    const number = `CTR-${year}-${String(sequence).padStart(4, "0")}`;
 
     return tx.contract.create({
       data: {

@@ -11,6 +11,29 @@ export const INVOICE_STATUSES: { value: InvoiceStatus; label: string; variant: B
   { value: "CANCELED", label: "Annulée", variant: "outline" },
 ];
 
+/** Statuts qu'un utilisateur peut choisir. Les statuts financiers sont calculés. */
+export const MANUAL_INVOICE_STATUSES = INVOICE_STATUSES.filter(
+  (status) => status.value !== "PAID" && status.value !== "PARTIALLY_PAID",
+);
+
+const MANUAL_TRANSITIONS: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
+  DRAFT: ["SENT", "CANCELED"],
+  SENT: ["OVERDUE", "CANCELED"],
+  OVERDUE: ["SENT", "CANCELED"],
+  PARTIALLY_PAID: ["OVERDUE", "CANCELED"],
+  PAID: [],
+  CANCELED: [],
+};
+
+export function isManualInvoiceTransition(current: InvoiceStatus, next: InvoiceStatus): boolean {
+  return current === next || MANUAL_TRANSITIONS[current].includes(next);
+}
+
+export function manualInvoiceStatusesFor(current: InvoiceStatus) {
+  const allowed = new Set<InvoiceStatus>([current, ...MANUAL_TRANSITIONS[current]]);
+  return INVOICE_STATUSES.filter((status) => allowed.has(status.value));
+}
+
 const MAP = new Map(INVOICE_STATUSES.map((s) => [s.value, s]));
 export function invoiceStatusLabel(s: InvoiceStatus): string {
   return MAP.get(s)?.label ?? s;

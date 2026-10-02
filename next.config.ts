@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 /**
  * En-têtes de sécurité appliqués à toutes les réponses (§10).
- * La Content-Security-Policy, elle, est posée par le middleware (nonce par
- * requête) — voir src/middleware.ts.
+ * La Content-Security-Policy, elle, est posée par le proxy (nonce par
+ * requête) — voir src/proxy.ts.
  */
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },

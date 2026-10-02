@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { Prisma, QuoteStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
 import { computeQuoteTotals } from "@/lib/quotes/totals";
+import { nextDocumentSequence } from "./document-sequence-repository";
 
 /**
  * Couche d'accès aux devis — POINT D'ENFORCEMENT MULTI-TENANT.
@@ -55,9 +56,9 @@ export async function createQuote(
       select: { quotePrefix: true },
     });
     const prefix = org?.quotePrefix ?? "DEV";
-    const count = await tx.quote.count({ where: { organizationId } });
     const year = new Date().getFullYear();
-    const number = `${prefix}-${year}-${String(count + 1).padStart(4, "0")}`;
+    const sequence = await nextDocumentSequence(tx, organizationId, "QUOTE", year);
+    const number = `${prefix}-${year}-${String(sequence).padStart(4, "0")}`;
 
     const totals = computeQuoteTotals({
       lines: input.items,

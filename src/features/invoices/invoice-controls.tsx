@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Trash2, Loader2, Check } from "lucide-react";
 import type { InvoiceStatus } from "@prisma/client";
-import { INVOICE_STATUSES } from "@/lib/constants/invoices";
+import { manualInvoiceStatusesFor } from "@/lib/constants/invoices";
 import {
   sendInvoiceAction,
   deleteInvoiceAction,
@@ -49,26 +49,36 @@ export function SendInvoiceButton({ id, hasEmail }: { id: string; hasEmail: bool
 export function InvoiceStatusControl({ id, current }: { id: string; current: InvoiceStatus }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const statuses = manualInvoiceStatusesFor(current);
   return (
-    <select
-      value={current}
-      disabled={pending}
-      onChange={(e) => {
-        const next = e.target.value as InvoiceStatus;
-        if (next === current) return;
-        startTransition(async () => {
-          await changeInvoiceStatusAction(id, next);
-          router.refresh();
-        });
-      }}
-      className="h-9 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-    >
-      {INVOICE_STATUSES.map((s) => (
-        <option key={s.value} value={s.value}>
-          {s.label}
-        </option>
-      ))}
-    </select>
+    <div className="flex flex-col items-end gap-1">
+      <select
+        value={current}
+        disabled={pending || statuses.length <= 1}
+        onChange={(e) => {
+          const next = e.target.value as InvoiceStatus;
+          if (next === current) return;
+          setError(null);
+          startTransition(async () => {
+            const result = await changeInvoiceStatusAction(id, next);
+            if (!result.ok) {
+              setError(result.error ?? "Changement impossible.");
+              return;
+            }
+            router.refresh();
+          });
+        }}
+        className="h-9 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+      >
+        {statuses.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      {error ? <span className="max-w-64 text-right text-xs text-danger">{error}</span> : null}
+    </div>
   );
 }
 

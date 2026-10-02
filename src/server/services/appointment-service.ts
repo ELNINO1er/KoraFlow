@@ -1,5 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import type { AuthContext } from "../auth/context";
 import { assertCan } from "../permissions/permissions";
 import { prisma } from "../database/client";
@@ -15,6 +16,14 @@ import { notifyOrg } from "./notification-service";
  */
 
 export class AppointmentError extends Error {}
+
+class AppointmentConflictError extends Error {}
+
+function isAppointmentConstraintConflict(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code !== "P2004" && error.code !== "P2002") return false;
+  return JSON.stringify(error.meta ?? {}).includes("appointment_no_confirmed_overlap");
+}
 
 export async function listTypes(ctx: AuthContext) {
   assertCan(ctx.role, "appointments.view");
@@ -163,38 +172,61 @@ export async function bookAppointment(
   const endAt = new Date(startAt.getTime() + type.durationMinutes * 60000);
   const organizationId = type.organizationId;
 
-  await prisma.$transaction(async (tx) => {
-    const contact = await tx.contact.create({
-      data: {
-        organizationId,
-        type: "PROSPECT",
-        stage: "APPOINTMENT_SCHEDULED",
-        firstName: input.name.trim(),
-        email: input.email.trim(),
-        phone: input.phone,
-        source: `Rendez-vous : ${type.name}`,
-        portalToken: randomBytes(24).toString("hex"),
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Sérialise les réservations d'un même type. Cette vérification couvre
+      // aussi le temps tampon, que la contrainte d'exclusion ne peut pas lire
+      // depuis la table appointment_type.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${type.id}, 0))`;
+      const nearby = await tx.appointment.findMany({
+        where: {
+          organizationId,
+          appointmentTypeId: type.id,
+          status: "CONFIRMED",
+          startAt: { lt: new Date(endAt.getTime() + type.bufferAfterMinutes * 60000) },
+          endAt: { gt: new Date(startAt.getTime() - type.bufferAfterMinutes * 60000) },
+        },
+        select: { startAt: true, endAt: true },
+      });
+      if (nearby.length > 0) throw new AppointmentConflictError();
+
+      const contact = await tx.contact.create({
+        data: {
+          organizationId,
+          type: "PROSPECT",
+          stage: "APPOINTMENT_SCHEDULED",
+          firstName: input.name.trim(),
+          email: input.email.trim(),
+          phone: input.phone,
+          source: `Rendez-vous : ${type.name}`,
+          portalToken: randomBytes(24).toString("hex"),
+        },
+      });
+      await tx.appointment.create({
+        data: {
+          organizationId,
+          appointmentTypeId: type.id,
+          contactId: contact.id,
+          name: input.name.trim(),
+          email: input.email.trim(),
+          phone: input.phone,
+          startAt,
+          endAt,
+        },
+      });
+      await tx.contactActivity.create({
+        data: { organizationId, contactId: contact.id, type: "CREATED", content: `Rendez-vous « ${type.name} » réservé` },
+      });
+      await tx.auditLog.create({
+        data: { organizationId, action: "appointment.booked", targetType: "AppointmentType", targetId: type.id, ipAddress: meta.ipAddress, metadata: { startAt: startAt.toISOString() } },
+      });
     });
-    await tx.appointment.create({
-      data: {
-        organizationId,
-        appointmentTypeId: type.id,
-        contactId: contact.id,
-        name: input.name.trim(),
-        email: input.email.trim(),
-        phone: input.phone,
-        startAt,
-        endAt,
-      },
-    });
-    await tx.contactActivity.create({
-      data: { organizationId, contactId: contact.id, type: "CREATED", content: `Rendez-vous « ${type.name} » réservé` },
-    });
-    await tx.auditLog.create({
-      data: { organizationId, action: "appointment.booked", targetType: "AppointmentType", targetId: type.id, ipAddress: meta.ipAddress, metadata: { startAt: startAt.toISOString() } },
-    });
-  });
+  } catch (error) {
+    if (error instanceof AppointmentConflictError || isAppointmentConstraintConflict(error)) {
+      return { ok: false, error: "Ce créneau vient d'être réservé. Veuillez en choisir un autre." };
+    }
+    throw error;
+  }
 
   await notifyOrg(organizationId, {
     type: "appointment.booked",

@@ -5,6 +5,7 @@ import { assertCan } from "../permissions/permissions";
 import { prisma } from "../database/client";
 import * as invoices from "../repositories/invoice-repository";
 import { getQuoteById } from "../repositories/quote-repository";
+import { isManualInvoiceTransition } from "@/lib/constants/invoices";
 
 export class InvoiceError extends Error {}
 
@@ -67,6 +68,15 @@ export async function generateFromQuote(ctx: AuthContext, quoteId: string) {
 
 export async function changeInvoiceStatus(ctx: AuthContext, id: string, status: InvoiceStatus) {
   assertCan(ctx.role, "invoices.update");
+  if (status === "PAID" || status === "PARTIALLY_PAID") {
+    throw new InvoiceError("Le statut de paiement est calculé depuis les encaissements confirmés.");
+  }
+  const current = await invoices.getInvoiceById(ctx.organizationId, id);
+  if (!current) return null;
+  if (current.status === status) return current;
+  if (!isManualInvoiceTransition(current.status, status)) {
+    throw new InvoiceError("Cette transition de statut n'est pas autorisée.");
+  }
   const updated = await invoices.updateInvoiceStatus(ctx.organizationId, id, status);
   if (updated) {
     await prisma.auditLog.create({

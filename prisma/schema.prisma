@@ -161,6 +161,7 @@ model Organization {
   availabilities    Availability[]
   appointments      Appointment[]
   notifications     Notification[]
+  documentSequences DocumentSequence[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -922,6 +923,29 @@ enum AppointmentStatus {
   CANCELED
 }
 
+enum DocumentKind {
+  QUOTE
+  CONTRACT
+  INVOICE
+}
+
+/// Compteur atomique par organisation, type de document et année.
+/// Il évite les doublons que provoquerait un simple `count() + 1`.
+model DocumentSequence {
+  id             String       @id @default(cuid())
+  organizationId String
+  kind           DocumentKind
+  year           Int
+  value          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, kind, year])
+  @@map("document_sequence")
+}
+
 model AppointmentType {
   id                 String  @id @default(cuid())
   organizationId     String
@@ -983,6 +1007,8 @@ model Appointment {
   appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
   contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
+  /// Une contrainte d'exclusion PostgreSQL dans la migration interdit les
+  /// chevauchements de rendez-vous confirmés pour un même type.
   @@index([organizationId, startAt])
   @@index([organizationId, appointmentTypeId, startAt])
   @@map("appointment")

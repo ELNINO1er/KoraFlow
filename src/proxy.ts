@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  * par un script noncé. `style-src 'unsafe-inline'` reste nécessaire (styles
  * inline de Recharts / composants) ; les styles sont à faible risque XSS.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
   const nonce = btoa(crypto.randomUUID());
 

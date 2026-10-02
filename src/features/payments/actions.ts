@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { PaymentMethod } from "@prisma/client";
+import { z } from "zod";
 import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as paymentService from "@/server/services/payment-service";
 
@@ -35,10 +36,17 @@ export async function recordPaymentAction(input: {
   reference?: string;
 }) {
   const ctx = await getContext();
-  const result = await paymentService.recordPayment(ctx, input.invoiceId, {
-    amountMinor: input.amountMinor,
-    method: input.method,
-    reference: input.reference,
+  const parsed = z.object({
+    invoiceId: z.string().min(1),
+    amountMinor: z.number().int().positive().max(2_147_483_647),
+    method: z.enum(["WAVE", "ORANGE_MONEY", "MTN", "MOOV", "BANK_TRANSFER", "CASH", "OTHER"]),
+    reference: z.string().trim().max(160).optional(),
+  }).safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Paiement invalide." };
+  const result = await paymentService.recordPayment(ctx, parsed.data.invoiceId, {
+    amountMinor: parsed.data.amountMinor,
+    method: parsed.data.method,
+    reference: parsed.data.reference,
   });
   revalidatePath(`/factures/${input.invoiceId}`);
   return result;
