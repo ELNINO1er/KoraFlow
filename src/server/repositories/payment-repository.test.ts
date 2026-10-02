@@ -25,6 +25,10 @@ beforeAll(async () => {
     items: [{ description: "Ligne B", unitPriceMinor: 100000, quantity: 1, taxRate: 0 }],
   });
   invoiceBId = invoiceB.id;
+  await prisma.invoice.update({
+    where: { id: invoiceB.id },
+    data: { status: "SENT" },
+  });
   const paymentB = await repo.createPayment(orgBId, {
     invoiceId: invoiceB.id,
     amountMinor: 100000,
