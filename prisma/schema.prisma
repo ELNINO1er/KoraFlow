@@ -89,6 +89,7 @@ model User {
   assignedTasks           Task[]            @relation("TaskAssignee")
   createdForms            Form[]            @relation("FormCreatedBy")
   createdAppointmentTypes AppointmentType[] @relation("AppointmentTypeCreatedBy")
+  uploadedDocuments       Document[]        @relation("DocumentUploadedBy")
   notifications           Notification[]
 
   twoFactorEnabled Boolean?    @default(false)
@@ -162,6 +163,7 @@ model Organization {
   appointments      Appointment[]
   notifications     Notification[]
   documentSequences DocumentSequence[]
+  documents         Document[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -793,6 +795,7 @@ model Project {
   createdBy    User?          @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   stages       ProjectStage[]
   tasks        Task[]
+  documents    Document[]
 
   @@index([organizationId, status])
   @@index([organizationId, contactId])
@@ -839,6 +842,33 @@ model Task {
 
   @@index([organizationId, projectId])
   @@map("task")
+}
+
+// ---------------------------------------------------------------------------
+// Documents privés rattachés aux projets
+// ---------------------------------------------------------------------------
+
+model Document {
+  id             String  @id @default(cuid())
+  organizationId String
+  projectId      String
+  uploadedById   String?
+  storageKey     String
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  sha256         String
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy   User?        @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, storageKey])
+  @@index([organizationId, projectId, createdAt])
+  @@map("document")
 }
 
 // ---------------------------------------------------------------------------

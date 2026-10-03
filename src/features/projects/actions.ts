@@ -6,6 +6,7 @@ import type { ProjectStatus, TaskPriority } from "@prisma/client";
 import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as projectService from "@/server/services/project-service";
 import { PermissionError } from "@/server/permissions/permissions";
+import { deleteDocument } from "@/server/services/document-service";
 
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
@@ -72,4 +73,15 @@ export async function deleteProjectAction(id: string) {
   }
   revalidatePath("/projets");
   redirect("/projets");
+}
+
+export async function deleteDocumentAction(id: string, projectId: string) {
+  const ctx = await getContext();
+  try {
+    await deleteDocument(ctx, id);
+  } catch (error) {
+    if (error instanceof PermissionError) return;
+    throw error;
+  }
+  revalidatePath(`/projets/${projectId}`);
 }

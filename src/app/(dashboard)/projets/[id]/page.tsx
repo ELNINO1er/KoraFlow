@@ -10,21 +10,30 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProjectStatusControl, DeleteProjectButton } from "@/features/projects/project-controls";
 import { TaskManager } from "@/features/projects/task-manager";
+import { DocumentManager } from "@/features/projects/document-manager";
+import { listProjectDocuments } from "@/server/services/document-service";
 
 export const metadata: Metadata = { title: "Projet" };
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ document?: string; reason?: string }>;
 }) {
   const ctx = await requireAuthContext();
   const { id } = await params;
   const project = await getProject(ctx, id);
   if (!project) notFound();
+  const query = await searchParams;
 
   const canUpdate = can(ctx.role, "projects.update");
   const canDelete = can(ctx.role, "projects.delete");
+  const canViewDocuments = can(ctx.role, "documents.view");
+  const canUploadDocuments = can(ctx.role, "documents.create");
+  const canDeleteDocuments = can(ctx.role, "documents.delete");
+  const documents = canViewDocuments ? await listProjectDocuments(ctx, id) : [];
   const clientName = project.contact.companyName ?? `${project.contact.firstName} ${project.contact.lastName ?? ""}`.trim();
 
   return (
@@ -81,6 +90,36 @@ export default async function ProjectDetailPage({
           />
         </CardContent>
       </Card>
+
+      {canViewDocuments ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents privés</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DocumentManager
+              projectId={project.id}
+              canUpload={canUploadDocuments}
+              canDelete={canDeleteDocuments}
+              documents={documents.map((document) => ({
+                id: document.id,
+                originalName: document.originalName,
+                mimeType: document.mimeType,
+                sizeBytes: document.sizeBytes,
+                createdAtLabel: new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(document.createdAt),
+                uploaderName: document.uploadedBy?.name ?? null,
+              }))}
+              message={
+                query.document === "uploaded"
+                  ? { type: "success", text: "Document ajouté en toute sécurité." }
+                  : query.document
+                    ? { type: "error", text: query.reason || "Impossible d’ajouter ce document." }
+                    : undefined
+              }
+            />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
