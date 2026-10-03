@@ -1,5 +1,6 @@
 import { resolveSession } from "@/server/auth/context";
 import { generateQuotePdf } from "@/server/services/quote-pdf";
+import { pdfResponse } from "@/lib/http/pdf-response";
 
 /** Téléchargement du PDF d'un devis (auth + scoping via generateQuotePdf). */
 export async function GET(
@@ -17,11 +18,5 @@ export async function GET(
     return new Response("Devis introuvable", { status: 404 });
   }
 
-  return new Response(new Uint8Array(pdf.buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${pdf.filename}"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
+  return pdfResponse(pdf.buffer, pdf.filename);
 }

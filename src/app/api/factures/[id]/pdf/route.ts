@@ -1,5 +1,6 @@
 import { resolveSession } from "@/server/auth/context";
 import { generateInvoicePdf } from "@/server/services/invoice-pdf";
+import { pdfResponse } from "@/lib/http/pdf-response";
 
 export async function GET(
   _req: Request,
@@ -10,11 +11,5 @@ export async function GET(
   const { id } = await params;
   const pdf = await generateInvoicePdf(session.context, id);
   if (!pdf) return new Response("Facture introuvable", { status: 404 });
-  return new Response(new Uint8Array(pdf.buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${pdf.filename}"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
+  return pdfResponse(pdf.buffer, pdf.filename);
 }

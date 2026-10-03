@@ -11,6 +11,21 @@ interface Bucket {
 }
 
 const store = new Map<string, Bucket>();
+const MAX_BUCKETS = 10_000;
+
+function makeRoom(now: number): void {
+  if (store.size < MAX_BUCKETS) return;
+
+  for (const [key, bucket] of store) {
+    if (bucket.resetAt <= now) store.delete(key);
+  }
+
+  while (store.size >= MAX_BUCKETS) {
+    const oldestKey = store.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    store.delete(oldestKey);
+  }
+}
 
 export interface RateLimitResult {
   ok: boolean;
@@ -22,6 +37,7 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   const bucket = store.get(key);
 
   if (!bucket || bucket.resetAt <= now) {
+    if (!bucket) makeRoom(now);
     store.set(key, { count: 1, resetAt: now + windowMs });
     return { ok: true };
   }
