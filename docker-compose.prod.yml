@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requis}
+    volumes:
+      - koraflow_prod_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    restart: "no"
+    env_file: ${KORAFLOW_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    env_file: ${KORAFLOW_ENV_FILE:-.env.production}
+    environment:
+      NODE_ENV: production
+      STORAGE_DRIVER: local
+      PRIVATE_UPLOAD_DIR: /app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - koraflow_prod_uploads:/app/uploads
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [backend]
+
+volumes:
+  koraflow_prod_db:
+  koraflow_prod_uploads:
+
+networks:
+  backend:
+    internal: true

@@ -18,6 +18,7 @@ KoraFlow centralise le parcours commercial complet, **de la première demande du
 - [Multi-tenant & sécurité](#multi-tenant--sécurité)
 - [Parcours fonctionnel](#parcours-fonctionnel)
 - [Tests & intégration continue](#tests--intégration-continue)
+- [Déploiement Docker mono-instance](#déploiement-docker-mono-instance)
 - [Limites connues & backlog](#limites-connues--backlog)
 
 ---
@@ -148,7 +149,7 @@ prisma/                schema.prisma, migrations/, seed.ts
 - **RBAC** : 7 rôles, matrice de permissions typée et vérifiée côté serveur (`assertCan`).
 - **Journal d'audit** sur les opérations sensibles.
 - **En-têtes de sécurité** (`next.config.ts`) : `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
-- **Content-Security-Policy** par requête avec **nonce** (`src/middleware.ts`).
+- **Content-Security-Policy** par requête avec **nonce** (`src/proxy.ts`).
 - **Rate-limiting** sur les écritures publiques (formulaires, déclaration de paiement, réservation).
 - **Aucun secret dans le dépôt** : `.env` est ignoré, `.env.example` ne contient aucune valeur secrète.
 - **Signature de contrat** : électronique **simple** (consentement + horodatage + IP + empreinte **SHA-256** du contenu) — **jamais présentée comme « qualifiée »**.
@@ -186,10 +187,42 @@ La **CI GitHub Actions** (`.github/workflows/ci.yml`) démarre un PostgreSQL de 
 
 ---
 
+## Déploiement Docker mono-instance
+
+Le dépôt fournit une image Next.js `standalone` exécutée sans privilèges, une
+cible de migration séparée et un fichier Compose de production. Ce mode est le
+seul déploiement actuellement supporté : PostgreSQL et les documents privés
+utilisent des volumes persistants sur un serveur unique.
+
+```bash
+# 1. Copier puis compléter toutes les valeurs (aucune valeur d'exemple en production)
+cp .env.production.example .env.production
+
+# 2. Construire, appliquer les migrations puis démarrer
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+
+# 3. Vérifier la disponibilité (le proxy HTTPS publie ensuite le port local 3000)
+curl --fail http://127.0.0.1:3000/api/health
+```
+
+Le port applicatif est volontairement lié à `127.0.0.1`. Un reverse proxy
+HTTPS (Nginx, Caddy ou équivalent) doit être placé devant l'application avec
+une limite de taille des requêtes. Avant chaque mise en production, sauvegarder
+les deux volumes `koraflow_prod_db` et `koraflow_prod_uploads`, puis tester leur
+restauration sur une machine séparée.
+
+Un déploiement multi-instance n'est pas encore supporté : il nécessiterait un
+stockage objet partagé, un limiteur de débit partagé et la coordination du cache
+Next.js et des clés Server Actions.
+
+---
+
 ## Limites connues & backlog
 
 - **Fuseaux horaires** des rendez-vous : MVP en UTC+0 (Abidjan).
 - **Notifications** : in-app uniquement (e-mails aux membres à ajouter).
+- **Déploiement** : mono-instance Docker uniquement ; reverse proxy HTTPS à configurer sur le serveur.
+- **Documents** : volume local persistant, sans analyse antivirus ; stockage objet partagé à ajouter avant toute montée en charge.
 - **RLS PostgreSQL** (défense en profondeur) : prévu en complément de l'enforcement applicatif.
 - **Intégrations externes** à brancher : agrégateur de paiement (CinetPay/Wave/Orange Money), SMS/WhatsApp, connecteur **FNE** (facture normalisée DGI).
 - **Vulnérabilités npm** : 4 « high » transitives via le **CLI Prisma** (dev-dependency, `mysql2`/`deepmerge-ts`) — non exploitables (PostgreSQL via `pg`, CLI hors runtime) ; ne pas `npm audit fix --force` (rétrograderait Prisma).

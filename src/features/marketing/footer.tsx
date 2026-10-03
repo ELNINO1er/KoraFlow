@@ -14,15 +14,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Ressources",
     links: [
-      { label: "Centre d'aide", href: "#" },
-      { label: "Contact", href: "#tarifs" },
-    ],
-  },
-  {
-    title: "Légal",
-    links: [
-      { label: "Conditions d'utilisation", href: "#" },
-      { label: "Politique de confidentialité", href: "#" },
+      { label: "Rejoindre le pilote", href: "#tarifs" },
     ],
   },
   {
@@ -38,7 +30,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-surface/40">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
               Kora<span className="text-accent">Flow</span>

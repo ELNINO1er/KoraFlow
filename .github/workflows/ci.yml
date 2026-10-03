@@ -68,3 +68,11 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate production Compose file
+        env:
+          KORAFLOW_ENV_FILE: .env.production.example
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml config --quiet
+
+      - name: Build production container
+        run: docker build --target runner --tag koraflow:ci .
