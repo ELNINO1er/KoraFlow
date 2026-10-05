@@ -2,6 +2,8 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { guardPublicMutation } from "@/lib/security/public-mutation";
 import { signContractByToken } from "@/server/services/contract-service";
 
 /**
@@ -12,20 +14,26 @@ export async function signContractAction(
   token: string,
   signerName: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const h = await headers();
-  const ipAddress =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip") ||
-    undefined;
-  const userAgent = h.get("user-agent") ?? undefined;
+  const parsed = z.object({
+    token: z.string(),
+    signerName: z.string().trim().min(2).max(120),
+  }).safeParse({ token, signerName });
+  if (!parsed.success) return { ok: false, error: "Informations de signature invalides." };
 
-  const result = await signContractByToken(token, {
-    signerName,
-    ipAddress: ipAddress ?? undefined,
-    userAgent,
+  const guard = guardPublicMutation({
+    scope: "contract-signature",
+    token: parsed.data.token,
+    headers: await headers(),
+  });
+  if (!guard.ok) return guard;
+
+  const result = await signContractByToken(parsed.data.token, {
+    signerName: parsed.data.signerName,
+    ipAddress: guard.ipAddress,
+    userAgent: guard.userAgent,
   });
 
   if (!result.ok) return { ok: false, error: result.error };
-  revalidatePath(`/c/${token}`);
+  revalidatePath(`/c/${parsed.data.token}`);
   return { ok: true };
 }

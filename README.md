@@ -151,6 +151,7 @@ prisma/                schema.prisma, migrations/, seed.ts
 - **En-têtes de sécurité** (`next.config.ts`) : `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
 - **Content-Security-Policy** par requête avec **nonce** (`src/proxy.ts`).
 - **Rate-limiting** sur les écritures publiques (formulaires, déclaration de paiement, réservation).
+- **Rate-limiting** sur les décisions de devis et signatures publiques ; les clés en mémoire hachent l'IP et le jeton secret.
 - **Aucun secret dans le dépôt** : `.env` est ignoré, `.env.example` ne contient aucune valeur secrète.
 - **Signature de contrat** : électronique **simple** (consentement + horodatage + IP + empreinte **SHA-256** du contenu) — **jamais présentée comme « qualifiée »**.
 - **Paiement** : jamais confirmé automatiquement (validation manuelle par un responsable).

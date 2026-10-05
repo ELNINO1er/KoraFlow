@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { z } from "zod";
 import { prisma } from "@/server/database/client";
+import { guardPublicMutation } from "@/lib/security/public-mutation";
 import {
   getQuoteByPublicToken,
   respondToQuoteByToken,
@@ -16,10 +19,23 @@ export async function respondToQuoteAction(
   token: string,
   decision: "ACCEPTED" | "REJECTED",
 ): Promise<{ ok: boolean; error?: string }> {
-  const quote = await getQuoteByPublicToken(token);
+  const parsed = z.object({
+    token: z.string(),
+    decision: z.enum(["ACCEPTED", "REJECTED"]),
+  }).safeParse({ token, decision });
+  if (!parsed.success) return { ok: false, error: "Réponse invalide." };
+
+  const guard = guardPublicMutation({
+    scope: "quote-response",
+    token: parsed.data.token,
+    headers: await headers(),
+  });
+  if (!guard.ok) return guard;
+
+  const quote = await getQuoteByPublicToken(parsed.data.token);
   if (!quote) return { ok: false, error: "Devis introuvable ou expiré." };
 
-  const changed = await respondToQuoteByToken(token, decision);
+  const changed = await respondToQuoteByToken(parsed.data.token, parsed.data.decision);
   if (!changed) {
     return {
       ok: false,
@@ -30,7 +46,7 @@ export async function respondToQuoteAction(
   await prisma.auditLog.create({
     data: {
       organizationId: quote.organizationId,
-      action: decision === "ACCEPTED" ? "quote.accepted_by_client" : "quote.rejected_by_client",
+      action: parsed.data.decision === "ACCEPTED" ? "quote.accepted_by_client" : "quote.rejected_by_client",
       targetType: "Quote",
       targetId: quote.id,
       metadata: { via: "public_portal" },
@@ -40,13 +56,13 @@ export async function respondToQuoteAction(
   await notifyOrg(
     quote.organizationId,
     {
-      type: decision === "ACCEPTED" ? "quote.accepted" : "quote.rejected",
-      title: decision === "ACCEPTED" ? `Devis ${quote.number} accepté` : `Devis ${quote.number} refusé`,
+      type: parsed.data.decision === "ACCEPTED" ? "quote.accepted" : "quote.rejected",
+      title: parsed.data.decision === "ACCEPTED" ? `Devis ${quote.number} accepté` : `Devis ${quote.number} refusé`,
       link: `/devis/${quote.id}`,
     },
     { email: true },
   );
 
-  revalidatePath(`/q/${token}`);
+  revalidatePath(`/q/${parsed.data.token}`);
   return { ok: true };
 }
