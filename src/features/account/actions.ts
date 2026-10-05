@@ -42,6 +42,20 @@ export async function requestEmailChangeAction(newEmail: string): Promise<Accoun
     return { ok: false, error: "Cette adresse est déjà associée à votre compte." };
   }
 
+  // Better Auth masque volontairement l'existence d'un compte et peut répondre
+  // comme si l'e-mail était parti. Dans cet espace déjà authentifié, un message
+  // explicite évite à l'utilisateur d'attendre un courrier qui ne sera pas émis.
+  const existingUser = await prisma.user.findUnique({
+    where: { email: parsed.data },
+    select: { id: true },
+  });
+  if (existingUser) {
+    return {
+      ok: false,
+      error: "Cette adresse e-mail appartient déjà à un autre compte. Connectez-vous avec ce compte ou utilisez une autre adresse.",
+    };
+  }
+
   try {
     await auth.api.changeEmail({
       headers: await headers(),

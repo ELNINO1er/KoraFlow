@@ -1,6 +1,8 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import type { AuthContext } from "../auth/context";
 import { prisma } from "../database/client";
+import { assertCan } from "../permissions/permissions";
 import { slugify } from "@/lib/formatting/slug";
 
 export interface CreateOrganizationInput {
@@ -82,5 +84,83 @@ export async function listUserOrganizations(userId: string) {
     where: { userId },
     include: { organization: true },
     orderBy: { createdAt: "asc" },
+  });
+}
+
+export interface OrganizationSettingsInput {
+  name: string;
+  legalName: string | null;
+  email: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  country: string;
+  currency: string;
+  timezone: string;
+  locale: string;
+  taxId: string | null;
+  taxRegime: string | null;
+  invoicePrefix: string;
+  quotePrefix: string;
+  brandColor: string | null;
+}
+
+const organizationSettingsSelect = {
+  name: true,
+  legalName: true,
+  email: true,
+  phone: true,
+  addressLine1: true,
+  addressLine2: true,
+  city: true,
+  country: true,
+  currency: true,
+  timezone: true,
+  locale: true,
+  taxId: true,
+  taxRegime: true,
+  invoicePrefix: true,
+  quotePrefix: true,
+  brandColor: true,
+} satisfies Prisma.OrganizationSelect;
+
+/** Lit uniquement les paramètres de l'organisation active. */
+export async function getOrganizationSettings(ctx: AuthContext) {
+  assertCan(ctx.role, "organization.view");
+  return prisma.organization.findFirstOrThrow({
+    where: { id: ctx.organizationId, deletedAt: null },
+    select: organizationSettingsSelect,
+  });
+}
+
+/** Met à jour l'organisation active et écrit la piste d'audit atomiquement. */
+export async function updateOrganizationSettings(
+  ctx: AuthContext,
+  input: OrganizationSettingsInput,
+) {
+  assertCan(ctx.role, "organization.update");
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.organization.updateMany({
+      where: { id: ctx.organizationId, deletedAt: null },
+      data: input,
+    });
+    if (updated.count !== 1) throw new Error("Organisation active introuvable.");
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: ctx.organizationId,
+        actorUserId: ctx.user.id,
+        action: "organization.settings_updated",
+        targetType: "Organization",
+        targetId: ctx.organizationId,
+      },
+    });
+
+    return tx.organization.findFirstOrThrow({
+      where: { id: ctx.organizationId, deletedAt: null },
+      select: organizationSettingsSelect,
+    });
   });
 }

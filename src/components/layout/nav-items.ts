@@ -10,6 +10,7 @@ import {
   FormInput,
   Users2,
   BarChart3,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
   { label: "Formulaires", href: "/formulaires", icon: FormInput },
   { label: "Catalogue de services", href: "/services", icon: Package },
   { label: "Équipe", href: "/equipe", icon: Users2 },
+  { label: "Paramètres", href: "/parametres", icon: Settings },
 ];
 
 /** Navigation mobile (bottom-nav §12). */
