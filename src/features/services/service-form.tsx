@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 export interface ServiceFormValues {
@@ -33,9 +34,6 @@ const EMPTY: ServiceFormValues = {
   estimatedDurationMinutes: "",
   active: true,
 };
-
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const initialState: ServiceFormState = { error: null };
 
@@ -106,13 +104,13 @@ export function ServiceForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="unit">Unité</Label>
-            <select id="unit" name="unit" defaultValue={v.unit} className={selectClass}>
+            <NativeSelect id="unit" name="unit" defaultValue={v.unit} className="w-full">
               {SERVICE_UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <div className="flex flex-col gap-1.5">

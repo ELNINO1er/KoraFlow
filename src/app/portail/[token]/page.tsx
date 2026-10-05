@@ -12,7 +12,8 @@ import {
   CircleDot,
 } from "lucide-react";
 import { getContactByPortalToken } from "@/server/repositories/contact-repository";
-import { formatCurrency } from "@/lib/formatting/currency";
+import { Money } from "@/components/ui/money";
+import { DateText } from "@/components/ui/date-text";
 import { quoteStatusLabel, quoteStatusVariant } from "@/lib/constants/quotes";
 import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/contracts";
 import { invoiceStatusLabel, invoiceStatusVariant } from "@/lib/constants/invoices";
@@ -42,8 +43,6 @@ export default async function ClientPortalPage({
   if (!contact) notFound();
 
   const localeTag = contact.organization.locale === "fr" ? "fr-FR" : contact.organization.locale;
-  const money = (m: number, c: string) => formatCurrency(m, c, localeTag);
-  const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
   // --- Dérivation de l'état de chaque étape à partir des données réelles ---
   const quotes = contact.quotes;
@@ -192,7 +191,7 @@ export default async function ClientPortalPage({
             key={q.id}
             href={`/q/${q.publicToken}`}
             title={q.number}
-            meta={money(q.totalMinor, q.currency)}
+            meta={<Money minor={q.totalMinor} currency={q.currency} locale={localeTag} />}
             badge={<Badge variant={quoteStatusVariant(q.status)}>{quoteStatusLabel(q.status)}</Badge>}
             actionText={q.status === "SENT" || q.status === "VIEWED" ? "Consulter et répondre" : undefined}
           />
@@ -218,7 +217,7 @@ export default async function ClientPortalPage({
             key={inv.id}
             href={`/i/${inv.publicToken}`}
             title={inv.number}
-            meta={money(inv.totalMinor, inv.currency)}
+            meta={<Money minor={inv.totalMinor} currency={inv.currency} locale={localeTag} />}
             badge={<Badge variant={invoiceStatusVariant(inv.status)}>{invoiceStatusLabel(inv.status)}</Badge>}
             actionText={
               inv.status === "SENT" || inv.status === "PARTIALLY_PAID" || inv.status === "OVERDUE"
@@ -250,7 +249,9 @@ export default async function ClientPortalPage({
           {contact.appointments.map((a) => (
             <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
               <span className="text-sm text-foreground">{a.appointmentType.name}</span>
-              <span className="text-xs text-muted-foreground">{dtf.format(a.startAt)} (UTC)</span>
+              <span className="text-xs text-muted-foreground">
+                <DateText value={a.startAt} variant="datetime" utc locale={localeTag} />
+              </span>
             </div>
           ))}
         </PortalSection>
@@ -303,7 +304,7 @@ function PortalRow({
 }: {
   href: string;
   title: string;
-  meta: string;
+  meta: React.ReactNode;
   badge: React.ReactNode;
   actionText?: string;
 }) {

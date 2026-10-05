@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Ban, Database } from "lucide-react";
 import { getOrganizationDetail } from "@/server/services/platform-admin";
-import { formatCurrency, formatShortDate, formatDateTime } from "@/lib/formatting/currency";
+import { Money } from "@/components/ui/money";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgSuspendToggle } from "@/features/admin/admin-controls";
@@ -59,7 +60,7 @@ export default async function AdminOrganizationDetailPage({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            /{org.slug} · {org.currency} · créée le {formatShortDate(org.createdAt)}
+            /{org.slug} · {org.currency} · créée le <DateText value={org.createdAt} />
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -88,7 +89,7 @@ export default async function AdminOrganizationDetailPage({
           <CardContent className="flex flex-col gap-1 pt-6">
             <span className="text-xs font-medium text-muted-foreground">Revenu encaissé</span>
             <span className="font-display text-xl font-bold text-foreground">
-              {formatCurrency(stats.revenueMinor, org.currency)}
+              <Money minor={stats.revenueMinor} currency={org.currency} />
             </span>
           </CardContent>
         </Card>
@@ -157,7 +158,7 @@ export default async function AdminOrganizationDetailPage({
                     </p>
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatDateTime(a.createdAt)}
+                    <DateText value={a.createdAt} variant="datetime" />
                   </span>
                 </li>
               ))}

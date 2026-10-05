@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { listAuditLog } from "@/server/services/platform-admin";
-import { formatDateTime } from "@/lib/formatting/currency";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Journal d'audit" };
@@ -36,7 +36,7 @@ export default async function AdminAuditPage() {
                 {entries.map((e) => (
                   <tr key={e.id}>
                     <td className="whitespace-nowrap py-2.5 pr-4 text-xs text-muted-foreground">
-                      {formatDateTime(e.createdAt)}
+                      <DateText value={e.createdAt} variant="datetime" />
                     </td>
                     <td className="py-2.5 pr-4 font-mono text-xs text-foreground">{e.action}</td>
                     <td className="py-2.5 pr-4 text-xs text-muted-foreground">

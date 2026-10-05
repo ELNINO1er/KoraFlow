@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Ban } from "lucide-react";
 import { listOrganizations } from "@/server/services/platform-admin";
-import { formatCurrency, formatShortDate } from "@/lib/formatting/currency";
+import { Money } from "@/components/ui/money";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgSuspendToggle } from "@/features/admin/admin-controls";
@@ -61,10 +62,10 @@ export default async function AdminOrganizationsPage() {
                     <td className="py-3 pr-4 text-foreground">{org.contactCount}</td>
                     <td className="py-3 pr-4 text-foreground">{org.invoiceCount}</td>
                     <td className="py-3 pr-4 text-foreground">
-                      {formatCurrency(org.revenueMinor, org.currency)}
+                      <Money minor={org.revenueMinor} currency={org.currency} />
                     </td>
                     <td className="py-3 pr-4 text-muted-foreground">
-                      {formatShortDate(org.createdAt)}
+                      <DateText value={org.createdAt} />
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex justify-end">

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getOrganizationData } from "@/server/services/platform-admin";
-import { formatCurrency, formatShortDate } from "@/lib/formatting/currency";
+import { Money } from "@/components/ui/money";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -71,10 +72,10 @@ export default async function AdminOrgDataPage({
                 <li key={q.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
                   <div className="min-w-0">
                     <p className="truncate font-mono text-xs text-foreground">{q.number}</p>
-                    <p className="text-xs text-muted-foreground">{formatShortDate(q.createdAt)}</p>
+                    <p className="text-xs text-muted-foreground"><DateText value={q.createdAt} /></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-foreground">{formatCurrency(q.totalMinor, q.currency)}</p>
+                    <p className="text-sm text-foreground"><Money minor={q.totalMinor} currency={q.currency} /></p>
                     <Badge variant="outline">{q.status}</Badge>
                   </div>
                 </li>
@@ -94,10 +95,10 @@ export default async function AdminOrgDataPage({
                 <li key={inv.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
                   <div className="min-w-0">
                     <p className="truncate font-mono text-xs text-foreground">{inv.number}</p>
-                    <p className="text-xs text-muted-foreground">{formatShortDate(inv.createdAt)}</p>
+                    <p className="text-xs text-muted-foreground"><DateText value={inv.createdAt} /></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-foreground">{formatCurrency(inv.totalMinor, inv.currency)}</p>
+                    <p className="text-sm text-foreground"><Money minor={inv.totalMinor} currency={inv.currency} /></p>
                     <Badge variant="outline">{inv.status}</Badge>
                   </div>
                 </li>
@@ -118,7 +119,7 @@ export default async function AdminOrgDataPage({
               <li key={p.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-foreground">{p.title}</p>
-                  <p className="text-xs text-muted-foreground">{p.progress}% · {formatShortDate(p.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground">{p.progress}% · <DateText value={p.createdAt} /></p>
                 </div>
                 <Badge variant="outline">{p.status}</Badge>
               </li>

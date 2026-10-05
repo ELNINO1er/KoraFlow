@@ -9,6 +9,7 @@ import { CONTACT_STAGES, stageLabel, stageVariant, contactTypeLabel } from "@/li
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Clients" };
@@ -180,37 +181,11 @@ export default async function ClientsPage({
       )}
 
       {/* Pagination */}
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} sur {totalPages}
-          </p>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/clients${buildQuery({ q, stage, page: String(page - 1) })}`}>
-                  Précédent
-                </Link>
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Précédent
-              </Button>
-            )}
-            {page < totalPages ? (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/clients${buildQuery({ q, stage, page: String(page + 1) })}`}>
-                  Suivant
-                </Link>
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Suivant
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : null}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        makeHref={(p) => `/clients${buildQuery({ q, stage, page: String(p) })}`}
+      />
     </div>
   );
 }

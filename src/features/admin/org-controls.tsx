@@ -8,6 +8,7 @@ import { ASSIGNABLE_ROLES } from "@/lib/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { OrgEditableFields } from "@/server/services/platform-admin";
 import {
   updateOrgAction,
@@ -17,9 +18,6 @@ import {
   changeMemberRoleAction,
   removeMemberAction,
 } from "@/features/admin/actions";
-
-const selectClass =
-  "h-10 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 
 export function OrgEditForm({
   orgId,
@@ -177,13 +175,13 @@ export function AddMemberForm({ orgId }: { orgId: string }) {
         required
         className="flex-1"
       />
-      <select value={role} onChange={(e) => setRole(e.target.value as MembershipRole)} className={selectClass}>
+      <NativeSelect value={role} onChange={(e) => setRole(e.target.value as MembershipRole)}>
         {ASSIGNABLE_ROLES.map((r) => (
           <option key={r.value} value={r.value}>
             {r.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
         Ajouter
@@ -209,7 +207,7 @@ export function MemberRoleControl({
 
   return (
     <div className="flex items-center gap-2">
-      <select
+      <NativeSelect
         value={current}
         disabled={pending}
         onChange={(e) => {
@@ -222,14 +220,13 @@ export function MemberRoleControl({
             router.refresh();
           });
         }}
-        className={selectClass}
       >
         {ASSIGNABLE_ROLES.map((r) => (
           <option key={r.value} value={r.value}>
             {r.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <Button
         type="button"
         size="icon"

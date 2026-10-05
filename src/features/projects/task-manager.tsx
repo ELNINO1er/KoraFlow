@@ -9,6 +9,7 @@ import { addTaskAction, toggleTaskAction } from "@/features/projects/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export interface StageOption {
   id: string;
@@ -21,9 +22,6 @@ export interface TaskItem {
   priority: TaskPriority;
   stageId: string | null;
 }
-
-const selectClass =
-  "h-10 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function TaskManager({
   projectId,
@@ -85,21 +83,21 @@ export function TaskManager({
             placeholder="Nouvelle tâche…"
             className="flex-1"
           />
-          <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} className={selectClass}>
+          <NativeSelect value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
             {TASK_PRIORITIES.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           {stages.length > 0 ? (
-            <select value={stageId} onChange={(e) => setStageId(e.target.value)} className={selectClass}>
+            <NativeSelect value={stageId} onChange={(e) => setStageId(e.target.value)}>
               {stages.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           ) : null}
           <Button type="submit" disabled={pending || title.trim().length < 1}>
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}

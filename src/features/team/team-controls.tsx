@@ -13,9 +13,7 @@ import {
 } from "@/features/team/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const selectClass =
-  "h-10 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export function InviteForm() {
   const router = useRouter();
@@ -44,13 +42,13 @@ export function InviteForm() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" required className="flex-1" />
-      <select value={role} onChange={(e) => setRole(e.target.value as MembershipRole)} className={selectClass}>
+      <NativeSelect value={role} onChange={(e) => setRole(e.target.value as MembershipRole)}>
         {ASSIGNABLE_ROLES.map((r) => (
           <option key={r.value} value={r.value}>
             {r.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <Button type="submit" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         Inviter
@@ -67,7 +65,7 @@ export function RoleSelect({ membershipId, current }: { membershipId: string; cu
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="flex flex-col items-end">
-      <select
+      <NativeSelect
         value={current}
         disabled={pending}
         onChange={(e) => {
@@ -80,14 +78,13 @@ export function RoleSelect({ membershipId, current }: { membershipId: string; cu
             router.refresh();
           });
         }}
-        className={selectClass}
       >
         {ASSIGNABLE_ROLES.map((r) => (
           <option key={r.value} value={r.value}>
             {r.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </div>
   );

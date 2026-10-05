@@ -47,6 +47,21 @@ Formulaire : **`field`** (label + aide + erreur + aria), **`password-input`**
 (impact + justification + chargement + anti double-soumission ; rouge réservé au
 réellement destructeur).
 
+Partagés transverses :
+- **`native-select`** — sélecteur natif stylé (remplace l'ancien `selectClass`
+  dupliqué dans ~8 formulaires). Pour les formulaires : **`field-controls`**
+  (`TextField`, `TextareaField`, `SelectField` = Field + contrôle en un).
+- **`date-text`** — `<DateText value variant="short|long|datetime|time" utc? />`
+  (balise `<time>`, affichage de date cohérent partout).
+- **`money`** — `<Money minor currency />` (montant depuis l'entier en plus petite
+  unité).
+- **`pagination`** — `<Pagination page totalPages makeHref />` (Précédent/Suivant).
+- **`copy-button`** — copie presse-papiers avec retour visuel (liens publics).
+
+Règle de cohérence : pour une **date** → `DateText` ; un **montant** → `Money` ;
+un **select simple** → `NativeSelect`/`SelectField` ; **jamais** de `Intl.*` ni de
+classe de champ recopiée dans une page.
+
 ## Mouvement partagé (`src/features/marketing`)
 `MotionPreferencesProvider` + `MotionToggleButton`, `Reveal`, `SectionHeading`,
 `KoraFlowPath` (Kora Line) — réutilisables hors landing (auth, etc.).

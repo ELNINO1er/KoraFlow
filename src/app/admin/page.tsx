@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Building2, Users, ShieldCheck, FileText, Ban, Contact2 } from "lucide-react";
 import { getPlatformOverview } from "@/server/services/platform-admin";
-import { formatCurrency, formatShortDate } from "@/lib/formatting/currency";
+import { Money } from "@/components/ui/money";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -59,7 +60,7 @@ export default async function AdminOverviewPage() {
               {revenueEntries.map(([currency, amount]) => (
                 <div key={currency}>
                   <p className="font-display text-2xl font-bold text-foreground">
-                    {formatCurrency(amount, currency)}
+                    <Money minor={amount} currency={currency} />
                   </p>
                   <p className="text-xs text-muted-foreground">en {currency}</p>
                 </div>
@@ -83,7 +84,7 @@ export default async function AdminOverviewPage() {
                       {org.name}
                     </Link>
                     <p className="truncate text-xs text-muted-foreground">
-                      créée le {formatShortDate(org.createdAt)}
+                      créée le <DateText value={org.createdAt} />
                     </p>
                   </div>
                   {org.suspendedAt ? (

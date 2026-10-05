@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Card,
   CardHeader,
@@ -39,8 +40,6 @@ interface Line {
   taxRate: number;
 }
 
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function QuoteForm({
   contacts,
@@ -167,11 +166,11 @@ export function QuoteForm({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contact">Client *</Label>
-            <select
+            <NativeSelect
               id="contact"
               value={contactId}
               onChange={(e) => setContactId(e.target.value)}
-              className={selectClass}
+              className="w-full"
             >
               <option value="">— Sélectionner —</option>
               {contacts.map((c) => (
@@ -179,7 +178,7 @@ export function QuoteForm({
                   {c.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="expiry">Date d’expiration</Label>
@@ -294,15 +293,15 @@ export function QuoteForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Remise</Label>
-                <select
+                <NativeSelect
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as "" | AmountKind)}
-                  className={selectClass}
+                  className="w-full"
                 >
                   <option value="">Aucune</option>
                   <option value="PERCENT">Pourcentage (%)</option>
                   <option value="AMOUNT">Montant ({currency})</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Valeur</Label>
@@ -318,15 +317,15 @@ export function QuoteForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Acompte</Label>
-                <select
+                <NativeSelect
                   value={depositType}
                   onChange={(e) => setDepositType(e.target.value as "" | AmountKind)}
-                  className={selectClass}
+                  className="w-full"
                 >
                   <option value="">Aucun</option>
                   <option value="PERCENT">Pourcentage (%)</option>
                   <option value="AMOUNT">Montant ({currency})</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Valeur</Label>

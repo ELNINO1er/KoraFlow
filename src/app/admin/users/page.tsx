@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 import { listUsers } from "@/server/services/platform-admin";
 import { roleLabel } from "@/lib/constants/roles";
-import { formatShortDate } from "@/lib/formatting/currency";
+import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserActionsMenu } from "@/features/admin/user-actions-menu";
@@ -63,7 +63,7 @@ export default async function AdminUsersPage() {
                           )
                           .join(" · ")}
                     {" · inscrit le "}
-                    {formatShortDate(u.createdAt)}
+                    <DateText value={u.createdAt} />
                   </p>
                 </div>
 

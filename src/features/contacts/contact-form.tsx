@@ -13,12 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 const initialState: ContactFormState = { error: null };
-
-const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export interface ContactFormValues {
   firstName: string;
@@ -115,23 +113,23 @@ export function ContactForm({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="type">Type</Label>
-            <select id="type" name="type" defaultValue={v.type} className={selectClass}>
+            <NativeSelect id="type" name="type" defaultValue={v.type} className="w-full">
               {CONTACT_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="stage">Étape du pipeline</Label>
-            <select id="stage" name="stage" defaultValue={v.stage} className={selectClass}>
+            <NativeSelect id="stage" name="stage" defaultValue={v.stage} className="w-full">
               {CONTACT_STAGES.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-2">
