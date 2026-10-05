@@ -56,9 +56,11 @@ export function UserMenu({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserIcon className="size-4" />
-          Mon profil
+        <DropdownMenuItem asChild>
+          <Link href="/compte">
+            <UserIcon className="size-4" />
+            Mon compte
+          </Link>
         </DropdownMenuItem>
         {isPlatformAdmin ? (
           <>

@@ -52,6 +52,11 @@ export const auth = betterAuth({
       });
     },
   },
+  user: {
+    changeEmail: {
+      enabled: true,
+    },
+  },
   // twoFactor : MFA (TOTP).
   // admin : administration de plateforme (impersonation, gestion de comptes).
   //   Les admins sont identifiés par le rôle "admin" (synchronisé avec le drapeau
