@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ListSearch } from "@/components/app/list-search";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Contrats" };
@@ -22,10 +23,17 @@ function contactName(c: { firstName: string; lastName: string | null; companyNam
   return c.companyName ?? `${c.firstName} ${c.lastName ?? ""}`.trim();
 }
 
+function query(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) sp.set(k, v);
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 export default async function ContractsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   const ctx = await requireAuthContext();
   const sp = await searchParams;
@@ -33,11 +41,12 @@ export default async function ContractsPage({
     sp.status && VALID.has(sp.status as ContractStatus)
       ? (sp.status as ContractStatus)
       : undefined;
+  const q = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const localeTag = ctx.organization.locale === "fr" ? "fr-FR" : ctx.organization.locale;
   const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium" });
 
-  const { items, total } = await listContracts(ctx, { status, page });
+  const { items, total } = await listContracts(ctx, { status, search: q, page });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -48,28 +57,31 @@ export default async function ContractsPage({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href="/contrats"
-          className={cn(
-            "rounded-md border px-3 py-1 text-xs font-medium",
-            !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
-          )}
-        >
-          Tous
-        </Link>
-        {CONTRACT_STATUSES.map((s) => (
+      <div className="flex flex-col gap-3">
+        <ListSearch placeholder="Rechercher un contrat (n°)…" />
+        <div className="flex flex-wrap gap-2">
           <Link
-            key={s.value}
-            href={`/contrats?status=${s.value}`}
+            href={`/contrats${query({ q })}`}
             className={cn(
               "rounded-md border px-3 py-1 text-xs font-medium",
-              status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
+              !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
             )}
           >
-            {s.label}
+            Tous
           </Link>
-        ))}
+          {CONTRACT_STATUSES.map((s) => (
+            <Link
+              key={s.value}
+              href={`/contrats${query({ q, status: s.value })}`}
+              className={cn(
+                "rounded-md border px-3 py-1 text-xs font-medium",
+                status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (

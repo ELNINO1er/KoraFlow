@@ -33,6 +33,7 @@ export interface InvoiceCreateInput {
 
 export interface InvoiceListParams {
   status?: InvoiceStatus;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
@@ -108,6 +109,9 @@ export async function listInvoices(
 
   const where: Prisma.InvoiceWhereInput = { organizationId, deletedAt: null };
   if (params.status) where.status = params.status;
+  if (params.search && params.search.trim() !== "") {
+    where.number = { contains: params.search.trim(), mode: "insensitive" };
+  }
 
   const [items, total] = await Promise.all([
     prisma.invoice.findMany({

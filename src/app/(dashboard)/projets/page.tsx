@@ -7,6 +7,7 @@ import { listProjects } from "@/server/services/project-service";
 import { PROJECT_STATUSES, projectStatusLabel, projectStatusVariant } from "@/lib/constants/projects";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ListSearch } from "@/components/app/list-search";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Projets" };
@@ -17,16 +18,24 @@ function contactName(c: { firstName: string; lastName: string | null; companyNam
   return c.companyName ?? `${c.firstName} ${c.lastName ?? ""}`.trim();
 }
 
+function query(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) sp.set(k, v);
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   const ctx = await requireAuthContext();
   const sp = await searchParams;
   const status = sp.status && VALID.has(sp.status as ProjectStatus) ? (sp.status as ProjectStatus) : undefined;
+  const q = sp.q?.trim() || undefined;
 
-  const { items, total } = await listProjects(ctx, { status });
+  const { items, total } = await listProjects(ctx, { status, search: q });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -37,15 +46,18 @@ export default async function ProjectsPage({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href="/projets" className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
-          Tous
-        </Link>
-        {PROJECT_STATUSES.map((s) => (
-          <Link key={s.value} href={`/projets?status=${s.value}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
-            {s.label}
+      <div className="flex flex-col gap-3">
+        <ListSearch placeholder="Rechercher un projet…" />
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/projets${query({ q })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+            Tous
           </Link>
-        ))}
+          {PROJECT_STATUSES.map((s) => (
+            <Link key={s.value} href={`/projets${query({ q, status: s.value })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+              {s.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (

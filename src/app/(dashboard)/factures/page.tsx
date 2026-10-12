@@ -9,6 +9,7 @@ import { INVOICE_STATUSES, invoiceStatusLabel, invoiceStatusVariant } from "@/li
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ListSearch } from "@/components/app/list-search";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Factures" };
@@ -19,19 +20,27 @@ function contactName(c: { firstName: string; lastName: string | null; companyNam
   return c.companyName ?? `${c.firstName} ${c.lastName ?? ""}`.trim();
 }
 
+function query(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) sp.set(k, v);
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   const ctx = await requireAuthContext();
   const sp = await searchParams;
   const status = sp.status && VALID.has(sp.status as InvoiceStatus) ? (sp.status as InvoiceStatus) : undefined;
+  const q = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const localeTag = ctx.organization.locale === "fr" ? "fr-FR" : ctx.organization.locale;
   const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium" });
 
-  const { items, total } = await listInvoices(ctx, { status, page });
+  const { items, total } = await listInvoices(ctx, { status, search: q, page });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -42,15 +51,18 @@ export default async function InvoicesPage({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href="/factures" className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
-          Toutes
-        </Link>
-        {INVOICE_STATUSES.map((s) => (
-          <Link key={s.value} href={`/factures?status=${s.value}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
-            {s.label}
+      <div className="flex flex-col gap-3">
+        <ListSearch placeholder="Rechercher une facture (n°)…" />
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/factures${query({ q })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+            Toutes
           </Link>
-        ))}
+          {INVOICE_STATUSES.map((s) => (
+            <Link key={s.value} href={`/factures${query({ q, status: s.value })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+              {s.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {items.length === 0 ? (

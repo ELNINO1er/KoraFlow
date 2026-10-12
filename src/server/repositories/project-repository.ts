@@ -76,12 +76,15 @@ export async function ensureProjectForInvoice(
 
 export async function listProjects(
   organizationId: string,
-  params: { status?: ProjectStatus; page?: number; pageSize?: number } = {},
+  params: { status?: ProjectStatus; search?: string; page?: number; pageSize?: number } = {},
 ) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
   const where: Prisma.ProjectWhereInput = { organizationId, deletedAt: null };
   if (params.status) where.status = params.status;
+  if (params.search && params.search.trim() !== "") {
+    where.title = { contains: params.search.trim(), mode: "insensitive" };
+  }
 
   const [items, total] = await Promise.all([
     prisma.project.findMany({

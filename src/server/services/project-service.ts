@@ -7,7 +7,7 @@ import * as projects from "../repositories/project-repository";
 
 export async function listProjects(
   ctx: AuthContext,
-  params: { status?: ProjectStatus; page?: number },
+  params: { status?: ProjectStatus; search?: string; page?: number },
 ) {
   assertCan(ctx.role, "projects.view");
   return projects.listProjects(ctx.organizationId, params);
