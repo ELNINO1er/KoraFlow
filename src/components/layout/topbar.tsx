@@ -1,4 +1,4 @@
-import { OrgSwitcher, type OrgOption } from "./org-switcher";
+import { type OrgOption } from "./org-switcher";
 import { UserMenu } from "./user-menu";
 import { NotificationBell, type NotificationItem } from "./notification-bell";
 import { GlobalSearch } from "./global-search";
@@ -27,14 +27,14 @@ export function Topbar({
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
-        <OrgSwitcher organizations={organizations} activeId={activeOrgId} />
-        {/* Profil « au fond » du header (à droite) : un clic ouvre le menu. */}
+        {/* Bloc unique « compte + organisation », poussé tout à droite. */}
         <UserMenu
-          variant="block"
           name={user.name}
           email={user.email}
           image={user.image}
           isPlatformAdmin={isPlatformAdmin}
+          organizations={organizations}
+          activeOrgId={activeOrgId}
         />
       </div>
     </header>
