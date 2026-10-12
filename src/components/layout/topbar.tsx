@@ -28,10 +28,14 @@ export function Topbar({
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         <OrgSwitcher organizations={organizations} activeId={activeOrgId} />
-        {/* Sur desktop, le profil vit en bas de la sidebar ; ici uniquement sur mobile. */}
-        <span className="lg:hidden">
-          <UserMenu name={user.name} email={user.email} image={user.image} isPlatformAdmin={isPlatformAdmin} />
-        </span>
+        {/* Profil « au fond » du header (à droite) : un clic ouvre le menu. */}
+        <UserMenu
+          variant="block"
+          name={user.name}
+          email={user.email}
+          image={user.image}
+          isPlatformAdmin={isPlatformAdmin}
+        />
       </div>
     </header>
   );

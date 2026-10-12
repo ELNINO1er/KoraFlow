@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon, ShieldAlert, ChevronsUpDown } from "lucide-react";
+import { LogOut, User as UserIcon, ShieldAlert, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,21 +16,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { authClient } from "@/server/auth/auth-client";
 import { cn } from "@/lib/utils";
 
+/**
+ * Menu du compte dans le header (à droite). En « bloc » : avatar + nom + chevron
+ * (le nom se masque sur très petit écran). Un clic ouvre le menu.
+ */
 export function UserMenu({
   name,
   email,
   image,
   isPlatformAdmin = false,
-  variant = "avatar",
-  collapsed = false,
+  variant = "block",
 }: {
   name: string | null;
   email: string;
   image: string | null;
   isPlatformAdmin?: boolean;
-  /** "avatar" : pastille seule (topbar mobile). "block" : bloc complet (sidebar). */
-  variant?: "avatar" | "block";
-  collapsed?: boolean;
+  variant?: "block" | "avatar";
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -52,34 +53,24 @@ export function UserMenu({
         className={cn(
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           isBlock
-            ? cn(
-                "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted",
-                collapsed && "justify-center",
-              )
+            ? "flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1.5 transition-colors hover:bg-muted"
             : "rounded-full",
         )}
       >
-        <Avatar className={cn(isBlock ? "size-8 shrink-0" : undefined)}>
+        <Avatar className={cn(isBlock && "size-7")}>
           {image ? <AvatarImage src={image} alt={name ?? email} /> : null}
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
-        {isBlock && !collapsed ? (
+        {isBlock ? (
           <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-foreground">
-                {name ?? "Utilisateur"}
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">{email}</span>
+            <span className="hidden max-w-[9rem] truncate text-sm font-medium text-foreground sm:block">
+              {name ?? "Utilisateur"}
             </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
           </>
         ) : null}
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align={isBlock ? "start" : "end"}
-        side={isBlock ? "top" : "bottom"}
-        className="min-w-56"
-      >
+      <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuLabel>
           <span className="block text-sm font-medium text-foreground">
             {name ?? "Utilisateur"}

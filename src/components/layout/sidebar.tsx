@@ -6,7 +6,6 @@ import { useCallback, useSyncExternalStore } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, SECONDARY_NAV_ITEMS } from "./nav-items";
-import { UserMenu } from "./user-menu";
 
 const KEY = "kf-sidebar-collapsed";
 const EVENT = "kf-sidebar";
@@ -27,20 +26,8 @@ function getServerSnapshot() {
   return false;
 }
 
-interface SidebarUser {
-  name: string | null;
-  email: string;
-  image: string | null;
-}
-
-/** Sidebar claire et repliable (desktop). Le profil est un bloc unique en bas. */
-export function Sidebar({
-  user,
-  isPlatformAdmin = false,
-}: {
-  user: SidebarUser;
-  isPlatformAdmin?: boolean;
-}) {
+/** Sidebar claire et repliable (desktop). Le profil vit dans le header. */
+export function Sidebar() {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -102,28 +89,19 @@ export function Sidebar({
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </nav>
 
-      <div className="flex flex-col gap-1 border-t border-border p-2">
+      <div className="border-t border-border p-2">
         <button
           type="button"
           onClick={toggle}
           aria-label={collapsed ? "Déployer le menu" : "Réduire le menu"}
           className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             collapsed ? "justify-center" : "",
           )}
         >
           {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-4" />}
           {collapsed ? null : "Réduire"}
         </button>
-
-        <UserMenu
-          variant="block"
-          collapsed={collapsed}
-          name={user.name}
-          email={user.email}
-          image={user.image}
-          isPlatformAdmin={isPlatformAdmin}
-        />
       </div>
     </aside>
   );
