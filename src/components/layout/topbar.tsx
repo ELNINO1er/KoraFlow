@@ -24,7 +24,7 @@ export function Topbar({
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
       <GlobalSearch />
 
-      <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
+      <div className="ml-auto flex items-center gap-2">
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         {/* Bloc unique « compte + organisation », poussé tout à droite. */}
