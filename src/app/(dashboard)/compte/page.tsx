@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/app/page-header";
 import { AccountForms } from "@/features/account/account-forms";
+import { AvatarUpload } from "@/features/account/avatar-upload";
 import { requireAuthContext } from "@/server/auth/context";
 
 export const metadata: Metadata = { title: "Mon compte" };
@@ -13,6 +14,11 @@ export default async function AccountPage() {
       <PageHeader
         title="Mon compte"
         description="Gérez votre identité personnelle, votre adresse e-mail et votre mot de passe."
+      />
+      <AvatarUpload
+        name={ctx.user.name ?? ""}
+        email={ctx.user.email}
+        image={ctx.user.image}
       />
       <AccountForms name={ctx.user.name ?? ""} email={ctx.user.email} />
       <p className="max-w-3xl text-sm text-muted-foreground">

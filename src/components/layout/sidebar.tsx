@@ -6,6 +6,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, SECONDARY_NAV_ITEMS } from "./nav-items";
+import { UserMenu } from "./user-menu";
 
 const KEY = "kf-sidebar-collapsed";
 const EVENT = "kf-sidebar";
@@ -26,8 +27,20 @@ function getServerSnapshot() {
   return false;
 }
 
-/** Sidebar claire et repliable (desktop), item actif en pastille terracotta. */
-export function Sidebar() {
+interface SidebarUser {
+  name: string | null;
+  email: string;
+  image: string | null;
+}
+
+/** Sidebar claire et repliable (desktop). Le profil est un bloc unique en bas. */
+export function Sidebar({
+  user,
+  isPlatformAdmin = false,
+}: {
+  user: SidebarUser;
+  isPlatformAdmin?: boolean;
+}) {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -67,27 +80,17 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64",
       )}
     >
-      <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "justify-between px-5")}>
+      <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "px-5")}>
         {collapsed ? (
           <span className="font-display text-xl font-bold tracking-tight text-accent">K</span>
         ) : (
-          <span className="font-display text-xl font-bold tracking-tight text-primary">
+          <Link href="/dashboard" className="font-display text-xl font-bold tracking-tight text-foreground">
             Kora<span className="text-accent">Flow</span>
-          </span>
-        )}
-        {collapsed ? null : (
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label="Réduire le menu"
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <PanelLeftClose className="size-4" />
-          </button>
+          </Link>
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
         {NAV_ITEMS.map(renderItem)}
 
         <div className="my-3 border-t border-border" />
@@ -99,22 +102,28 @@ export function Sidebar() {
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </nav>
 
-      <div className="border-t border-border p-3">
-        {collapsed ? (
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label="Déployer le menu"
-            className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <PanelLeftOpen className="size-5" />
-          </button>
-        ) : (
-          <div className="px-2">
-            <p className="text-sm font-medium text-foreground">Des idées aux résultats.</p>
-            <span className="mt-2 block h-1 w-8 rounded-full bg-accent" />
-          </div>
-        )}
+      <div className="flex flex-col gap-1 border-t border-border p-2">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Déployer le menu" : "Réduire le menu"}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            collapsed ? "justify-center" : "",
+          )}
+        >
+          {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-4" />}
+          {collapsed ? null : "Réduire"}
+        </button>
+
+        <UserMenu
+          variant="block"
+          collapsed={collapsed}
+          name={user.name}
+          email={user.email}
+          image={user.image}
+          isPlatformAdmin={isPlatformAdmin}
+        />
       </div>
     </aside>
   );

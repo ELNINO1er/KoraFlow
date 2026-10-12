@@ -33,6 +33,57 @@ export async function updateProfileAction(name: string): Promise<AccountActionRe
   }
 }
 
+const DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i;
+const MAX_IMAGE_CHARS = 400_000; // ~300 Ko — l'image est redimensionnée côté client.
+
+/** Définit l'image de profil (data URL redimensionnée côté client). */
+export async function updateProfileImageAction(dataUrl: string): Promise<AccountActionResult> {
+  if (!DATA_URL_RE.test(dataUrl) || dataUrl.length > MAX_IMAGE_CHARS) {
+    return { ok: false, error: "Image invalide ou trop lourde (formats PNG, JPEG, WebP)." };
+  }
+
+  const ctx = await requireAuthContext();
+  try {
+    await auth.api.updateUser({ headers: await headers(), body: { image: dataUrl } });
+    await prisma.auditLog.create({
+      data: {
+        organizationId: ctx.organizationId,
+        actorUserId: ctx.user.id,
+        action: "account.avatar_updated",
+        targetType: "User",
+        targetId: ctx.user.id,
+      },
+    });
+    revalidatePath("/compte");
+    revalidatePath("/dashboard");
+    return { ok: true, message: "Votre photo de profil a été mise à jour." };
+  } catch {
+    return { ok: false, error: "Impossible de mettre à jour la photo pour le moment." };
+  }
+}
+
+/** Retire l'image de profil (retour aux initiales). */
+export async function removeProfileImageAction(): Promise<AccountActionResult> {
+  const ctx = await requireAuthContext();
+  try {
+    await auth.api.updateUser({ headers: await headers(), body: { image: null } });
+    await prisma.auditLog.create({
+      data: {
+        organizationId: ctx.organizationId,
+        actorUserId: ctx.user.id,
+        action: "account.avatar_removed",
+        targetType: "User",
+        targetId: ctx.user.id,
+      },
+    });
+    revalidatePath("/compte");
+    revalidatePath("/dashboard");
+    return { ok: true, message: "Photo de profil retirée." };
+  } catch {
+    return { ok: false, error: "Impossible de retirer la photo pour le moment." };
+  }
+}
+
 export async function requestEmailChangeAction(newEmail: string): Promise<AccountActionResult> {
   const parsed = z.email().safeParse(newEmail.trim().toLowerCase());
   if (!parsed.success) return { ok: false, error: "Saisissez une adresse e-mail valide." };

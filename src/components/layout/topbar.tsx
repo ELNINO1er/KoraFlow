@@ -28,7 +28,10 @@ export function Topbar({
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         <OrgSwitcher organizations={organizations} activeId={activeOrgId} />
-        <UserMenu name={user.name} email={user.email} image={user.image} isPlatformAdmin={isPlatformAdmin} />
+        {/* Sur desktop, le profil vit en bas de la sidebar ; ici uniquement sur mobile. */}
+        <span className="lg:hidden">
+          <UserMenu name={user.name} email={user.email} image={user.image} isPlatformAdmin={isPlatformAdmin} />
+        </span>
       </div>
     </header>
   );
