@@ -52,7 +52,7 @@ export default async function ContractsPage({
         <Link
           href="/contrats"
           className={cn(
-            "rounded-full border px-3 py-1 text-xs font-medium",
+            "rounded-md border px-3 py-1 text-xs font-medium",
             !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
           )}
         >
@@ -63,7 +63,7 @@ export default async function ContractsPage({
             key={s.value}
             href={`/contrats?status=${s.value}`}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium",
+              "rounded-md border px-3 py-1 text-xs font-medium",
               status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
             )}
           >

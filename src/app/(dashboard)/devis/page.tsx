@@ -74,7 +74,7 @@ export default async function QuotesPage({
         <Link
           href={`/devis`}
           className={cn(
-            "rounded-full border px-3 py-1 text-xs font-medium",
+            "rounded-md border px-3 py-1 text-xs font-medium",
             !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
           )}
         >
@@ -85,7 +85,7 @@ export default async function QuotesPage({
             key={s.value}
             href={`/devis${query({ status: s.value })}`}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium",
+              "rounded-md border px-3 py-1 text-xs font-medium",
               status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
             )}
           >

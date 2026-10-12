@@ -38,11 +38,11 @@ export default async function ProjectsPage({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/projets" className={cn("rounded-full border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+        <Link href="/projets" className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
           Tous
         </Link>
         {PROJECT_STATUSES.map((s) => (
-          <Link key={s.value} href={`/projets?status=${s.value}`} className={cn("rounded-full border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+          <Link key={s.value} href={`/projets?status=${s.value}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
             {s.label}
           </Link>
         ))}

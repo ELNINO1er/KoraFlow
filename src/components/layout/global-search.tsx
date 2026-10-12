@@ -39,7 +39,7 @@ export function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Rechercher un client, un devis, une facture…"
-        className="h-10 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
       {open && q.trim().length >= 2 ? (
         <div className="absolute z-40 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-md">

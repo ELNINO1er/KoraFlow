@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 import {
   Card,
   CardHeader,
@@ -166,19 +166,13 @@ export function QuoteForm({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contact">Client *</Label>
-            <NativeSelect
+            <FormSelect
               id="contact"
               value={contactId}
-              onChange={(e) => setContactId(e.target.value)}
-              className="w-full"
-            >
-              <option value="">— Sélectionner —</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </NativeSelect>
+              onValueChange={setContactId}
+              placeholder="— Sélectionner —"
+              options={contacts.map((c) => ({ value: c.id, label: c.label }))}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="expiry">Date d’expiration</Label>
@@ -197,22 +191,18 @@ export function QuoteForm({
           <CardTitle>Lignes</CardTitle>
           <div className="flex items-center gap-2">
             {services.length > 0 ? (
-              <select
-                aria-label="Ajouter un service"
+              <FormSelect
                 value=""
-                onChange={(e) => {
-                  if (e.target.value) addServiceLine(e.target.value);
-                  e.currentTarget.selectedIndex = 0;
+                onValueChange={(v) => {
+                  if (v) addServiceLine(v);
                 }}
-                className="h-9 rounded-lg border border-input bg-surface px-3 text-sm"
-              >
-                <option value="">+ Depuis le catalogue</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — {money(s.priceMinor)}
-                  </option>
-                ))}
-              </select>
+                placeholder="+ Depuis le catalogue"
+                className="w-auto min-w-48"
+                options={services.map((s) => ({
+                  value: s.id,
+                  label: `${s.name} — ${money(s.priceMinor)}`,
+                }))}
+              />
             ) : null}
             <Button type="button" variant="outline" size="sm" onClick={addFreeLine}>
               <Plus className="size-4" />
@@ -293,15 +283,15 @@ export function QuoteForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Remise</Label>
-                <NativeSelect
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value as "" | AmountKind)}
-                  className="w-full"
-                >
-                  <option value="">Aucune</option>
-                  <option value="PERCENT">Pourcentage (%)</option>
-                  <option value="AMOUNT">Montant ({currency})</option>
-                </NativeSelect>
+                <FormSelect
+                  value={discountType === "" ? "NONE" : discountType}
+                  onValueChange={(v) => setDiscountType(v === "NONE" ? "" : (v as AmountKind))}
+                  options={[
+                    { value: "NONE", label: "Aucune" },
+                    { value: "PERCENT", label: "Pourcentage (%)" },
+                    { value: "AMOUNT", label: `Montant (${currency})` },
+                  ]}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Valeur</Label>
@@ -317,15 +307,15 @@ export function QuoteForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Acompte</Label>
-                <NativeSelect
-                  value={depositType}
-                  onChange={(e) => setDepositType(e.target.value as "" | AmountKind)}
-                  className="w-full"
-                >
-                  <option value="">Aucun</option>
-                  <option value="PERCENT">Pourcentage (%)</option>
-                  <option value="AMOUNT">Montant ({currency})</option>
-                </NativeSelect>
+                <FormSelect
+                  value={depositType === "" ? "NONE" : depositType}
+                  onValueChange={(v) => setDepositType(v === "NONE" ? "" : (v as AmountKind))}
+                  options={[
+                    { value: "NONE", label: "Aucun" },
+                    { value: "PERCENT", label: "Pourcentage (%)" },
+                    { value: "AMOUNT", label: `Montant (${currency})` },
+                  ]}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs">Valeur</Label>

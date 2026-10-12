@@ -8,7 +8,7 @@ import { FIELD_TYPES, fieldTypeLabel } from "@/lib/constants/forms";
 import { addFieldAction, deleteFieldAction } from "@/features/forms/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 
 export interface BuilderField {
   id: string;
@@ -90,13 +90,12 @@ export function FieldBuilder({
       {canEdit ? (
         <form onSubmit={add} className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3 sm:flex-row sm:items-center">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Libellé du champ" className="flex-1" />
-          <NativeSelect value={type} onChange={(e) => setType(e.target.value as FormFieldType)}>
-            {FIELD_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </NativeSelect>
+          <FormSelect
+            value={type}
+            onValueChange={(v) => setType(v as FormFieldType)}
+            options={FIELD_TYPES}
+            className="w-full sm:w-48"
+          />
           <label className="flex items-center gap-1.5 text-sm text-foreground">
             <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} className="size-4 rounded border-input accent-[color:var(--color-primary)]" />
             Requis

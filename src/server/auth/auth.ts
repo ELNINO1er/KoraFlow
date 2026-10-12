@@ -18,6 +18,15 @@ import { prisma } from "../database/client";
  */
 export const auth = betterAuth({
   appName: "KoraFlow",
+  // Origines autorisées (protection CSRF). En plus de localhost, on accepte les
+  // origines listées dans TRUSTED_ORIGINS (ex. l'IP LAN pour une démo WiFi).
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    ...(process.env.TRUSTED_ORIGINS
+      ? process.env.TRUSTED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+      : []),
+  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

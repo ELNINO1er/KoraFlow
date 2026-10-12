@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 export interface ServiceFormValues {
@@ -104,13 +104,12 @@ export function ServiceForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="unit">Unité</Label>
-            <NativeSelect id="unit" name="unit" defaultValue={v.unit} className="w-full">
-              {SERVICE_UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </NativeSelect>
+            <FormSelect
+              id="unit"
+              name="unit"
+              defaultValue={v.unit}
+              options={SERVICE_UNITS.map((u) => ({ value: u, label: u }))}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -8,7 +8,7 @@ import { ASSIGNABLE_ROLES } from "@/lib/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 import type { OrgEditableFields } from "@/server/services/platform-admin";
 import {
   updateOrgAction,
@@ -175,13 +175,12 @@ export function AddMemberForm({ orgId }: { orgId: string }) {
         required
         className="flex-1"
       />
-      <NativeSelect value={role} onChange={(e) => setRole(e.target.value as MembershipRole)}>
-        {ASSIGNABLE_ROLES.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
-          </option>
-        ))}
-      </NativeSelect>
+      <FormSelect
+        value={role}
+        onValueChange={(v) => setRole(v as MembershipRole)}
+        options={ASSIGNABLE_ROLES}
+        className="w-full sm:w-44"
+      />
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
         Ajouter
@@ -207,26 +206,21 @@ export function MemberRoleControl({
 
   return (
     <div className="flex items-center gap-2">
-      <NativeSelect
+      <FormSelect
         value={current}
         disabled={pending}
-        onChange={(e) => {
-          const next = e.target.value as MembershipRole;
+        options={ASSIGNABLE_ROLES}
+        className="w-44"
+        onValueChange={(next) => {
           if (next === current) return;
           startTransition(async () => {
             setError(null);
-            const r = await changeMemberRoleAction(orgId, membershipId, next);
+            const r = await changeMemberRoleAction(orgId, membershipId, next as MembershipRole);
             if (!r.ok) setError(r.error ?? "Erreur");
             router.refresh();
           });
         }}
-      >
-        {ASSIGNABLE_ROLES.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
-          </option>
-        ))}
-      </NativeSelect>
+      />
       <Button
         type="button"
         size="icon"

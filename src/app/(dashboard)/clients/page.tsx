@@ -85,7 +85,7 @@ export default async function ClientsPage({
           <Link
             href={`/clients${buildQuery({ q })}`}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium",
+              "rounded-md border px-3 py-1 text-xs font-medium",
               !stage
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border text-muted-foreground hover:bg-muted",
@@ -98,7 +98,7 @@ export default async function ClientsPage({
               key={s.value}
               href={`/clients${buildQuery({ q, stage: s.value })}`}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium",
+                "rounded-md border px-3 py-1 text-xs font-medium",
                 stage === s.value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:bg-muted",

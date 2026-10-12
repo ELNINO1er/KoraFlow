@@ -43,11 +43,11 @@ export default async function InvoicesPage({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/factures" className={cn("rounded-full border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+        <Link href="/factures" className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
           Toutes
         </Link>
         {INVOICE_STATUSES.map((s) => (
-          <Link key={s.value} href={`/factures?status=${s.value}`} className={cn("rounded-full border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+          <Link key={s.value} href={`/factures?status=${s.value}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
             {s.label}
           </Link>
         ))}

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, Building2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,7 +11,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { setActiveOrganization } from "@/features/organizations/actions";
 
 export interface OrgOption {
@@ -42,22 +41,19 @@ export function OrgSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={pending}
-        className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Changer d'organisation"
+        className="flex max-w-[12rem] items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>
-            {(active?.name ?? "?").charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <span className="hidden sm:flex sm:flex-col">
-          <span className="text-sm font-semibold leading-tight text-foreground">
+        <Building2 className="size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-tight text-foreground">
             {active?.name}
           </span>
-          <span className="text-xs leading-tight text-muted-foreground">
+          <span className="hidden text-xs leading-tight text-muted-foreground sm:block">
             Mon entreprise
           </span>
         </span>
-        <ChevronsUpDown className="size-4 text-muted-foreground" />
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuLabel>Organisations</DropdownMenuLabel>

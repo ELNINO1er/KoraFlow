@@ -49,7 +49,7 @@ export default async function ReportsPage({
               key={p.value}
               href={`/rapports?period=${p.value}`}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium",
+                "rounded-md border px-3 py-1 text-xs font-medium",
                 period === p.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
               )}
             >

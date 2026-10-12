@@ -13,7 +13,7 @@ import {
 } from "@/features/team/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 
 export function InviteForm() {
   const router = useRouter();
@@ -42,13 +42,12 @@ export function InviteForm() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" required className="flex-1" />
-      <NativeSelect value={role} onChange={(e) => setRole(e.target.value as MembershipRole)}>
-        {ASSIGNABLE_ROLES.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
-          </option>
-        ))}
-      </NativeSelect>
+      <FormSelect
+        value={role}
+        onValueChange={(v) => setRole(v as MembershipRole)}
+        options={ASSIGNABLE_ROLES}
+        className="w-full sm:w-44"
+      />
       <Button type="submit" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         Inviter
@@ -65,26 +64,21 @@ export function RoleSelect({ membershipId, current }: { membershipId: string; cu
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="flex flex-col items-end">
-      <NativeSelect
+      <FormSelect
         value={current}
         disabled={pending}
-        onChange={(e) => {
-          const next = e.target.value as MembershipRole;
+        options={ASSIGNABLE_ROLES}
+        className="w-44"
+        onValueChange={(next) => {
           if (next === current) return;
           startTransition(async () => {
             setError(null);
-            const r = await changeRoleAction(membershipId, next);
+            const r = await changeRoleAction(membershipId, next as MembershipRole);
             if (!r.ok) setError(r.error ?? "Erreur");
             router.refresh();
           });
         }}
-      >
-        {ASSIGNABLE_ROLES.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
-          </option>
-        ))}
-      </NativeSelect>
+      />
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </div>
   );

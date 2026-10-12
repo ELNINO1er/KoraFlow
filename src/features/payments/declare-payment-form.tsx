@@ -9,7 +9,7 @@ import { declarePaymentAction } from "@/features/payments/public-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import { FormSelect } from "@/components/ui/form-select";
 
 /** Formulaire public de déclaration de paiement (portail client). */
 export function DeclarePaymentForm({
@@ -79,18 +79,12 @@ export function DeclarePaymentForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="method">Moyen de paiement</Label>
-          <NativeSelect
+          <FormSelect
             id="method"
             value={method}
-            onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-            className="w-full"
-          >
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </NativeSelect>
+            onValueChange={(v) => setMethod(v as PaymentMethod)}
+            options={PAYMENT_METHODS}
+          />
         </div>
       </div>
       <div className="flex flex-col gap-1.5">

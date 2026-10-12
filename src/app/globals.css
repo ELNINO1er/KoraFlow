@@ -129,7 +129,14 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-manrope), var(--font-inter), sans-serif;
 
-  --radius: 0.625rem;
+  /* Rayons — volontairement plus sobres (moins « cercle »). On réduit surtout
+     les grands arrondis (cartes, panneaux, dialogues) ; boutons/champs (lg)
+     restent nets. */
+  --radius: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
 
   /* Élévations exposées comme utilitaires : shadow-e1 … shadow-e4 */
   --shadow-e1: var(--elevation-1);
