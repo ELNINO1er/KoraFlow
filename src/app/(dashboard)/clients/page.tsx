@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import type { ContactStage } from "@prisma/client";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
+import { ListSearch } from "@/components/app/list-search";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Clients" };
@@ -69,17 +70,7 @@ export default async function ClientsPage({
 
       {/* Recherche + filtre pipeline */}
       <div className="flex flex-col gap-3">
-        <form method="get" className="relative max-w-md">
-          {stage ? <input type="hidden" name="stage" value={stage} /> : null}
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Rechercher un contact…"
-            className="h-10 w-full rounded-full border border-border bg-surface pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </form>
+        <ListSearch placeholder="Rechercher un contact…" />
 
         <div className="flex flex-wrap gap-2">
           <Link

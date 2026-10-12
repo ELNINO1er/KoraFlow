@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Package } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { listServices } from "@/server/services/catalog-service";
@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/formatting/currency";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ListSearch } from "@/components/app/list-search";
 
 export const metadata: Metadata = { title: "Catalogue de services" };
 
@@ -47,16 +48,7 @@ export default async function ServicesPage({
         ) : null}
       </div>
 
-      <form method="get" className="relative max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          name="q"
-          defaultValue={q}
-          placeholder="Rechercher un service…"
-          className="h-10 w-full rounded-full border border-border bg-surface pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
-      </form>
+      <ListSearch placeholder="Rechercher un service…" />
 
       {items.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
