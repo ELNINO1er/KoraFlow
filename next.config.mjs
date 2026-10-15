@@ -1,15 +1,12 @@
-import type { NextConfig } from "next";
-
-/**
- * En-têtes de sécurité appliqués à toutes les réponses (§10).
- * La Content-Security-Policy, elle, est posée par le proxy (nonce par
- * requête) — voir src/proxy.ts.
- */
+/** @type {import("next").NextConfig} */
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+  },
   { key: "X-DNS-Prefetch-Control", value: "off" },
   {
     key: "Strict-Transport-Security",
@@ -17,7 +14,8 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   // Image Docker autonome : Next.js trace uniquement les dépendances runtime.
   output: "standalone",
   async headers() {
