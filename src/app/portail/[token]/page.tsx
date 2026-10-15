@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
+import { OrganizationBrand } from "@/components/brand/organization-brand";
 
 export const metadata: Metadata = { title: "Mon parcours" };
 
@@ -104,9 +105,7 @@ export default async function ClientPortalPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <header className="app-enter">
-        <span className="font-display text-xl font-bold text-foreground">
-          {contact.organization.name}
-        </span>
+        <OrganizationBrand id={contact.organization.id} name={contact.organization.name} hasLogo={Boolean(contact.organization.logoUrl)} className="text-xl text-foreground" imageClassName="size-12" priority />
         <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-foreground">
           Bonjour {contact.firstName}
         </h1>

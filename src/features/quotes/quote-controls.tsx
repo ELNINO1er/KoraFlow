@@ -1,12 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Loader2 } from "lucide-react";
 import type { QuoteStatus } from "@prisma/client";
 import { QUOTE_STATUSES } from "@/lib/constants/quotes";
 import { changeQuoteStatusAction, deleteQuoteAction } from "@/features/quotes/actions";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function QuoteStatusControl({
   id,
@@ -17,27 +18,41 @@ export function QuoteStatusControl({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [value, setValue] = useState<QuoteStatus>(current);
+  const [error, setError] = useState<string | null>(null);
 
   return (
-    <select
-      value={current}
-      disabled={pending}
-      onChange={(e) => {
-        const next = e.target.value as QuoteStatus;
-        if (next === current) return;
-        startTransition(async () => {
-          await changeQuoteStatusAction(id, next);
-          router.refresh();
-        });
-      }}
-      className="h-9 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-    >
-      {QUOTE_STATUSES.map((s) => (
-        <option key={s.value} value={s.value}>
-          {s.label}
-        </option>
-      ))}
-    </select>
+    <div className="flex min-w-36 flex-col gap-1">
+      <Select
+        value={value}
+        disabled={pending}
+        onValueChange={(next: QuoteStatus) => {
+          if (next === value) return;
+          const previous = value;
+          setValue(next);
+          setError(null);
+          startTransition(async () => {
+            const result = await changeQuoteStatusAction(id, next);
+            if (!result.ok) {
+              setValue(previous);
+              setError(result.error);
+              return;
+            }
+            router.refresh();
+          });
+        }}
+      >
+        <SelectTrigger className="h-9" aria-label="Statut du devis">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          {QUOTE_STATUSES.map((status) => (
+            <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error ? <span className="text-xs text-danger" role="alert">{error}</span> : null}
+    </div>
   );
 }
 

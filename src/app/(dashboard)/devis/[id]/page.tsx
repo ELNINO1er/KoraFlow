@@ -58,7 +58,7 @@ export default async function QuoteDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <a href={`/api/devis/${quote.id}/pdf`} target="_blank" rel="noopener noreferrer">
+              <a href={`/api/devis/${quote.id}/pdf`} download>
                 <FileDown className="size-4" />
                 PDF
               </a>

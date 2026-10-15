@@ -21,13 +21,17 @@ export function SendQuoteButton({
   function send() {
     setError(null);
     startTransition(async () => {
-      const result = await sendQuoteAction(id);
-      if (!result.ok) {
-        setError(result.error ?? "Envoi impossible.");
-        return;
+      try {
+        const result = await sendQuoteAction(id);
+        if (!result.ok) {
+          setError(result.error ?? "Envoi impossible.");
+          return;
+        }
+        setSent(true);
+        router.refresh();
+      } catch {
+        setError("Une erreur inattendue empêche l’envoi. Réessayez dans quelques instants.");
       }
-      setSent(true);
-      router.refresh();
     });
   }
 
@@ -49,7 +53,7 @@ export function SendQuoteButton({
         )}
         {sent ? "Envoyé" : "Envoyer au client"}
       </Button>
-      {error ? <span className="text-xs text-danger">{error}</span> : null}
+      {error ? <span className="max-w-72 text-right text-xs text-danger" role="alert">{error}</span> : null}
     </div>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { CheckCircle2, ImageUp, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type { OrganizationSettingsInput } from "@/server/services/organization-service";
+import type { OrganizationSettingsInput, OrganizationSettingsView } from "@/server/services/organization-service";
 import { updateOrganizationSettingsAction, type OrganizationSettingsActionResult } from "./settings-actions";
 
 type FormData = { [K in keyof OrganizationSettingsInput]: string };
@@ -15,7 +15,7 @@ function value(value: string | null) {
   return value ?? "";
 }
 
-export function OrganizationSettingsForm({ initial }: { initial: OrganizationSettingsInput }) {
+export function OrganizationSettingsForm({ initial }: { initial: OrganizationSettingsView }) {
   const [form, setForm] = useState<FormData>({
     name: initial.name,
     legalName: value(initial.legalName),
@@ -43,7 +43,29 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
   }
 
   return (
-    <form
+    <div className="flex flex-col gap-6">
+      <form id="organization-logo-form" action="/api/organization/logo" method="post" encType="multipart/form-data">
+        <Card>
+          <CardHeader>
+            <CardTitle>Logo de l’entreprise</CardTitle>
+            <CardDescription>PNG ou JPEG, 2 Mo maximum. Il personnalise votre espace, vos pages publiques, vos devis et vos e-mails.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {initial.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- aperçu d'une route applicative.
+              <img src={`/api/organization-logos/${initial.id}`} alt={`Logo actuel de ${initial.name}`} className="size-20 rounded-xl bg-white object-contain p-1" />
+            ) : (
+              <div className="flex size-20 items-center justify-center rounded-xl bg-muted text-xl font-bold text-muted-foreground">{initial.name.slice(0, 2).toUpperCase()}</div>
+            )}
+            <div className="flex flex-1 flex-col gap-3 sm:items-end">
+              <input id="organization-logo" name="logo" type="file" accept="image/png,image/jpeg" required className="block max-w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-medium file:text-primary-foreground" />
+              <Button type="submit" variant="outline"><ImageUp className="size-4" />Téléverser le logo</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+
+      <form
       className="flex flex-col gap-6"
       onSubmit={(event) => {
         event.preventDefault();
@@ -106,6 +128,7 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
           Enregistrer les paramètres
         </Button>
       </div>
-    </form>
+      </form>
+    </div>
   );
 }

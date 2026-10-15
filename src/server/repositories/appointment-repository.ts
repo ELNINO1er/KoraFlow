@@ -42,7 +42,7 @@ export function getAppointmentTypeBySlug(slug: string) {
     where: { slug, active: true, deletedAt: null },
     include: {
       availabilities: { orderBy: [{ dayOfWeek: "asc" }, { startMinutes: "asc" }] },
-      organization: { select: { name: true, timezone: true, locale: true } },
+      organization: { select: { id: true, name: true, logoUrl: true, timezone: true, locale: true } },
     },
   });
 }

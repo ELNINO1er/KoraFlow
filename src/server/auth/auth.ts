@@ -5,6 +5,10 @@ import { admin } from "better-auth/plugins/admin";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "../database/client";
 import { BRAND_NAME } from "@/lib/constants/brand";
+import { brandedEmail } from "@/server/integrations/email/template";
+
+const appUrl = process.env.APP_URL ?? "https://alymero.com";
+const alymeroLogo = `${appUrl}/brand/alymero-mark.png`;
 
 /**
  * Instance serveur Better Auth (source de vérité de l'authentification).
@@ -39,10 +43,14 @@ export const auth = betterAuth({
       await sendEmail({
         to: user.email,
         subject: `Réinitialisation de votre mot de passe ${BRAND_NAME}`,
-        html: `<p>Bonjour,</p>
-<p>Vous avez demandé à réinitialiser votre mot de passe ${BRAND_NAME}.</p>
-<p><a href="${url}">Choisir un nouveau mot de passe</a></p>
-<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
+        html: brandedEmail({
+          title: "Réinitialisez votre mot de passe",
+          intro: `Bonjour ${user.name ?? ""}`.trim(),
+          body: "Une demande de réinitialisation a été effectuée pour votre compte. Ce lien est personnel et temporaire.",
+          action: { label: "Choisir un nouveau mot de passe", url },
+          logoUrl: alymeroLogo,
+          footer: "Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.",
+        }),
         text: `Réinitialiser votre mot de passe ${BRAND_NAME} : ${url}`,
       });
     },
@@ -55,9 +63,14 @@ export const auth = betterAuth({
       await sendEmail({
         to: user.email,
         subject: `Confirmez votre adresse e-mail ${BRAND_NAME}`,
-        html: `<p>Bienvenue sur ${BRAND_NAME},</p>
-<p>Confirmez votre adresse e-mail pour activer votre compte :</p>
-<p><a href="${url}">Confirmer mon adresse e-mail</a></p>`,
+        html: brandedEmail({
+          title: "Confirmez votre adresse e-mail",
+          intro: `Bienvenue ${user.name ?? "sur Alymero"}`,
+          body: "Confirmez votre adresse pour sécuriser votre compte et accéder à votre espace de travail.",
+          action: { label: "Confirmer mon adresse e-mail", url },
+          logoUrl: alymeroLogo,
+          footer: "Ce message de sécurité a été envoyé automatiquement par Alymero.",
+        }),
         text: `Confirmez votre adresse e-mail ${BRAND_NAME} : ${url}`,
       });
     },

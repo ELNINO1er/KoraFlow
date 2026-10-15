@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useSyncExternalStore } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { OrganizationBrand } from "@/components/brand/organization-brand";
+import type { ActiveOrganization } from "@/server/auth/context";
 import { NAV_ITEMS, SECONDARY_NAV_ITEMS } from "./nav-items";
 
 const KEY = "kf-sidebar-collapsed";
@@ -28,7 +29,7 @@ function getServerSnapshot() {
 }
 
 /** Sidebar claire et repliable (desktop). Le profil vit dans le header. */
-export function Sidebar() {
+export function Sidebar({ organization }: { organization: ActiveOrganization }) {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -70,10 +71,12 @@ export function Sidebar() {
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "px-5")}>
         {collapsed ? (
-          <BrandLogo iconOnly priority iconClassName="size-9" />
+          <Link href="/dashboard" aria-label={`${organization.name} — tableau de bord`}>
+            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} showName={false} priority />
+          </Link>
         ) : (
-          <Link href="/dashboard" aria-label="Alymero — tableau de bord">
-            <BrandLogo priority className="text-xl text-foreground" iconClassName="size-9" />
+          <Link href="/dashboard" aria-label={`${organization.name} — tableau de bord`}>
+            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} priority className="max-w-full text-lg text-foreground" />
           </Link>
         )}
       </div>

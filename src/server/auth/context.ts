@@ -21,6 +21,7 @@ export interface ActiveOrganization {
   currency: string;
   locale: string;
   timezone: string;
+  logoUrl?: string | null;
 }
 
 /**
@@ -115,6 +116,7 @@ export async function resolveSession(): Promise<SessionResolution> {
         currency: org.currency,
         locale: org.locale,
         timezone: org.timezone,
+        logoUrl: org.logoUrl,
       },
       role: membership.role,
       permissions: permissionsForRole(membership.role),

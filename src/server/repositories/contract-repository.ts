@@ -133,7 +133,7 @@ export function getContractByToken(token: string) {
     where: { publicToken: token, deletedAt: null },
     include: {
       contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },
-      organization: { select: { name: true, locale: true } },
+      organization: { select: { id: true, name: true, logoUrl: true, locale: true } },
       events: { orderBy: { createdAt: "asc" } },
     },
   });

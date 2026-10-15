@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuoteResponse } from "@/features/quotes/quote-response";
 import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
+import { OrganizationBrand } from "@/components/brand/organization-brand";
 
 export const metadata: Metadata = { title: "Votre devis" };
 
@@ -43,9 +44,7 @@ export default async function PublicQuotePage({
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <div className="flex items-center justify-between">
         <div>
-          <span className="font-display text-xl font-bold text-primary">
-            {quote.organization.name}
-          </span>
+          <OrganizationBrand id={quote.organization.id} name={quote.organization.name} hasLogo={Boolean(quote.organization.logoUrl)} className="text-xl text-primary" imageClassName="size-12" priority />
           <PoweredByAlymero />
         </div>
         <Badge variant={quoteStatusVariant(displayStatus)}>
@@ -63,7 +62,7 @@ export default async function PublicQuotePage({
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <a href={`/api/q/${token}/pdf`} target="_blank" rel="noopener noreferrer">
+            <a href={`/api/q/${token}/pdf`} download>
               <FileDown className="size-4" />
               PDF
             </a>

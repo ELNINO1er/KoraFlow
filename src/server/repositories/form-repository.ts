@@ -49,7 +49,7 @@ export function getFormBySlug(slug: string) {
     where: { slug, active: true, deletedAt: null },
     include: {
       fields: { orderBy: { position: "asc" } },
-      organization: { select: { name: true } },
+      organization: { select: { id: true, name: true, logoUrl: true } },
     },
   });
 }

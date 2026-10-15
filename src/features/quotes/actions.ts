@@ -9,7 +9,8 @@ import * as quoteService from "@/server/services/quote-service";
 import { InvalidQuoteError } from "@/server/services/quote-service";
 import { generateQuotePdf } from "@/server/services/quote-pdf";
 import { sendEmail } from "@/server/integrations/email/mailer";
-import { PermissionError } from "@/server/permissions/permissions";
+import { assertCan, PermissionError } from "@/server/permissions/permissions";
+import { brandedEmail } from "@/server/integrations/email/template";
 
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
@@ -99,47 +100,63 @@ export async function createQuoteAction(
 export async function changeQuoteStatusAction(id: string, status: QuoteStatus) {
   const ctx = await getContext();
   try {
-    await quoteService.changeQuoteStatus(ctx, id, status);
+    const updated = await quoteService.changeQuoteStatus(ctx, id, status);
+    if (!updated) return { ok: false as const, error: "Devis introuvable." };
   } catch (e) {
-    if (e instanceof PermissionError) return;
-    throw e;
+    if (e instanceof PermissionError) {
+      return { ok: false as const, error: "Vous n’avez pas la permission de modifier ce devis." };
+    }
+    console.error("quote.status_change_failed", { quoteId: id, error: e instanceof Error ? e.message : "unknown" });
+    return { ok: false as const, error: "Le statut n’a pas pu être modifié." };
   }
   revalidatePath("/devis");
   revalidatePath(`/devis/${id}`);
+  return { ok: true as const };
 }
 
 export async function sendQuoteAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
-  const pdf = await generateQuotePdf(ctx, id);
-  if (!pdf) return { ok: false, error: "Devis introuvable." };
-  if (!pdf.contactEmail) {
-    return { ok: false, error: "Le client n'a pas d'adresse e-mail renseignée." };
-  }
-
-  const appUrl = process.env.APP_URL ?? "";
-  const portalLink = pdf.publicToken ? `${appUrl}/q/${pdf.publicToken}` : null;
-
   try {
+    assertCan(ctx.role, "quotes.update");
+    const pdf = await generateQuotePdf(ctx, id);
+    if (!pdf) return { ok: false, error: "Devis introuvable." };
+    if (!pdf.contactEmail) {
+      return { ok: false, error: "Le client n'a pas d'adresse e-mail renseignée." };
+    }
+
+    const appUrl = process.env.APP_URL ?? "";
+    const portalLink = pdf.publicToken ? `${appUrl}/q/${pdf.publicToken}` : null;
+
     await sendEmail({
       to: pdf.contactEmail,
-      subject: `Votre devis ${pdf.number}`,
-      html: `<p>Bonjour,</p>
-<p>Veuillez trouver ci-joint votre devis <strong>${pdf.number}</strong>.</p>
-${portalLink ? `<p>Vous pouvez le consulter et y répondre en ligne : <a href="${portalLink}">${portalLink}</a></p>` : ""}
-<p>Cordialement,<br/>${ctx.organization.name}</p>`,
+      subject: `${pdf.organizationName} — votre devis ${pdf.number}`,
+      html: brandedEmail({
+        brandName: pdf.organizationName,
+        logoUrl: pdf.organizationLogoUrl,
+        title: `Votre devis ${pdf.number}`,
+        intro: "Bonjour,",
+        body: "Votre devis est prêt. Vous le trouverez en pièce jointe et pouvez le consulter, l’accepter ou le refuser depuis votre espace sécurisé.",
+        action: portalLink ? { label: "Consulter le devis", url: portalLink } : undefined,
+        footer: `Document envoyé par ${pdf.organizationName} avec Alymero.`,
+      }),
       text: `Votre devis ${pdf.number} est en pièce jointe.${portalLink ? ` Consultez-le en ligne : ${portalLink}` : ""}`,
       attachments: [
         { filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" },
       ],
+      replyTo: pdf.organizationEmail ?? undefined,
     });
     await quoteService.changeQuoteStatus(ctx, id, "SENT");
   } catch (e) {
     if (e instanceof PermissionError) {
       return { ok: false, error: "Vous n'avez pas la permission d'envoyer ce devis." };
     }
-    throw e;
+    console.error("quote.send_failed", { quoteId: id, error: e instanceof Error ? e.message : "unknown" });
+    return {
+      ok: false,
+      error: "L’e-mail n’a pas pu être envoyé. Vérifiez la configuration SMTP puis réessayez.",
+    };
   }
 
   revalidatePath(`/devis/${id}`);

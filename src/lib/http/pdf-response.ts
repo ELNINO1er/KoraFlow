@@ -21,12 +21,13 @@ export function safePdfFilename(filename: string): string {
   return `${normalized || "document"}.pdf`;
 }
 
-export function pdfResponse(buffer: Buffer, filename: string): Response {
+export function pdfResponse(buffer: Buffer, filename: string, disposition: "inline" | "attachment" = "attachment"): Response {
   const safeFilename = safePdfFilename(filename);
   return new Response(new Uint8Array(buffer), {
     headers: {
       ...PDF_HEADERS,
-      "Content-Disposition": `inline; filename="${safeFilename}"`,
+      "Content-Disposition": `${disposition}; filename="${safeFilename}"`,
+      "Content-Length": String(buffer.byteLength),
     },
   });
 }

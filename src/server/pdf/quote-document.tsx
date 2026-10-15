@@ -4,6 +4,7 @@ import {
   View,
   Text,
   StyleSheet,
+  Image,
 } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/formatting/currency";
 
@@ -16,6 +17,7 @@ export interface QuotePdfOrg {
   city?: string | null;
   country?: string | null;
   taxId?: string | null;
+  logoDataUri?: string | null;
 }
 
 export interface QuotePdfContact {
@@ -48,6 +50,7 @@ export interface QuotePdfData {
   totalMinor: number;
   depositMinor: number;
   notes?: string | null;
+  terms?: string | null;
 }
 
 const INK = "#12263A";
@@ -58,6 +61,7 @@ const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Helvetica" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   brand: { fontSize: 20, fontFamily: "Helvetica-Bold", color: INK },
+  logo: { width: 54, height: 54, objectFit: "contain", marginBottom: 6 },
   muted: { color: MUTED },
   small: { fontSize: 9, color: MUTED, marginTop: 2 },
   docTitle: { fontSize: 18, fontFamily: "Helvetica-Bold", textAlign: "right" },
@@ -99,6 +103,9 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View>
+            {/* react-pdf Image n'expose pas l'attribut HTML alt. */}
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            {data.org.logoDataUri ? <Image src={data.org.logoDataUri} style={styles.logo} /> : null}
             <Text style={styles.brand}>{data.org.name}</Text>
             {data.org.legalName ? <Text style={styles.small}>{data.org.legalName}</Text> : null}
             {data.org.addressLine1 ? <Text style={styles.small}>{data.org.addressLine1}</Text> : null}
@@ -181,6 +188,13 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
           <View style={[styles.block, { marginTop: 20 }]}>
             <Text style={styles.label}>Notes</Text>
             <Text>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        {data.terms ? (
+          <View style={[styles.block, { marginTop: 12 }]}>
+            <Text style={styles.label}>Conditions</Text>
+            <Text>{data.terms}</Text>
           </View>
         ) : null}
 

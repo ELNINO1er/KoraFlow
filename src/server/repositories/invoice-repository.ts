@@ -144,7 +144,7 @@ export function getInvoiceByToken(token: string) {
     include: {
       items: { orderBy: { position: "asc" } },
       contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },
-      organization: { select: { name: true, locale: true, legalName: true, email: true, phone: true, addressLine1: true, city: true, country: true, taxId: true } },
+      organization: { select: { id: true, name: true, logoUrl: true, locale: true, legalName: true, email: true, phone: true, addressLine1: true, city: true, country: true, taxId: true } },
       payments: { where: { status: "CONFIRMED" }, orderBy: { createdAt: "desc" } },
     },
   });

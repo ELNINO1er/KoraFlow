@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignForm } from "@/features/contracts/sign-form";
 import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
+import { OrganizationBrand } from "@/components/brand/organization-brand";
 
 export const metadata: Metadata = { title: "Signature du contrat" };
 
@@ -26,9 +27,7 @@ export default async function PublicContractPage({
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <div className="flex items-center justify-between">
         <div>
-          <span className="font-display text-xl font-bold text-primary">
-            {contract.organization.name}
-          </span>
+          <OrganizationBrand id={contract.organization.id} name={contract.organization.name} hasLogo={Boolean(contract.organization.logoUrl)} className="text-xl text-primary" imageClassName="size-12" priority />
           <PoweredByAlymero />
         </div>
         <Badge variant={contractStatusVariant(contract.status)}>

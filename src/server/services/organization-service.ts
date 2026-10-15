@@ -106,7 +106,13 @@ export interface OrganizationSettingsInput {
   brandColor: string | null;
 }
 
+export type OrganizationSettingsView = OrganizationSettingsInput & {
+  id: string;
+  logoUrl: string | null;
+};
+
 const organizationSettingsSelect = {
+  id: true,
   name: true,
   legalName: true,
   email: true,
@@ -123,6 +129,7 @@ const organizationSettingsSelect = {
   invoicePrefix: true,
   quotePrefix: true,
   brandColor: true,
+  logoUrl: true,
 } satisfies Prisma.OrganizationSelect;
 
 /** Lit uniquement les paramètres de l'organisation active. */

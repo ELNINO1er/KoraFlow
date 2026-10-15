@@ -231,24 +231,30 @@ export async function bookAppointment(
   await notifyOrg(organizationId, {
     type: "appointment.booked",
     title: `Nouveau rendez-vous : ${type.name}`,
-    body: `${input.name} — ${startAt.toISOString().slice(0, 16).replace("T", " ")} UTC`,
+    body: `${input.name} — ${new Intl.DateTimeFormat(type.organization.locale === "fr" ? "fr-FR" : type.organization.locale, { dateStyle: "medium", timeStyle: "short", timeZone: type.organization.timezone }).format(startAt)}`,
     link: "/rendez-vous",
   });
 
   // Confirmation par e-mail (best-effort).
   try {
     const { sendEmail } = await import("../integrations/email/mailer");
+    const { brandedEmail } = await import("../integrations/email/template");
     const dtf = new Intl.DateTimeFormat(type.organization.locale === "fr" ? "fr-FR" : type.organization.locale, {
       dateStyle: "full",
       timeStyle: "short",
-      timeZone: "UTC",
+      timeZone: type.organization.timezone,
     });
     await sendEmail({
       to: input.email.trim(),
       subject: `Confirmation de votre rendez-vous — ${type.name}`,
-      html: `<p>Bonjour ${input.name},</p>
-<p>Votre rendez-vous « ${type.name} » est confirmé pour le <strong>${dtf.format(startAt)}</strong>.</p>
-<p>${type.organization.name}</p>`,
+      html: brandedEmail({
+        brandName: type.organization.name,
+        logoUrl: type.organization.logoUrl ? `${process.env.APP_URL ?? ""}/api/organization-logos/${type.organization.id}` : null,
+        title: "Rendez-vous confirmé",
+        intro: `Bonjour ${input.name},`,
+        body: `Votre rendez-vous « ${type.name} » est confirmé pour le ${dtf.format(startAt)} (${type.organization.timezone}).`,
+        footer: `Confirmation envoyée par ${type.organization.name} avec Alymero.`,
+      }),
       text: `Rendez-vous « ${type.name} » confirmé le ${dtf.format(startAt)}.`,
     });
   } catch {

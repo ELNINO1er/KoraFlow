@@ -16,7 +16,8 @@ describe("réponses PDF privées", () => {
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
     expect(response.headers.get("content-disposition")).toBe(
-      'inline; filename="Facture-ete.pdf"',
+      'attachment; filename="Facture-ete.pdf"',
     );
+    expect(response.headers.get("content-length")).toBe("3");
   });
 });

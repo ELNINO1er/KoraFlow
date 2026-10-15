@@ -65,7 +65,7 @@ export function getContactByPortalToken(token: string) {
   return prisma.contact.findFirst({
     where: { portalToken: token, deletedAt: null },
     include: {
-      organization: { select: { name: true, locale: true, currency: true } },
+      organization: { select: { id: true, name: true, logoUrl: true, locale: true, currency: true } },
       quotes: {
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },

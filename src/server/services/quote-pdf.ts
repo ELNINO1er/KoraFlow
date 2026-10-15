@@ -5,6 +5,8 @@ import { getQuote } from "./quote-service";
 import { getQuoteByPublicToken } from "../repositories/quote-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
 import type { QuotePdfData } from "../pdf/quote-document";
+import { getPrivateFile } from "../storage/private-storage";
+import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
 
 export interface GeneratedQuotePdf {
   buffer: Buffer;
@@ -12,6 +14,19 @@ export interface GeneratedQuotePdf {
   number: string;
   contactEmail: string | null;
   publicToken: string | null;
+  organizationName: string;
+  organizationEmail: string | null;
+  organizationLogoUrl: string | null;
+}
+
+async function logoDataUri(storageKey: string | null | undefined) {
+  if (!storageKey?.startsWith("organization-logos/")) return null;
+  try {
+    const bytes = await getPrivateFile(storageKey);
+    return `data:${organizationLogoContentType(storageKey)};base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -36,6 +51,7 @@ export async function generateQuotePdf(
       city: true,
       country: true,
       taxId: true,
+      logoUrl: true,
     },
   });
 
@@ -46,7 +62,7 @@ export async function generateQuotePdf(
     : `${quote.contact.firstName} ${quote.contact.lastName ?? ""}`.trim();
 
   const data: QuotePdfData = {
-    org: org ?? { name: ctx.organization.name },
+    org: { ...(org ?? { name: ctx.organization.name }), logoDataUri: await logoDataUri(org?.logoUrl) },
     contact: { name: clientName, email: quote.contact.email },
     number: quote.number,
     issueDate: quote.issueDate,
@@ -65,6 +81,7 @@ export async function generateQuotePdf(
     totalMinor: quote.totalMinor,
     depositMinor: quote.depositMinor,
     notes: quote.notes,
+    terms: quote.terms,
   };
 
   const buffer = await renderQuotePdf(data);
@@ -74,6 +91,9 @@ export async function generateQuotePdf(
     number: quote.number,
     contactEmail: quote.contact.email,
     publicToken: quote.publicToken,
+    organizationName: org?.name ?? ctx.organization.name,
+    organizationEmail: org?.email ?? null,
+    organizationLogoUrl: org?.logoUrl ? `${process.env.APP_URL ?? ""}/api/organization-logos/${ctx.organizationId}` : null,
   };
 }
 
@@ -100,6 +120,7 @@ export async function generateQuotePdfByToken(
       city: org.city,
       country: org.country,
       taxId: org.taxId,
+      logoDataUri: await logoDataUri(org.logoUrl),
     },
     contact: { name: clientName, email: quote.contact.email },
     number: quote.number,
@@ -119,6 +140,7 @@ export async function generateQuotePdfByToken(
     totalMinor: quote.totalMinor,
     depositMinor: quote.depositMinor,
     notes: quote.notes,
+    terms: quote.terms,
   };
 
   const buffer = await renderQuotePdf(data);
@@ -128,5 +150,8 @@ export async function generateQuotePdfByToken(
     number: quote.number,
     contactEmail: quote.contact.email,
     publicToken: token,
+    organizationName: org.name,
+    organizationEmail: org.email,
+    organizationLogoUrl: org.logoUrl ? `${process.env.APP_URL ?? ""}/api/organization-logos/${org.id}` : null,
   };
 }

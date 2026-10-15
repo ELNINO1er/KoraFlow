@@ -49,6 +49,7 @@ export interface SendEmailInput {
   html: string;
   text?: string;
   attachments?: EmailAttachment[];
+  replyTo?: string;
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
@@ -60,5 +61,6 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     html: input.html,
     text: input.text,
     attachments: input.attachments,
+    replyTo: input.replyTo,
   });
 }

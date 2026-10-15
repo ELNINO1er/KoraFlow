@@ -14,7 +14,7 @@ interface DayOption {
   label: string;
 }
 
-export function BookingWidget({ slug, days }: { slug: string; days: DayOption[] }) {
+export function BookingWidget({ slug, days, timezone }: { slug: string; days: DayOption[]; timezone: string }) {
   const [date, setDate] = useState<string>("");
   const [slots, setSlots] = useState<number[]>([]);
   const [slot, setSlot] = useState<number | null>(null);
@@ -57,7 +57,7 @@ export function BookingWidget({ slug, days }: { slug: string; days: DayOption[] 
           <CheckCircle2 className="size-6" />
         </span>
         <h2 className="font-display text-lg font-semibold text-foreground">Rendez-vous confirmé</h2>
-        <p className="text-sm text-muted-foreground">Un e-mail de confirmation vous a été envoyé pour le {done} (UTC).</p>
+        <p className="text-sm text-muted-foreground">Un e-mail de confirmation vous a été envoyé pour le {done} ({timezone}).</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export function BookingWidget({ slug, days }: { slug: string; days: DayOption[] 
 
       {date ? (
         <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Créneaux disponibles (UTC)</p>
+          <p className="mb-2 text-sm font-medium text-foreground">Créneaux disponibles ({timezone})</p>
           {loading ? (
             <p className="text-sm text-muted-foreground"><Loader2 className="inline size-4 animate-spin" /> Chargement…</p>
           ) : slots.length === 0 ? (

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, CalendarDays } from "lucide-react";
+import { Plus, CalendarDays, Link2, Clock3, MailCheck } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { listTypes, listUpcoming } from "@/server/services/appointment-service";
@@ -15,7 +15,7 @@ export default async function AppointmentsPage() {
   const [types, upcoming] = await Promise.all([listTypes(ctx), listUpcoming(ctx)]);
   const canCreate = can(ctx.role, "appointments.create");
   const localeTag = ctx.organization.locale === "fr" ? "fr-FR" : ctx.organization.locale;
-  const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
+  const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short", timeZone: ctx.organization.timezone });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -33,6 +33,18 @@ export default async function AppointmentsPage() {
           </Button>
         ) : null}
       </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle>Comment fonctionnent les rendez-vous ?</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="flex gap-3"><Link2 className="mt-0.5 size-5 shrink-0 text-accent" /><div><p className="font-medium text-foreground">1. Créez et partagez</p><p className="text-sm text-muted-foreground">Un type définit la durée, le délai minimum et son lien public.</p></div></div>
+          <div className="flex gap-3"><Clock3 className="mt-0.5 size-5 shrink-0 text-accent" /><div><p className="font-medium text-foreground">2. Le client choisit</p><p className="text-sm text-muted-foreground">Alymero propose uniquement les créneaux libres selon vos disponibilités.</p></div></div>
+          <div className="flex gap-3"><MailCheck className="mt-0.5 size-5 shrink-0 text-accent" /><div><p className="font-medium text-foreground">3. Confirmation</p><p className="text-sm text-muted-foreground">La réservation est enregistrée, le client reçoit un e-mail et votre équipe une notification.</p></div></div>
+          <p className="text-xs text-muted-foreground md:col-span-3">Rôle : réduire les échanges manuels et éviter les doubles réservations. Fuseau actif : <strong>{ctx.organization.timezone}</strong>. La synchronisation Google/Outlook reste à venir.</p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -74,7 +86,7 @@ export default async function AppointmentsPage() {
                 {upcoming.map((a) => (
                   <li key={a.id} className="border-b border-border pb-2 last:border-0">
                     <p className="text-sm font-medium text-foreground">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.appointmentType.name} · {dtf.format(a.startAt)} (UTC)</p>
+                    <p className="text-xs text-muted-foreground">{a.appointmentType.name} · {dtf.format(a.startAt)} ({ctx.organization.timezone})</p>
                   </li>
                 ))}
               </ul>
