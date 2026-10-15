@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { UserPlus, FileCheck2, Wallet, FolderKanban, Check } from "lucide-react";
 import { useMotionPref } from "@/features/marketing/motion-preferences";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 /**
  * Coquille d'authentification en deux volets :
@@ -28,8 +29,8 @@ export function AuthShell({
           aria-hidden
           className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl"
         />
-        <Link href="/" className="relative font-display text-2xl font-bold tracking-tight">
-          Aly<span className="text-accent">mero</span>
+        <Link href="/" className="relative" aria-label="Alymero — accueil">
+          <BrandLogo priority className="text-2xl text-primary-foreground" iconClassName="size-11" />
         </Link>
 
         <AuthVisualStory tone={tone} phrases={phrases} />
@@ -43,9 +44,10 @@ export function AuthShell({
         <div className="w-full max-w-md">
           <Link
             href="/"
-            className="mb-8 inline-block font-display text-xl font-bold tracking-tight text-foreground lg:hidden"
+            className="mb-8 inline-block lg:hidden"
+            aria-label="Alymero — accueil"
           >
-            Aly<span className="text-accent">mero</span>
+            <BrandLogo priority className="text-xl text-foreground" iconClassName="size-10" />
           </Link>
           {children}
         </div>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useSyncExternalStore } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { NAV_ITEMS, SECONDARY_NAV_ITEMS } from "./nav-items";
 
 const KEY = "kf-sidebar-collapsed";
@@ -69,10 +70,10 @@ export function Sidebar() {
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "px-5")}>
         {collapsed ? (
-          <span className="font-display text-xl font-bold tracking-tight text-accent">A</span>
+          <BrandLogo iconOnly priority iconClassName="size-9" />
         ) : (
-          <Link href="/dashboard" className="font-display text-xl font-bold tracking-tight text-foreground">
-            Aly<span className="text-accent">mero</span>
+          <Link href="/dashboard" aria-label="Alymero — tableau de bord">
+            <BrandLogo priority className="text-xl text-foreground" iconClassName="size-9" />
           </Link>
         )}
       </div>

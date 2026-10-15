@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useMotionPref } from "./motion-preferences";
 
 const LINKS = [
@@ -46,8 +47,8 @@ export function Header() {
           compact ? "h-13 shadow-md" : "h-16"
         }`}
       >
-        <Link href="/" className="font-display text-xl font-bold tracking-tight text-foreground">
-          Aly<span className="text-accent">mero</span>
+        <Link href="/" aria-label="Alymero — accueil">
+          <BrandLogo priority className="text-xl text-foreground" iconClassName="size-9" />
         </Link>
 
         <div className="hidden items-center gap-7 text-sm font-medium text-muted-foreground lg:flex">

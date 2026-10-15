@@ -21,6 +21,7 @@ import { projectStatusLabel, projectStatusVariant } from "@/lib/constants/projec
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
 
 export const metadata: Metadata = { title: "Mon parcours" };
 
@@ -257,9 +258,10 @@ export default async function ClientPortalPage({
         </PortalSection>
       ) : null}
 
-      <p className="pt-2 text-center text-xs text-muted-foreground">
-        Espace fourni par {contact.organization.name} via Alymero.
-      </p>
+      <div className="flex flex-wrap items-center justify-center gap-1 pt-2 text-xs text-muted-foreground">
+        <span>Espace fourni par {contact.organization.name}</span>
+        <PoweredByAlymero />
+      </div>
     </main>
   );
 }

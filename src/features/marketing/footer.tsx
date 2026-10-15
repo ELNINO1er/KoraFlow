@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -32,9 +33,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <span className="font-display text-lg font-bold tracking-tight text-foreground">
-              Aly<span className="text-accent">mero</span>
-            </span>
+            <BrandLogo className="text-lg text-foreground" iconClassName="size-9" />
             <p className="mt-2 text-sm text-muted-foreground">Votre entreprise, parfaitement orchestrée.</p>
           </div>
 

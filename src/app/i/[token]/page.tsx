@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DeclarePaymentForm } from "@/features/payments/declare-payment-form";
+import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
 
 export const metadata: Metadata = { title: "Votre facture" };
 
@@ -36,7 +37,7 @@ export default async function PublicInvoicePage({
       <div className="flex items-center justify-between">
         <div>
           <span className="font-display text-xl font-bold text-primary">{invoice.organization.name}</span>
-          <p className="text-xs text-muted-foreground">via Alymero</p>
+          <PoweredByAlymero />
         </div>
         <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
       </div>

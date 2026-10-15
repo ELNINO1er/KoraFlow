@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuoteResponse } from "@/features/quotes/quote-response";
+import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
 
 export const metadata: Metadata = { title: "Votre devis" };
 
@@ -45,7 +46,7 @@ export default async function PublicQuotePage({
           <span className="font-display text-xl font-bold text-primary">
             {quote.organization.name}
           </span>
-          <p className="text-xs text-muted-foreground">via Alymero</p>
+          <PoweredByAlymero />
         </div>
         <Badge variant={quoteStatusVariant(displayStatus)}>
           {quoteStatusLabel(displayStatus)}

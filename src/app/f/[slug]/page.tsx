@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getFormBySlug } from "@/server/repositories/form-repository";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicForm } from "@/features/forms/public-form";
+import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
 
 export const metadata: Metadata = { title: "Formulaire" };
 
@@ -19,7 +20,7 @@ export default async function PublicFormPage({
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-6 px-4 py-10">
       <div className="text-center">
         <span className="font-display text-lg font-bold text-primary">{form.organization.name}</span>
-        <p className="text-xs text-muted-foreground">via Alymero</p>
+        <PoweredByAlymero className="justify-center" />
       </div>
 
       <Card>

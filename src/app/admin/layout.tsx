@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShieldAlert, ExternalLink } from "lucide-react";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 import { AdminNav } from "@/features/admin/admin-nav";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export const metadata: Metadata = {
   title: { default: "Console plateforme", template: "%s · Console plateforme" },
@@ -32,15 +33,16 @@ export default async function AdminLayout({
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-danger/20 text-danger">
-                <ShieldAlert className="size-5" />
-              </span>
+              <BrandLogo iconOnly priority iconClassName="size-9" />
               <div>
                 <p className="font-display text-sm font-bold leading-tight">
                   Console plateforme
                 </p>
                 <p className="text-[11px] leading-tight text-white/60">
-                  Alymero · super administration
+                  <span className="inline-flex items-center gap-1">
+                    <ShieldAlert className="size-3" />
+                    Alymero · super administration
+                  </span>
                 </p>
               </div>
             </div>
