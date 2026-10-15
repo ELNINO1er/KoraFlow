@@ -17,20 +17,20 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: koraflow
-          POSTGRES_PASSWORD: koraflow_ci_password
-          POSTGRES_DB: koraflow
+          POSTGRES_USER: alymero
+          POSTGRES_PASSWORD: alymero_ci_password
+          POSTGRES_DB: alymero
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U koraflow -d koraflow"
+          --health-cmd "pg_isready -U alymero -d alymero"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
       # Connexion à la base de service (port CI = 5432).
-      DATABASE_URL: postgresql://koraflow:koraflow_ci_password@localhost:5432/koraflow?schema=public
+      DATABASE_URL: postgresql://alymero:alymero_ci_password@localhost:5432/alymero?schema=public
       # Valeurs factices, exclusivement pour la CI (aucun secret réel).
       BETTER_AUTH_SECRET: ci-only-secret-not-for-production-0000000000
       BETTER_AUTH_URL: http://localhost:3000
@@ -71,8 +71,8 @@ jobs:
 
       - name: Validate production Compose file
         env:
-          KORAFLOW_ENV_FILE: .env.production.example
+          ALYMERO_ENV_FILE: .env.production.example
         run: docker compose --env-file .env.production.example -f docker-compose.prod.yml config --quiet
 
       - name: Build production container
-        run: docker build --target runner --tag koraflow:ci .
+        run: docker build --target runner --tag alymero:ci .
