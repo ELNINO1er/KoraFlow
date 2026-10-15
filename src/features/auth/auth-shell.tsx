@@ -29,7 +29,7 @@ export function AuthShell({
           className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl"
         />
         <Link href="/" className="relative font-display text-2xl font-bold tracking-tight">
-          Kora<span className="text-accent">Flow</span>
+          Aly<span className="text-accent">mero</span>
         </Link>
 
         <AuthVisualStory tone={tone} phrases={phrases} />
@@ -45,7 +45,7 @@ export function AuthShell({
             href="/"
             className="mb-8 inline-block font-display text-xl font-bold tracking-tight text-foreground lg:hidden"
           >
-            Kora<span className="text-accent">Flow</span>
+            Aly<span className="text-accent">mero</span>
           </Link>
           {children}
         </div>
@@ -104,7 +104,7 @@ function AuthVisualStory({ tone, phrases }: { tone: "default" | "calm"; phrases?
         </motion.span>
       </p>
 
-      {/* Fil vertical (Kora Line) reliant les événements */}
+      {/* Fil vertical de marque reliant les événements. */}
       <div className="relative mt-8">
         <span
           aria-hidden

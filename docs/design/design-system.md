@@ -1,4 +1,4 @@
-# KoraFlow — Design System
+# Alymero — Design System
 
 Identité : **The Living Orchestra** — l'entreprise en mouvement. Toute l'interface
 présente l'activité comme une orchestration coordonnée. Le fil conducteur est la
@@ -64,7 +64,7 @@ classe de champ recopiée dans une page.
 
 ## Mouvement partagé (`src/features/marketing`)
 `MotionPreferencesProvider` + `MotionToggleButton`, `Reveal`, `SectionHeading`,
-`KoraFlowPath` (Kora Line) — réutilisables hors landing (auth, etc.).
+`BrandFlowPath` — fil de marque réutilisable hors landing (auth, etc.).
 
 ## Accessibilité (rappel)
 HTML sémantique, focus visible, cibles ≥ 44×44 px, labels liés, erreurs annoncées

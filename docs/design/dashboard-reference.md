@@ -10,7 +10,7 @@
 - Slogans présents : « Plus loin, ensemble » (sous le logo), « Des idées aux résultats » (bas de sidebar), « Des entreprises plus fortes demain. » (accroche marketing).
 
 ## Sidebar (gauche, claire)
-- Logo **KoraFlow** en haut + baseline « Plus loin, ensemble ».
+- Logo **Alymero** en haut + baseline « Votre entreprise, parfaitement orchestrée ».
 - Items avec icônes : Tableau de bord, Clients, Rendez-vous, Devis, Contrats, Factures, Projets.
 - Item actif : **pastille terracotta** (fond + icône), texte foncé.
 - Bas de sidebar : « Des idées aux résultats » + trait terracotta.

@@ -51,7 +51,7 @@ export async function notifyOrg(
         sendEmail({
           to,
           subject: input.title,
-          html: `<p>${input.title}</p>${input.body ? `<p>${input.body}</p>` : ""}${link ? `<p><a href="${link}">Voir dans KoraFlow</a></p>` : ""}`,
+          html: `<p>${input.title}</p>${input.body ? `<p>${input.body}</p>` : ""}${link ? `<p><a href="${link}">Voir dans Alymero</a></p>` : ""}`,
           text: `${input.title}${input.body ? ` — ${input.body}` : ""}${link ? ` : ${link}` : ""}`,
         }),
       ),

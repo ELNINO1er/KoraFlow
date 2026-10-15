@@ -43,9 +43,9 @@ export async function inviteMember(ctx: AuthContext, email: string, role: Member
     const link = `${process.env.APP_URL ?? ""}/invitations/${token}`;
     await sendEmail({
       to: email,
-      subject: `Invitation à rejoindre ${ctx.organization.name} sur KoraFlow`,
+      subject: `Invitation à rejoindre ${ctx.organization.name} sur Alymero`,
       html: `<p>Bonjour,</p>
-<p>${ctx.user.name ?? "Un membre"} vous invite à rejoindre <strong>${ctx.organization.name}</strong> sur KoraFlow.</p>
+<p>${ctx.user.name ?? "Un membre"} vous invite à rejoindre <strong>${ctx.organization.name}</strong> sur Alymero.</p>
 <p><a href="${link}">Accepter l'invitation</a></p>
 <p>Ce lien expire dans 7 jours.</p>`,
       text: `Vous êtes invité à rejoindre ${ctx.organization.name} : ${link}`,

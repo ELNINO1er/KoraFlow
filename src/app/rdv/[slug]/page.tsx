@@ -25,7 +25,7 @@ export default async function PublicBookingPage({
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-6 px-4 py-10">
       <div className="text-center">
         <span className="font-display text-lg font-bold text-primary">{type.organization.name}</span>
-        <p className="text-xs text-muted-foreground">via KoraFlow</p>
+        <p className="text-xs text-muted-foreground">via Alymero</p>
       </div>
 
       <Card>

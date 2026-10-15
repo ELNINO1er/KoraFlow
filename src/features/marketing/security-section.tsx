@@ -45,7 +45,7 @@ export function SecuritySection() {
             })}
           </ul>
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-            KoraFlow ne revendique aucune certification ni conformité juridique non vérifiée. La
+            Alymero ne revendique aucune certification ni conformité juridique non vérifiée. La
             signature interne n&apos;est pas une signature électronique qualifiée ; les factures ne
             sont pas présentées comme conformes à la FNE ivoirienne sans intégration validée.
           </p>

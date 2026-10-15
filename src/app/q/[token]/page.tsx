@@ -45,7 +45,7 @@ export default async function PublicQuotePage({
           <span className="font-display text-xl font-bold text-primary">
             {quote.organization.name}
           </span>
-          <p className="text-xs text-muted-foreground">via KoraFlow</p>
+          <p className="text-xs text-muted-foreground">via Alymero</p>
         </div>
         <Badge variant={quoteStatusVariant(displayStatus)}>
           {quoteStatusLabel(displayStatus)}

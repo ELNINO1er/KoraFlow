@@ -33,7 +33,7 @@ export function validateServerEnvironment(environment: NodeJS.ProcessEnv = proce
     }
     if (
       result.data.BETTER_AUTH_SECRET.includes("remplacer") ||
-      result.data.EMAIL_FROM.endsWith("@koraflow.test>")
+      result.data.EMAIL_FROM.endsWith("@alymero.test>")
     ) {
       throw new Error("Les valeurs d’exemple ne sont pas autorisées en production.");
     }

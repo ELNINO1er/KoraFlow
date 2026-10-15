@@ -5,7 +5,7 @@ import { MessageCircle, Table2, Mail, FolderOpen, Layers, AlertTriangle } from "
 import { Reveal, SectionHeading } from "./reveal";
 import { useMotionPref } from "./motion-preferences";
 
-/** Fenêtres génériques (aucun logo réel) qui se font absorber par KoraFlow. */
+/** Fenêtres génériques qui convergent vers l’espace central Alymero. */
 const FRAGMENTS = [
   { icon: MessageCircle, label: "Messagerie", x: -120, y: -60, r: -8 },
   { icon: Table2, label: "Tableur", x: 130, y: -40, r: 7 },
@@ -27,7 +27,7 @@ export function ProblemFragmentation() {
       <SectionHeading
         kicker="Le problème"
         title={<>Votre activité ne devrait pas être dispersée dans dix outils.</>}
-        subtitle="Messagerie, tableurs, e-mails, documents… chaque outil détient un morceau. KoraFlow les réunit."
+        subtitle="Messagerie, tableurs, e-mails, documents… chaque outil détient un morceau. Alymero les réunit."
       />
 
       <div className="relative mx-auto mt-14 flex h-[320px] max-w-3xl items-center justify-center sm:h-[360px]">
@@ -50,7 +50,7 @@ export function ProblemFragmentation() {
           );
         })}
 
-        {/* Panneau KoraFlow central qui se forme */}
+        {/* Panneau Alymero central qui se forme. */}
         <motion.div
           initial={reduced ? false : { opacity: 0, scale: 0.9 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -63,7 +63,7 @@ export function ProblemFragmentation() {
               <Layers className="size-5" />
             </span>
             <div>
-              <p className="font-display text-sm font-bold text-foreground">KoraFlow</p>
+              <p className="font-display text-sm font-bold text-foreground">Alymero</p>
               <p className="text-[11px] text-muted-foreground">Tout, au même endroit</p>
             </div>
           </div>

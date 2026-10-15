@@ -40,7 +40,7 @@ export default async function AdminLayout({
                   Console plateforme
                 </p>
                 <p className="text-[11px] leading-tight text-white/60">
-                  KoraFlow · super administration
+                  Alymero · super administration
                 </p>
               </div>
             </div>

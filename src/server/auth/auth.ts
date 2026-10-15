@@ -4,6 +4,7 @@ import { twoFactor } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "../database/client";
+import { BRAND_NAME } from "@/lib/constants/brand";
 
 /**
  * Instance serveur Better Auth (source de vérité de l'authentification).
@@ -17,7 +18,7 @@ import { prisma } from "../database/client";
  * notre couche métier (Sprint 1.4) qui s'en charge sur nos tables Prisma.
  */
 export const auth = betterAuth({
-  appName: "KoraFlow",
+  appName: BRAND_NAME,
   // Origines autorisées (protection CSRF). En plus de localhost, on accepte les
   // origines listées dans TRUSTED_ORIGINS (ex. l'IP LAN pour une démo WiFi).
   trustedOrigins: [
@@ -37,12 +38,12 @@ export const auth = betterAuth({
       const { sendEmail } = await import("../integrations/email/mailer");
       await sendEmail({
         to: user.email,
-        subject: "Réinitialisation de votre mot de passe KoraFlow",
+        subject: `Réinitialisation de votre mot de passe ${BRAND_NAME}`,
         html: `<p>Bonjour,</p>
-<p>Vous avez demandé à réinitialiser votre mot de passe KoraFlow.</p>
+<p>Vous avez demandé à réinitialiser votre mot de passe ${BRAND_NAME}.</p>
 <p><a href="${url}">Choisir un nouveau mot de passe</a></p>
 <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
-        text: `Réinitialiser votre mot de passe KoraFlow : ${url}`,
+        text: `Réinitialiser votre mot de passe ${BRAND_NAME} : ${url}`,
       });
     },
   },
@@ -53,11 +54,11 @@ export const auth = betterAuth({
       const { sendEmail } = await import("../integrations/email/mailer");
       await sendEmail({
         to: user.email,
-        subject: "Confirmez votre adresse e-mail KoraFlow",
-        html: `<p>Bienvenue sur KoraFlow,</p>
+        subject: `Confirmez votre adresse e-mail ${BRAND_NAME}`,
+        html: `<p>Bienvenue sur ${BRAND_NAME},</p>
 <p>Confirmez votre adresse e-mail pour activer votre compte :</p>
 <p><a href="${url}">Confirmer mon adresse e-mail</a></p>`,
-        text: `Confirmez votre adresse e-mail KoraFlow : ${url}`,
+        text: `Confirmez votre adresse e-mail ${BRAND_NAME} : ${url}`,
       });
     },
   },

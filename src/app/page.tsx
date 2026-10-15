@@ -4,7 +4,7 @@ import {
   MotionPreferencesProvider,
   MotionToggleButton,
 } from "@/features/marketing/motion-preferences";
-import { KoraFlowPath } from "@/features/marketing/kora-path";
+import { BrandFlowPath } from "@/features/marketing/kora-path";
 import { Header } from "@/features/marketing/header";
 import { HeroOrchestration } from "@/features/marketing/hero-orchestration";
 import { ProblemFragmentation } from "@/features/marketing/problem-fragmentation";
@@ -26,7 +26,7 @@ export default async function Home() {
 
   return (
     <MotionPreferencesProvider>
-      <KoraFlowPath />
+      <BrandFlowPath />
       <Header />
       <main className="relative">
         <HeroOrchestration />

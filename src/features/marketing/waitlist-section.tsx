@@ -49,7 +49,7 @@ export function WaitlistSection() {
             <SectionHeading
               align="left"
               kicker="Bientôt disponible"
-              title="Participez aux premières versions de KoraFlow"
+              title="Participez aux premières versions d’Alymero"
               subtitle="Les tarifs seront annoncés au lancement. En attendant, rejoignez la liste d'attente : les premiers inscrits testent et façonnent la plateforme."
             />
             <ul className="mt-6 space-y-3">

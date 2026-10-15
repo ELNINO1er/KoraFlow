@@ -52,7 +52,7 @@ export interface SendEmailInput {
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
-  const from = process.env.EMAIL_FROM ?? "KoraFlow <no-reply@koraflow.test>";
+  const from = process.env.EMAIL_FROM ?? "Alymero <no-reply@alymero.test>";
   await getTransporter().sendMail({
     from,
     to: input.to,

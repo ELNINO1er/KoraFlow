@@ -1,4 +1,4 @@
-# KoraFlow — services de développement local.
+# Alymero — services de développement local.
 # Usage : docker compose up -d
 # NB : ne contient AUCUN secret de production. Les identifiants ci-dessous
 # sont réservés au développement local.

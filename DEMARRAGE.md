@@ -1,4 +1,4 @@
-# Démarrer KoraFlow
+# Démarrer Alymero
 
 Guide de lancement en local et accès de test (super administrateur + utilisateur).
 
@@ -58,7 +58,7 @@ npm run dev
 
 ## 4. Accès SUPER ADMIN (plateforme)
 
-- **E-mail :** `bleu@demo.koraflow.test`
+- **E-mail :** `bleu@demo.alymero.test`
 - **Mot de passe :** `MotDePasse123!`
 
 Ce compte est **administrateur de plateforme** *et* **propriétaire** de
@@ -93,9 +93,9 @@ npm run admin:grant -- email@exemple.com --revoke # retirer
 3. La personne s'inscrit avec **exactement le même e-mail**, vérifie via Mailpit,
    puis **accepte** l'invitation → elle rejoint l'organisation avec son rôle.
 
-> ⚠️ Le compte du seed `proprietaire@demo.koraflow.test` **n'a pas de mot de
+> ⚠️ Le compte du seed `proprietaire@demo.alymero.test` **n'a pas de mot de
 > passe** (créé sans identifiants) et n'est **pas connectable**. Utiliser
-> `bleu@demo.koraflow.test` ou créer son propre compte.
+> `bleu@demo.alymero.test` ou créer son propre compte.
 
 ## 6. Tester en tant que CLIENT (sans compte)
 
@@ -123,6 +123,6 @@ sécurisés** (par jeton), copiables depuis les fiches internes.
 
 1. `docker compose up -d` puis `npm run dev`
 2. **Landing** : `/` (en navigation privée)
-3. **Super-admin** : `bleu@demo.koraflow.test` / `MotDePasse123!` → `/admin`
+3. **Super-admin** : `bleu@demo.alymero.test` / `MotDePasse123!` → `/admin`
 4. **Utilisateur** : `/register` (+ vérification Mailpit) ou invitation via `/equipe`
 5. Tous les e-mails → **http://localhost:8025**

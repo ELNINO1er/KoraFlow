@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import {
+  BRAND_DESCRIPTION,
+  BRAND_DOMAIN,
+  BRAND_NAME,
+  BRAND_TAGLINE,
+} from "@/lib/constants/brand";
 import "./globals.css";
 
 const inter = localFont({
@@ -17,12 +23,26 @@ const manrope = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`https://${BRAND_DOMAIN}`),
+  applicationName: BRAND_NAME,
   title: {
-    default: "KoraFlow — Votre entreprise, parfaitement orchestrée",
-    template: "%s · KoraFlow",
+    default: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
+    template: `%s · ${BRAND_NAME}`,
   },
-  description:
-    "KoraFlow centralise clients, contrats, paiements et projets dans un seul espace, de la première demande jusqu'à la livraison.",
+  description: BRAND_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "fr_CI",
+    siteName: BRAND_NAME,
+    title: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
+    description: BRAND_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
+    description: BRAND_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

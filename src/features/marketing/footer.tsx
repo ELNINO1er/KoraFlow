@@ -33,7 +33,7 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
-              Kora<span className="text-accent">Flow</span>
+              Aly<span className="text-accent">mero</span>
             </span>
             <p className="mt-2 text-sm text-muted-foreground">Votre entreprise, parfaitement orchestrée.</p>
           </div>
@@ -55,11 +55,8 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 KoraFlow. Tous droits réservés.</p>
-          <p className="max-w-md text-xs">
-            KoraFlow est un nom provisoire. La disponibilité juridique et commerciale de la marque
-            reste à confirmer.
-          </p>
+          <p>© 2026 Alymero. Tous droits réservés.</p>
+          <p className="max-w-md text-xs">alymero.com · Plateforme de gestion commerciale tout-en-un.</p>
         </div>
       </div>
     </footer>

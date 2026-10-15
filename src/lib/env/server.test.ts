@@ -3,14 +3,14 @@ import { validateServerEnvironment } from "./server";
 
 const valid = {
   NODE_ENV: "production",
-  DATABASE_URL: "postgresql://user:password@db:5432/koraflow",
+  DATABASE_URL: "postgresql://user:password@db:5432/alymero",
   APP_URL: "https://app.example.com",
   BETTER_AUTH_URL: "https://app.example.com",
   BETTER_AUTH_SECRET: "a-secure-secret-with-more-than-32-characters",
   SMTP_HOST: "smtp.example.com",
   SMTP_PORT: "587",
   SMTP_SECURE: "false",
-  EMAIL_FROM: "KoraFlow <contact@example.com>",
+  EMAIL_FROM: "Alymero <contact@example.com>",
   STORAGE_DRIVER: "local",
   PRIVATE_UPLOAD_DIR: "/app/uploads",
 } as NodeJS.ProcessEnv;

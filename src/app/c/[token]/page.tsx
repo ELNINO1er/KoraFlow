@@ -28,7 +28,7 @@ export default async function PublicContractPage({
           <span className="font-display text-xl font-bold text-primary">
             {contract.organization.name}
           </span>
-          <p className="text-xs text-muted-foreground">via KoraFlow</p>
+          <p className="text-xs text-muted-foreground">via Alymero</p>
         </div>
         <Badge variant={contractStatusVariant(contract.status)}>
           {contractStatusLabel(contract.status)}

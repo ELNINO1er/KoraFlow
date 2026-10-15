@@ -1,10 +1,10 @@
-# KoraFlow
+# Alymero
 
 **Plateforme SaaS de gestion commerciale tout-en-un** pour indépendants, agences et PME d'Afrique francophone (marché initial : Côte d'Ivoire).
 
 > _Votre entreprise, parfaitement orchestrée._
 
-KoraFlow centralise le parcours commercial complet, **de la première demande du prospect jusqu'au paiement et à la livraison du projet** : CRM, formulaires publics, rendez-vous, devis, contrats (signature électronique simple), factures, paiements, projets, portail client, tableau de bord, équipe et notifications — le tout **multi-tenant** et isolé par organisation.
+Alymero centralise le parcours commercial complet, **de la première demande du prospect jusqu'au paiement et à la livraison du projet** : CRM, formulaires publics, rendez-vous, devis, contrats (signature électronique simple), factures, paiements, projets, portail client, tableau de bord, équipe et notifications — le tout **multi-tenant** et isolé par organisation.
 
 ---
 
@@ -209,7 +209,7 @@ curl --fail http://127.0.0.1:3000/api/health
 Le port applicatif est volontairement lié à `127.0.0.1`. Un reverse proxy
 HTTPS (Nginx, Caddy ou équivalent) doit être placé devant l'application avec
 une limite de taille des requêtes. Avant chaque mise en production, sauvegarder
-les deux volumes `koraflow_prod_db` et `koraflow_prod_uploads`, puis tester leur
+les deux volumes `alymero_prod_db` et `alymero_prod_uploads`, puis tester leur
 restauration sur une machine séparée.
 
 Un déploiement multi-instance n'est pas encore supporté : il nécessiterait un
@@ -230,4 +230,4 @@ Next.js et des clés Server Actions.
 
 ---
 
-> Nom, marque et domaine « KoraFlow » **provisoires** — une recherche juridique et commerciale (INPI/OAPI, disponibilité de domaine) reste à mener avant tout lancement officiel.
+> Domaine principal : **alymero.com**. La disponibilité juridique de la marque reste à valider auprès des organismes compétents avant un lancement commercial à grande échelle.

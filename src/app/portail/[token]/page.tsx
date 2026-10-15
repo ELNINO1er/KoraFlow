@@ -258,7 +258,7 @@ export default async function ClientPortalPage({
       ) : null}
 
       <p className="pt-2 text-center text-xs text-muted-foreground">
-        Espace fourni par {contact.organization.name} via KoraFlow.
+        Espace fourni par {contact.organization.name} via Alymero.
       </p>
     </main>
   );

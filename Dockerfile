@@ -18,7 +18,7 @@ ENV BETTER_AUTH_URL="https://build.invalid"
 ENV BETTER_AUTH_SECRET="build-only-secret-with-at-least-32-characters"
 ENV SMTP_HOST="build.invalid"
 ENV SMTP_PORT="587"
-ENV EMAIL_FROM="KoraFlow <build@build.invalid>"
+ENV EMAIL_FROM="Alymero <build@build.invalid>"
 ENV STORAGE_DRIVER="local"
 ENV PRIVATE_UPLOAD_DIR="/app/uploads"
 RUN npx prisma generate

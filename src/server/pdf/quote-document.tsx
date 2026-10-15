@@ -185,7 +185,7 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
         ) : null}
 
         <Text style={styles.footer}>
-          {data.org.name} · Document édité via KoraFlow.
+          {data.org.name} · Document édité via Alymero.
         </Text>
       </Page>
     </Document>

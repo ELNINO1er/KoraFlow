@@ -1,4 +1,4 @@
-# Déploiement KoraFlow — to-do list
+# Déploiement Alymero — to-do list
 
 Socle déjà prêt dans le dépôt : `Dockerfile` (multi-stage, non-root, healthcheck,
 cible `migrator`), `docker-compose.prod.yml` (postgres + migrate + app), `.env.production.example`,
@@ -10,7 +10,8 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
 
 ## 1. Prérequis (à réunir)
 - [ ] **Serveur** Linux (VPS) avec **Docker** + **Docker Compose v2** (ex. Hetzner, OVH, DigitalOcean, Scaleway).
-- [ ] **Nom de domaine** (ex. `koraflow.tech`) + un **enregistrement DNS A** pointant vers l'IP du serveur.
+- [x] **Nom de domaine** : `alymero.com` acheté et actif chez le registrar.
+- [ ] Ajouter les enregistrements DNS demandés par l’hébergeur une fois le serveur choisi.
 - [ ] **Fournisseur SMTP réel** pour les e-mails (vérification, invitations, reset, notifications) :
       ex. **Brevo (Sendinblue)**, **Resend**, **Mailgun**, **Amazon SES**, **Postmark**.
       → récupérer `SMTP_HOST / PORT / USER / PASSWORD` et une adresse d'expéditeur vérifiée.
@@ -68,7 +69,8 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
 - [ ] (Multi-instance plus tard) passer le **rate-limit en mémoire → Redis** et externaliser le stockage (S3).
 
 ## 8. Points produit / juridique à trancher
-- [ ] Confirmer le **nom de marque** (KoraFlow est provisoire) et la disponibilité du domaine.
+- [x] Nom de produit retenu : **Alymero** ; domaine `alymero.com` acheté.
+- [ ] Vérifier la disponibilité juridique de la marque Alymero (notamment OAPI) avant lancement commercial.
 - [ ] Rédiger **CGU**, **Politique de confidentialité**, mentions légales (référencées dans le footer).
 - [ ] **Paiements** : au lancement, la **validation manuelle** suffit ; planifier l'intégration Mobile Money réelle (CinetPay/Wave/OM) ensuite.
 - [ ] **FNE** (facture normalisée Côte d'Ivoire) : ne pas présenter les factures comme conformes sans intégration officielle.

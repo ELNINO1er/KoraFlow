@@ -4,11 +4,11 @@ import { motion, useScroll, useSpring, useTransform } from "motion/react";
 import { useMotionPref } from "./motion-preferences";
 
 /**
- * « Le flux Kora » — un fil lumineux terracotta qui se dessine à mesure que le
+ * Fil de marque — un tracé terracotta qui se dessine à mesure que le
  * visiteur défile, avec une tête lumineuse qui progresse. Purement décoratif,
  * en arrière-plan, sur le bord gauche. Sous mouvement réduit : fil statique.
  */
-export function KoraFlowPath() {
+export function BrandFlowPath() {
   const { reduced } = useMotionPref();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 55, damping: 20, mass: 0.4 });

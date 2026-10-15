@@ -19,10 +19,10 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const owner = await prisma.user.upsert({
-    where: { email: "proprietaire@demo.koraflow.test" },
+    where: { email: "proprietaire@demo.alymero.test" },
     update: {},
     create: {
-      email: "proprietaire@demo.koraflow.test",
+      email: "proprietaire@demo.alymero.test",
       name: "Awa Konaté",
       emailVerified: true,
     },
@@ -35,7 +35,7 @@ async function main() {
       name: "Agence Démo",
       slug: "agence-demo",
       legalName: "Agence Démo SARL",
-      email: "contact@demo.koraflow.test",
+      email: "contact@demo.alymero.test",
       phone: "+225 07 00 00 00 00",
       city: "Abidjan",
       country: "CI",

@@ -69,10 +69,10 @@ export function Sidebar() {
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "px-5")}>
         {collapsed ? (
-          <span className="font-display text-xl font-bold tracking-tight text-accent">K</span>
+          <span className="font-display text-xl font-bold tracking-tight text-accent">A</span>
         ) : (
           <Link href="/dashboard" className="font-display text-xl font-bold tracking-tight text-foreground">
-            Kora<span className="text-accent">Flow</span>
+            Aly<span className="text-accent">mero</span>
           </Link>
         )}
       </div>

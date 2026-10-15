@@ -1,6 +1,6 @@
-# Sécurité — KoraFlow
+# Sécurité — Alymero
 
-Ce document décrit le modèle de sécurité de KoraFlow et la feuille de route de durcissement. Approche : **OWASP** et **Secure by Design**.
+Ce document décrit le modèle de sécurité d’Alymero et la feuille de route de durcissement. Approche : **OWASP** et **Secure by Design**.
 
 ## Isolation multi-tenant (état actuel)
 

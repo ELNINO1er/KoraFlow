@@ -1,4 +1,4 @@
-// KoraFlow — Schéma Prisma
+// Alymero — Schéma Prisma
 // Sprint 1.2 : socle multi-tenant (User, Organization, Membership, Invitation, AuditLog).
 // Conventions transverses :
 //   - Toute donnée métier appartenant à une entreprise porte `organizationId`.

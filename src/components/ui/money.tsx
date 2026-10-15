@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Affichage de montant cohérent. `minor` = entier dans la plus petite unité de
- * la devise (convention KoraFlow). `tabular` aligne les chiffres (listes).
+ * la devise (convention Alymero). `tabular` aligne les chiffres (listes).
  */
 export function Money({
   minor,

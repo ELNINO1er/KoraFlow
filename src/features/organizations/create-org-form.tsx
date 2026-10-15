@@ -39,7 +39,7 @@ export function CreateOrgForm() {
           Créez votre entreprise
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Dernière étape avant d&apos;accéder à votre espace KoraFlow.
+          Dernière étape avant d&apos;accéder à votre espace Alymero.
         </p>
       </div>
 

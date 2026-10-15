@@ -36,7 +36,7 @@ export default async function PublicInvoicePage({
       <div className="flex items-center justify-between">
         <div>
           <span className="font-display text-xl font-bold text-primary">{invoice.organization.name}</span>
-          <p className="text-xs text-muted-foreground">via KoraFlow</p>
+          <p className="text-xs text-muted-foreground">via Alymero</p>
         </div>
         <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
       </div>

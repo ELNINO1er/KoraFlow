@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requis}
     volumes:
-      - koraflow_prod_db:/var/lib/postgresql/data
+      - alymero_prod_db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -20,7 +20,7 @@ services:
       context: .
       target: migrator
     restart: "no"
-    env_file: ${KORAFLOW_ENV_FILE:-.env.production}
+    env_file: ${ALYMERO_ENV_FILE:-.env.production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
       context: .
       target: runner
     restart: unless-stopped
-    env_file: ${KORAFLOW_ENV_FILE:-.env.production}
+    env_file: ${ALYMERO_ENV_FILE:-.env.production}
     environment:
       NODE_ENV: production
       STORAGE_DRIVER: local
@@ -40,14 +40,14 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - koraflow_prod_uploads:/app/uploads
+      - alymero_prod_uploads:/app/uploads
     ports:
       - "127.0.0.1:3000:3000"
     networks: [backend]
 
 volumes:
-  koraflow_prod_db:
-  koraflow_prod_uploads:
+  alymero_prod_db:
+  alymero_prod_uploads:
 
 networks:
   backend:

@@ -47,7 +47,7 @@ export function Header() {
         }`}
       >
         <Link href="/" className="font-display text-xl font-bold tracking-tight text-foreground">
-          Kora<span className="text-accent">Flow</span>
+          Aly<span className="text-accent">mero</span>
         </Link>
 
         <div className="hidden items-center gap-7 text-sm font-medium text-muted-foreground lg:flex">
