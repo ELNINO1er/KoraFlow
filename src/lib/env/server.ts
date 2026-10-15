@@ -11,9 +11,16 @@ const serverEnvironmentSchema = z.object({
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535),
   SMTP_SECURE: z.enum(["true", "false"]),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(3),
-  STORAGE_DRIVER: z.literal("local").default("local"),
+  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   PRIVATE_UPLOAD_DIR: z.string().min(1).default(".data/uploads"),
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
 });
 
 export function validateServerEnvironment(environment: NodeJS.ProcessEnv = process.env): void {
@@ -36,6 +43,23 @@ export function validateServerEnvironment(environment: NodeJS.ProcessEnv = proce
       result.data.EMAIL_FROM.endsWith("@alymero.test>")
     ) {
       throw new Error("Les valeurs d’exemple ne sont pas autorisées en production.");
+    }
+
+    if (!result.data.SMTP_USER || !result.data.SMTP_PASSWORD) {
+      throw new Error("SMTP_USER et SMTP_PASSWORD sont requis en production.");
+    }
+
+    if (result.data.STORAGE_DRIVER === "s3") {
+      const missing = [
+        "S3_ENDPOINT",
+        "S3_REGION",
+        "S3_BUCKET",
+        "S3_ACCESS_KEY_ID",
+        "S3_SECRET_ACCESS_KEY",
+      ].filter((key) => !environment[key]);
+      if (missing.length > 0) {
+        throw new Error(`Configuration S3 incomplète — ${missing.join(", ")}`);
+      }
     }
   }
 }
