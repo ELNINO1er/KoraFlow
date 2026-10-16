@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { QuoteDocument, type QuotePdfData } from "./quote-document";
+import { PDFDocument } from "pdf-lib";
+import { renderQuotePdf, type QuotePdfData } from "./render-quote";
 
 const sample: QuotePdfData = {
   org: { name: "Agence Démo", email: "contact@demo.test", city: "Abidjan", country: "CI" },
@@ -12,9 +12,7 @@ const sample: QuotePdfData = {
   expiryDate: null,
   currency: "XOF",
   locale: "fr-FR",
-  items: [
-    { description: "Développement site web", quantity: 1, unitPriceMinor: 850000, taxRate: 18 },
-  ],
+  items: [{ description: "Développement site web", quantity: 1, unitPriceMinor: 850000, taxRate: 18 }],
   subtotalMinor: 850000,
   discountMinor: 0,
   taxMinor: 153000,
@@ -23,27 +21,32 @@ const sample: QuotePdfData = {
   notes: "Merci de votre confiance.",
 };
 
-describe("génération du PDF de devis", () => {
-  it("produit un buffer PDF valide", async () => {
-    // On appelle le composant directement pour éviter le JSX dans un .test.ts.
-    const buffer = await renderToBuffer(
-      QuoteDocument({ data: sample }) as Parameters<typeof renderToBuffer>[0],
-    );
-    expect(buffer.length).toBeGreaterThan(1000);
+describe("génération du PDF avec pdf-lib", () => {
+  it("produit un document PDF lisible", async () => {
+    const buffer = await renderQuotePdf(sample);
     expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect((await PDFDocument.load(buffer)).getPageCount()).toBe(1);
   });
 
   it("produit un PDF valide avec le logo Alymero", async () => {
     const logo = await readFile(path.join(process.cwd(), "public", "brand", "alymero-mark.png"));
-    const buffer = await renderToBuffer(
-      QuoteDocument({
-        data: {
-          ...sample,
-          org: { ...sample.org, logoDataUri: `data:image/png;base64,${logo.toString("base64")}` },
-        },
-      }) as Parameters<typeof renderToBuffer>[0],
-    );
-    expect(buffer.length).toBeGreaterThan(1000);
-    expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    const buffer = await renderQuotePdf({
+      ...sample,
+      org: { ...sample.org, logoDataUri: `data:image/png;base64,${logo.toString("base64")}` },
+    });
+    expect((await PDFDocument.load(buffer)).getPageCount()).toBe(1);
+  });
+
+  it("conserve toutes les lignes en créant des pages supplémentaires", async () => {
+    const buffer = await renderQuotePdf({
+      ...sample,
+      items: Array.from({ length: 20 }, (_, index) => ({
+        description: `Prestation numéro ${index + 1}`,
+        quantity: 1,
+        unitPriceMinor: 10000,
+        taxRate: 0,
+      })),
+    });
+    expect((await PDFDocument.load(buffer)).getPageCount()).toBeGreaterThan(1);
   });
 });

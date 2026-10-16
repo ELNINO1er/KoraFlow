@@ -4,7 +4,7 @@ import { prisma } from "../database/client";
 import { getInvoice } from "./invoice-service";
 import { getInvoiceByToken } from "../repositories/invoice-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
-import type { QuotePdfData } from "../pdf/quote-document";
+import type { QuotePdfData } from "../pdf/render-quote";
 
 export interface GeneratedInvoicePdf {
   buffer: Buffer;

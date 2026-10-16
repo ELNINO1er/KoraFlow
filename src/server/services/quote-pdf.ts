@@ -4,7 +4,7 @@ import { prisma } from "../database/client";
 import { getQuote } from "./quote-service";
 import { getQuoteByPublicToken } from "../repositories/quote-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
-import type { QuotePdfData } from "../pdf/quote-document";
+import type { QuotePdfData } from "../pdf/render-quote";
 import { getPrivateFile } from "../storage/private-storage";
 import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
 
