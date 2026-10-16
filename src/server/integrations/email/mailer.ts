@@ -32,6 +32,12 @@ function getTransporter(): Transporter {
     port,
     secure: process.env.SMTP_SECURE === "true",
     auth: user && pass ? { user, pass } : undefined,
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 50,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
 
   return transporter;
@@ -54,15 +60,45 @@ export interface SendEmailInput {
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
   const from = process.env.EMAIL_FROM ?? "Alymero <no-reply@alymero.test>";
-  await getTransporter().sendMail({
-    from,
-    to: input.to,
-    subject: input.subject,
-    html: input.html,
-    text: input.text,
-    attachments: input.attachments,
-    replyTo: input.replyTo,
-  });
+  const recipientDomain = input.to.split("@")[1]?.toLowerCase() ?? "unknown";
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const result = await getTransporter().sendMail({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text,
+        attachments: input.attachments,
+        replyTo: input.replyTo,
+      });
+      console.info("email.accepted", { recipientDomain, messageId: result.messageId, attempt });
+      return;
+    } catch (error) {
+      const retry = attempt < 3 && isTransientEmailError(error);
+      console.warn("email.delivery_attempt_failed", {
+        recipientDomain,
+        attempt,
+        retry,
+        code: emailErrorCode(error),
+      });
+      if (!retry) throw error;
+      transporter?.close();
+      transporter = null;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    }
+  }
+}
+
+function emailErrorCode(error: unknown) {
+  const details = error as { code?: string; responseCode?: number } | null;
+  return details?.code ?? details?.responseCode ?? "unknown";
+}
+
+export function isTransientEmailError(error: unknown): boolean {
+  const details = error as { code?: string; responseCode?: number } | null;
+  return ["ETIMEDOUT", "ECONNECTION", "ECONNRESET", "ECONNREFUSED", "ENETUNREACH"].includes(details?.code ?? "")
+    || [421, 450, 451, 452].includes(details?.responseCode ?? 0);
 }
 
 export function emailDeliveryErrorMessage(error: unknown): string {

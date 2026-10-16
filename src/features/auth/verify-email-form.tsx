@@ -7,6 +7,7 @@ import { authClient } from "@/server/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "./auth-shell";
 import { AuthStepper } from "./auth-stepper";
+import { useToast } from "@/components/ui/toast";
 
 const PHRASES = ["Encore une étape.", "Votre flux est presque prêt."];
 
@@ -20,8 +21,7 @@ function maskEmail(email: string): string {
 export function VerifyEmailForm({ email }: { email: string }) {
   const [cooldown, setCooldown] = useState(0);
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Décompte du délai avant un nouveau renvoi (setState dans un timer = ok).
   useEffect(() => {
@@ -32,8 +32,6 @@ export function VerifyEmailForm({ email }: { email: string }) {
 
   async function resend() {
     if (sending || cooldown > 0 || !email) return;
-    setError(null);
-    setMessage(null);
     setSending(true);
     const { error } = await authClient.sendVerificationEmail({
       email,
@@ -41,10 +39,10 @@ export function VerifyEmailForm({ email }: { email: string }) {
     });
     setSending(false);
     if (error) {
-      setError(error.message ?? "Renvoi impossible pour le moment.");
+      toast({ title: "Renvoi impossible", description: error.message ?? "Réessayez dans quelques instants.", variant: "danger" });
       return;
     }
-    setMessage("Un nouveau lien vient d'être envoyé.");
+    toast({ title: "Nouveau lien envoyé", description: "Vérifiez également le dossier des courriers indésirables.", variant: "success" });
     setCooldown(30);
   }
 
@@ -72,17 +70,6 @@ export function VerifyEmailForm({ email }: { email: string }) {
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
-        {message ? (
-          <p role="status" className="rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-            {message}
-          </p>
-        ) : null}
-        {error ? (
-          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
-
         <Button
           type="button"
           variant="outline"
