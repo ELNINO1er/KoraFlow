@@ -13,6 +13,7 @@ import {
 } from "@/features/invoices/actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { SensitiveActionDialog } from "@/components/ui/sensitive-action-dialog";
 
 export function SendInvoiceButton({ id, hasEmail }: { id: string; hasEmail: boolean }) {
   const router = useRouter();
@@ -115,15 +116,15 @@ export function DeleteInvoiceButton({ id }: { id: string }) {
 export function CorrectInvoiceButton({ id }: { id: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  return <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => {
-    if (!window.confirm("Remettre cette facture en brouillon pour la corriger ? Vous devrez ensuite la renvoyer au client.")) return;
-    startTransition(async () => {
-      const result = await reopenInvoiceAction(id);
-      if (!result.ok) return toast({ title: "Correction impossible", description: result.error, variant: "danger" });
-      toast({ title: "Facture remise en brouillon", description: "Vous pouvez maintenant la modifier puis la renvoyer.", variant: "success" });
-      router.push(`/factures/${id}/modifier`);
-      router.refresh();
-    });
-  }}>{pending ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}Corriger</Button>;
+  return <><Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => { setError(null); setOpen(true); }}><Pencil className="size-4" />Corriger</Button><SensitiveActionDialog open={open} onOpenChange={setOpen} title="Corriger cette facture ?" impact="La facture sera remise en brouillon. Vous pourrez visualiser vos changements, puis devrez envoyer la nouvelle version au client." confirmLabel="Ouvrir la modification" pending={pending} error={error} onConfirm={() => startTransition(async () => {
+    const result = await reopenInvoiceAction(id);
+    if (!result.ok) { setError(result.error ?? "Correction impossible."); return; }
+    setOpen(false);
+    toast({ title: "Facture remise en brouillon", description: "Vous pouvez maintenant la modifier puis la renvoyer.", variant: "success" });
+    router.push(`/factures/${id}/modifier`);
+    router.refresh();
+  })} /></>;
 }

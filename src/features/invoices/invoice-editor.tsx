@@ -13,11 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormSelect } from "@/components/ui/form-select";
+import { OrganizationBrand } from "@/components/brand/organization-brand";
 
 type Line = { key: string; serviceId?: string | null; description: string; unitPriceMinor: number; quantity: number; taxRate: number };
 
 export function InvoiceEditor({ invoice, locale, minorUnits, defaultColor }: {
-  invoice: { id: string; number: string; currency: string; dueDate: string; notes: string; headerColor: string; footerColor: string; footerText: string; discountType: AmountKind | null; discountValue: number; depositType: AmountKind | null; depositValue: number; items: Line[] };
+  invoice: { id: string; number: string; currency: string; issueDate: string; clientName: string; organization: { id: string; name: string; hasLogo: boolean }; dueDate: string; notes: string; headerColor: string; footerColor: string; footerText: string; discountType: AmountKind | null; discountValue: number; depositType: AmountKind | null; depositValue: number; items: Line[] };
   locale: string;
   minorUnits: number;
   defaultColor: string;
@@ -50,7 +51,7 @@ export function InvoiceEditor({ invoice, locale, minorUnits, defaultColor }: {
     });
   }
 
-  return <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+  return <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_30rem]">
     <div className="flex min-w-0 flex-col gap-6">
       {error ? <p role="alert" className="rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p> : null}
       <Card><CardHeader className="flex-row items-center justify-between gap-3"><CardTitle>Tableau des prestations</CardTitle><Button type="button" size="sm" variant="outline" onClick={() => setLines((all) => [...all, { key: crypto.randomUUID(), description: "", unitPriceMinor: 0, quantity: 1, taxRate: 0 }])}><Plus className="size-4" />Ajouter une ligne</Button></CardHeader>
@@ -69,7 +70,7 @@ export function InvoiceEditor({ invoice, locale, minorUnits, defaultColor }: {
       </CardContent></Card>
       <Card><CardHeader><CardTitle>Échéance et notes</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><Field label="Date d’échéance"><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field><div className="sm:col-span-2"><Field label="Notes"><Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field></div></CardContent></Card>
     </div>
-    <aside className="xl:sticky xl:top-0 xl:self-start"><Card><CardHeader><CardTitle>Calculs vérifiés</CardTitle></CardHeader><CardContent className="flex flex-col gap-4">
+    <aside className="flex flex-col gap-6 xl:sticky xl:top-0 xl:self-start"><Card><CardHeader><CardTitle>Aperçu de la facture</CardTitle></CardHeader><CardContent><InvoicePreview invoice={invoice} lines={lines} totals={totals} money={money} headerColor={headerColor} footerColor={footerColor} footerText={footerText} notes={notes} /></CardContent></Card><Card><CardHeader><CardTitle>Calculs vérifiés</CardTitle></CardHeader><CardContent className="flex flex-col gap-4">
       <MoneyOptions label="Remise" currency={invoice.currency} type={discountType} value={discountValue} scale={scale} onType={setDiscountType} onValue={setDiscountValue} />
       <MoneyOptions label="Acompte" currency={invoice.currency} type={depositType} value={depositValue} scale={scale} onType={setDepositType} onValue={setDepositValue} />
       <div className="border-t border-border pt-4 text-sm"><Row label="Sous-total HT" value={money(totals.subtotalMinor)} /><Row label="Remise" value={`− ${money(totals.discountMinor)}`} /><Row label="TVA" value={money(totals.taxMinor)} /><Row label="Total TTC" value={money(totals.totalMinor)} strong /><Row label="Reste après acompte" value={money(totals.remainingMinor)} /></div>
@@ -81,3 +82,17 @@ export function InvoiceEditor({ invoice, locale, minorUnits, defaultColor }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="flex min-w-0 flex-col gap-1.5"><span className="text-xs font-medium text-muted-foreground">{label}</span>{children}</label>; }
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className="flex justify-between gap-4 py-1.5"><span className="text-muted-foreground">{label}</span><span className={strong ? "font-bold" : "font-medium"}>{value}</span></div>; }
 function MoneyOptions({ label, currency, type, value, scale, onType, onValue }: { label: string; currency: string; type: AmountKind | ""; value: number; scale: number; onType: (value: AmountKind | "") => void; onValue: (value: number) => void }) { const display = type === "AMOUNT" ? value / scale : value; return <div className="grid grid-cols-2 gap-2"><Field label={label}><FormSelect value={type || "NONE"} onValueChange={(v) => onType(v === "NONE" ? "" : v as AmountKind)} options={[{ value: "NONE", label: "Aucun" }, { value: "PERCENT", label: "%" }, { value: "AMOUNT", label: currency }]} /></Field><Field label="Valeur"><Input type="number" min={0} disabled={!type} value={display} onChange={(e) => onValue(Math.round(Math.max(0, Number(e.target.value) || 0) * (type === "AMOUNT" ? scale : 1)))} /></Field></div>; }
+
+function InvoicePreview({ invoice, lines, totals, money, headerColor, footerColor, footerText, notes }: { invoice: { number: string; issueDate: string; clientName: string; organization: { id: string; name: string; hasLogo: boolean } }; lines: Line[]; totals: ReturnType<typeof computeQuoteTotals>; money: (value: number) => string; headerColor: string; footerColor: string; footerText: string; notes: string }) {
+  const textColor = (hex: string) => { const value = hex.replace("#", ""); if (!/^[0-9a-f]{6}$/i.test(value)) return "#ffffff"; const r = parseInt(value.slice(0, 2), 16); const g = parseInt(value.slice(2, 4), 16); const b = parseInt(value.slice(4, 6), 16); return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#12263a" : "#ffffff"; };
+  return <div className="overflow-hidden rounded-xl border border-[#dde3ea] bg-white text-[#12263a] shadow-sm">
+    <div className="flex items-start justify-between gap-4 p-5"><OrganizationBrand id={invoice.organization.id} name={invoice.organization.name} hasLogo={invoice.organization.hasLogo} className="text-[#12263a]" /><div className="text-right"><p className="text-lg font-bold">FACTURE</p><p className="text-[11px] text-[#667085]">N° {invoice.number}</p><p className="text-[11px] text-[#667085]">Émise le {invoice.issueDate}</p></div></div>
+    <div className="border-y border-[#e4e7ec] bg-[#f8fafc] px-5 py-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-[#667085]">Facturé à</p><p className="mt-1 text-sm font-semibold">{invoice.clientName}</p></div>
+    <div className="p-5"><div className="grid grid-cols-[1fr_2.5rem_5.5rem] px-2 py-2 text-[10px] font-semibold" style={{ backgroundColor: headerColor, color: textColor(headerColor) }}><span>Description</span><span className="text-right">Qté</span><span className="text-right">Total HT</span></div>{lines.map((line) => <div key={line.key} className="grid grid-cols-[1fr_2.5rem_5.5rem] gap-1 border-b border-[#edf0f3] px-2 py-2.5 text-[10px]"><span className="break-words">{line.description || "Prestation"}</span><span className="text-right">{line.quantity}</span><span className="text-right font-medium">{money(line.unitPriceMinor * line.quantity)}</span></div>)}
+      <div className="ml-auto mt-4 w-52 space-y-1 text-[10px]"><PreviewRow label="Sous-total HT" value={money(totals.subtotalMinor)} /><PreviewRow label="Remise" value={`− ${money(totals.discountMinor)}`} /><PreviewRow label="TVA" value={money(totals.taxMinor)} /><div className="border-t border-[#d0d5dd] pt-1"><PreviewRow label="Total TTC" value={money(totals.totalMinor)} strong /></div></div>
+      {notes ? <div className="mt-5 border-t border-[#e4e7ec] pt-3 text-[10px]"><p className="font-semibold uppercase tracking-wider text-[#667085]">Notes</p><p className="mt-1 whitespace-pre-wrap">{notes}</p></div> : null}
+    </div><div className="px-5 py-3 text-center text-[10px]" style={{ backgroundColor: footerColor, color: textColor(footerColor) }}>{footerText || `${invoice.organization.name} — Merci pour votre confiance.`}</div>
+  </div>;
+}
+
+function PreviewRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className="flex justify-between gap-3"><span className="text-[#667085]">{label}</span><span className={strong ? "font-bold" : "font-medium"}>{value}</span></div>; }
