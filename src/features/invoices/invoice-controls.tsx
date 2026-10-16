@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Trash2, Loader2, Check } from "lucide-react";
+import { Send, Trash2, Loader2, Check, Pencil } from "lucide-react";
 import type { InvoiceStatus } from "@prisma/client";
 import { manualInvoiceStatusesFor } from "@/lib/constants/invoices";
 import {
   sendInvoiceAction,
   deleteInvoiceAction,
   changeInvoiceStatusAction,
+  reopenInvoiceAction,
 } from "@/features/invoices/actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -109,4 +110,20 @@ export function DeleteInvoiceButton({ id }: { id: string }) {
       Supprimer
     </Button>
   );
+}
+
+export function CorrectInvoiceButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
+  return <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => {
+    if (!window.confirm("Remettre cette facture en brouillon pour la corriger ? Vous devrez ensuite la renvoyer au client.")) return;
+    startTransition(async () => {
+      const result = await reopenInvoiceAction(id);
+      if (!result.ok) return toast({ title: "Correction impossible", description: result.error, variant: "danger" });
+      toast({ title: "Facture remise en brouillon", description: "Vous pouvez maintenant la modifier puis la renvoyer.", variant: "success" });
+      router.push(`/factures/${id}/modifier`);
+      router.refresh();
+    });
+  }}>{pending ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}Corriger</Button>;
 }

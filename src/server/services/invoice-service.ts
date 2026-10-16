@@ -42,6 +42,30 @@ export async function updateDraftInvoice(
   return updated;
 }
 
+export async function reopenInvoiceForCorrection(ctx: AuthContext, id: string) {
+  assertCan(ctx.role, "invoices.update");
+  const current = await invoices.getInvoiceById(ctx.organizationId, id);
+  if (!current) throw new InvoiceError("Facture introuvable.");
+  if (!(["SENT", "OVERDUE"] as InvoiceStatus[]).includes(current.status)) {
+    throw new InvoiceError("Cette facture ne peut pas être remise en brouillon.");
+  }
+  if (current.paidMinor > 0 || current.payments.some((payment) => payment.status === "CONFIRMED")) {
+    throw new InvoiceError("Une facture comportant un paiement confirmé ne peut plus être corrigée.");
+  }
+  const updated = await invoices.updateInvoiceStatus(ctx.organizationId, id, "DRAFT");
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.user.id,
+      action: "invoice.reopened_for_correction",
+      targetType: "Invoice",
+      targetId: id,
+      metadata: { previousStatus: current.status },
+    },
+  });
+  return updated;
+}
+
 /** Génère une facture à partir d'un devis ACCEPTÉ (échéance à 30 jours). */
 export async function generateFromQuote(ctx: AuthContext, quoteId: string) {
   assertCan(ctx.role, "invoices.create");

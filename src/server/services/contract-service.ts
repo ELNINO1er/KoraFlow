@@ -67,6 +67,27 @@ export async function updateDraftContract(
   return updated;
 }
 
+export async function reopenContractForCorrection(ctx: AuthContext, id: string) {
+  assertCan(ctx.role, "contracts.update");
+  const current = await contracts.getContractById(ctx.organizationId, id);
+  if (!current) throw new ContractError("Contrat introuvable.");
+  if (current.status !== "SENT") {
+    throw new ContractError("Seul un contrat en attente de signature peut être corrigé.");
+  }
+  const updated = await contracts.updateContractStatus(ctx.organizationId, id, "DRAFT");
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.user.id,
+      action: "contract.reopened_for_correction",
+      targetType: "Contract",
+      targetId: id,
+      metadata: { previousStatus: current.status },
+    },
+  });
+  return updated;
+}
+
 /** Génère un contrat à partir d'un devis ACCEPTÉ. */
 export async function generateFromQuote(
   ctx: AuthContext,

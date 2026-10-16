@@ -10,7 +10,7 @@ import { invoiceStatusLabel, invoiceStatusVariant, paymentMethodLabel } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SendInvoiceButton, InvoiceStatusControl, DeleteInvoiceButton } from "@/features/invoices/invoice-controls";
+import { SendInvoiceButton, InvoiceStatusControl, DeleteInvoiceButton, CorrectInvoiceButton } from "@/features/invoices/invoice-controls";
 import { PaymentValidation } from "@/features/payments/payment-validation";
 
 export const metadata: Metadata = { title: "Facture" };
@@ -51,6 +51,7 @@ export default async function InvoiceDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canUpdate && invoice.status === "DRAFT" ? <Button asChild variant="outline" size="sm"><Link href={`/factures/${invoice.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button> : null}
+            {canUpdate && (invoice.status === "SENT" || invoice.status === "OVERDUE") && invoice.paidMinor === 0 ? <CorrectInvoiceButton id={invoice.id} /> : null}
             <Button asChild variant="outline" size="sm">
               <a href={`/api/factures/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">
                 <FileDown className="size-4" />

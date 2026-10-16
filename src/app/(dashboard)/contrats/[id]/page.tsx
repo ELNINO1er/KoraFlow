@@ -9,7 +9,7 @@ import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/cont
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SendForSignatureButton, DeleteContractButton } from "@/features/contracts/contract-controls";
+import { SendForSignatureButton, DeleteContractButton, CorrectContractButton } from "@/features/contracts/contract-controls";
 
 export const metadata: Metadata = { title: "Contrat" };
 
@@ -52,6 +52,7 @@ export default async function ContractDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canUpdate && contract.status === "DRAFT" ? <Button asChild size="sm" variant="outline"><Link href={`/contrats/${contract.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button> : null}
+            {canUpdate && contract.status === "SENT" ? <CorrectContractButton id={contract.id} /> : null}
             <Button asChild size="sm" variant="outline">
               <a href={`/api/contrats/${contract.id}/pdf`}>
                 <Download className="size-4" />

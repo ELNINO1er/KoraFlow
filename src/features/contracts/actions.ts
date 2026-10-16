@@ -62,6 +62,22 @@ export async function updateContractAction(
   return { ok: true };
 }
 
+export async function reopenContractAction(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  try {
+    await contractService.reopenContractForCorrection(ctx, id);
+  } catch (error) {
+    if (error instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (error instanceof ContractError) return { ok: false, error: error.message };
+    throw error;
+  }
+  revalidatePath(`/contrats/${id}`);
+  revalidatePath("/contrats");
+  return { ok: true };
+}
+
 export async function sendContractAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
