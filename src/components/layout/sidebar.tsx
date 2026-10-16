@@ -65,7 +65,7 @@ export function Sidebar({ organization }: { organization: ActiveOrganization }) 
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 lg:flex",
+        "hidden h-dvh shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 lg:flex",
         collapsed ? "w-16" : "w-64",
       )}
     >

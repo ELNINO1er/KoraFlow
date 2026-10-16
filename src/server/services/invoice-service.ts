@@ -19,6 +19,29 @@ export async function getInvoice(ctx: AuthContext, id: string) {
   return invoices.getInvoiceById(ctx.organizationId, id);
 }
 
+export async function updateDraftInvoice(
+  ctx: AuthContext,
+  id: string,
+  input: invoices.InvoiceUpdateInput,
+) {
+  assertCan(ctx.role, "invoices.update");
+  const updated = await invoices.updateDraftInvoice(ctx.organizationId, id, input);
+  if (!updated) {
+    throw new InvoiceError("Seule une facture brouillon peut être modifiée.");
+  }
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.user.id,
+      action: "invoice.updated",
+      targetType: "Invoice",
+      targetId: id,
+      metadata: { itemCount: input.items.length, totalMinor: updated.totalMinor },
+    },
+  });
+  return updated;
+}
+
 /** Génère une facture à partir d'un devis ACCEPTÉ (échéance à 30 jours). */
 export async function generateFromQuote(ctx: AuthContext, quoteId: string) {
   assertCan(ctx.role, "invoices.create");

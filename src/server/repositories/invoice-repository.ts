@@ -31,6 +31,19 @@ export interface InvoiceCreateInput {
   items: InvoiceItemInput[];
 }
 
+export interface InvoiceUpdateInput {
+  dueDate?: Date | null;
+  notes?: string | null;
+  headerColor?: string | null;
+  footerColor?: string | null;
+  footerText?: string | null;
+  discountType?: AmountKind | null;
+  discountValue?: number;
+  depositType?: AmountKind | null;
+  depositValue?: number;
+  items: InvoiceItemInput[];
+}
+
 export interface InvoiceListParams {
   status?: InvoiceStatus;
   search?: string;
@@ -147,6 +160,61 @@ export function getInvoiceByToken(token: string) {
       organization: { select: { id: true, name: true, logoUrl: true, locale: true, legalName: true, email: true, phone: true, addressLine1: true, city: true, country: true, taxId: true } },
       payments: { where: { status: "CONFIRMED" }, orderBy: { createdAt: "desc" } },
     },
+  });
+}
+
+export async function updateDraftInvoice(
+  organizationId: string,
+  id: string,
+  input: InvoiceUpdateInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.invoice.findFirst({
+      where: { id, organizationId, status: "DRAFT", deletedAt: null },
+      select: { id: true },
+    });
+    if (!current) return null;
+
+    const totals = computeQuoteTotals({
+      lines: input.items,
+      discountType: input.discountType,
+      discountValue: input.discountValue,
+      depositType: input.depositType,
+      depositValue: input.depositValue,
+    });
+
+    await tx.invoiceItem.deleteMany({ where: { invoiceId: id, organizationId } });
+    return tx.invoice.update({
+      where: { id },
+      data: {
+        dueDate: input.dueDate ?? null,
+        notes: input.notes ?? null,
+        headerColor: input.headerColor ?? null,
+        footerColor: input.footerColor ?? null,
+        footerText: input.footerText ?? null,
+        discountType: input.discountType ?? null,
+        discountValue: input.discountValue ?? 0,
+        depositType: input.depositType ?? null,
+        depositValue: input.depositValue ?? 0,
+        subtotalMinor: totals.subtotalMinor,
+        discountMinor: totals.discountMinor,
+        taxMinor: totals.taxMinor,
+        totalMinor: totals.totalMinor,
+        depositMinor: totals.depositMinor,
+        items: {
+          create: input.items.map((item, position) => ({
+            organizationId,
+            serviceId: item.serviceId ?? null,
+            description: item.description,
+            unitPriceMinor: item.unitPriceMinor,
+            quantity: item.quantity,
+            taxRate: item.taxRate,
+            position,
+          })),
+        },
+      },
+      include: { items: { orderBy: { position: "asc" } } },
+    });
   });
 }
 

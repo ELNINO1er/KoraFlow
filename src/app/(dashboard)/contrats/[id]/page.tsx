@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, Pencil, ShieldCheck } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getContract } from "@/server/services/contract-service";
@@ -51,6 +51,7 @@ export default async function ContractDetailPage({
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {canUpdate && contract.status === "DRAFT" ? <Button asChild size="sm" variant="outline"><Link href={`/contrats/${contract.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button> : null}
             <Button asChild size="sm" variant="outline">
               <a href={`/api/contrats/${contract.id}/pdf`}>
                 <Download className="size-4" />
@@ -80,9 +81,9 @@ export default async function ContractDetailPage({
             <CardTitle>Contenu du contrat</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
+            <article className="whitespace-pre-wrap text-sm leading-7 text-foreground">
               {contract.content}
-            </pre>
+            </article>
           </CardContent>
         </Card>
 

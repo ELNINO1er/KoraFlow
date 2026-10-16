@@ -9,6 +9,12 @@ import { PermissionError } from "@/server/permissions/permissions";
 import { generateContractPdf } from "@/server/services/contract-pdf";
 import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
+import { z } from "zod";
+
+const updateContractSchema = z.object({
+  title: z.string().trim().min(3).max(160),
+  content: z.string().trim().min(40).max(30_000),
+});
 
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
@@ -32,6 +38,28 @@ export async function generateContractAction(
       return { ok: false, error: "Permission insuffisante." };
     throw e;
   }
+}
+
+export async function updateContractAction(
+  id: string,
+  input: z.input<typeof updateContractSchema>,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  const parsed = updateContractSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Le titre et le contenu du contrat sont incomplets." };
+  }
+  try {
+    await contractService.updateDraftContract(ctx, id, parsed.data);
+  } catch (error) {
+    if (error instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (error instanceof ContractError) return { ok: false, error: error.message };
+    throw error;
+  }
+  revalidatePath(`/contrats/${id}`);
+  revalidatePath(`/contrats/${id}/modifier`);
+  revalidatePath("/contrats");
+  return { ok: true };
 }
 
 export async function sendContractAction(

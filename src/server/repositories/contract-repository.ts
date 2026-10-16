@@ -110,6 +110,19 @@ export async function updateContractStatus(
   return getContractById(organizationId, id);
 }
 
+export async function updateDraftContract(
+  organizationId: string,
+  id: string,
+  data: { title: string; content: string },
+) {
+  const result = await prisma.contract.updateMany({
+    where: { id, organizationId, status: "DRAFT", deletedAt: null },
+    data: { title: data.title, content: data.content },
+  });
+  if (result.count === 0) return null;
+  return getContractById(organizationId, id);
+}
+
 export async function softDeleteContract(organizationId: string, id: string) {
   const result = await prisma.contract.updateMany({
     where: { id, organizationId, deletedAt: null },

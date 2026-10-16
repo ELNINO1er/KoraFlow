@@ -663,6 +663,11 @@ model Invoice {
   dueDate   DateTime?
   notes     String?
 
+  // Habillage figé du document. Le logo reste celui de l'organisation.
+  headerColor String?
+  footerColor String?
+  footerText  String?
+
   discountType  AmountKind?
   discountValue Int         @default(0)
   depositType   AmountKind?

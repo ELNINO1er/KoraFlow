@@ -20,6 +20,9 @@ export interface QuotePdfData {
   depositMinor: number;
   notes?: string | null;
   terms?: string | null;
+  headerColor?: string | null;
+  footerColor?: string | null;
+  footerText?: string | null;
 }
 
 const PAGE_WIDTH = 595.28;
@@ -29,6 +32,21 @@ const INK = rgb(18 / 255, 38 / 255, 58 / 255);
 const MUTED = rgb(102 / 255, 112 / 255, 133 / 255);
 const BORDER = rgb(228 / 255, 231 / 255, 236 / 255);
 const ACCENT = rgb(200 / 255, 85 / 255, 61 / 255);
+
+function pdfColor(value: string | null | undefined, fallback = INK) {
+  const match = /^#([0-9a-f]{6})$/i.exec(value ?? "");
+  if (!match) return fallback;
+  const hex = match[1]!;
+  return rgb(parseInt(hex.slice(0, 2), 16) / 255, parseInt(hex.slice(2, 4), 16) / 255, parseInt(hex.slice(4, 6), 16) / 255);
+}
+
+function contrastingText(value: string | null | undefined) {
+  const match = /^#([0-9a-f]{6})$/i.exec(value ?? "");
+  if (!match) return rgb(1, 1, 1);
+  const hex = match[1]!;
+  const [r, g, b] = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+  return (0.299 * r! + 0.587 * g! + 0.114 * b!) / 255 > 0.62 ? INK : rgb(1, 1, 1);
+}
 
 function safeText(value: string | null | undefined) {
   return (value ?? "").replace(/[\u202f\u00a0]/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
@@ -76,6 +94,8 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
   let page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const money = (amount: number) => safeText(formatCurrency(amount, data.currency, data.locale));
   const date = new Intl.DateTimeFormat(data.locale, { dateStyle: "medium" });
+  const headerColor = pdfColor(data.headerColor);
+  const headerText = contrastingText(data.headerColor);
   document.setTitle(`${data.docTitle ?? "DEVIS"} ${data.number}`);
   document.setAuthor(data.org.name);
   document.setCreator("Alymero");
@@ -99,12 +119,12 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
 
   const columns = { description: MARGIN, quantity: 325, unit: 370, tax: 437, total: PAGE_WIDTH - MARGIN };
   let y = 590;
-  page.drawRectangle({ x: MARGIN, y: y - 7, width: PAGE_WIDTH - MARGIN * 2, height: 24, color: INK });
-  page.drawText("Description", { x: columns.description + 6, y, font: bold, size: 8, color: rgb(1, 1, 1) });
-  drawRight(page, "Qte", columns.quantity + 22, y, bold, 8, rgb(1, 1, 1));
-  drawRight(page, "P.U. HT", columns.unit + 50, y, bold, 8, rgb(1, 1, 1));
-  drawRight(page, "TVA", columns.tax + 28, y, bold, 8, rgb(1, 1, 1));
-  drawRight(page, "Total HT", columns.total - 6, y, bold, 8, rgb(1, 1, 1));
+  page.drawRectangle({ x: MARGIN, y: y - 7, width: PAGE_WIDTH - MARGIN * 2, height: 24, color: headerColor });
+  page.drawText("Description", { x: columns.description + 6, y, font: bold, size: 8, color: headerText });
+  drawRight(page, "Qte", columns.quantity + 22, y, bold, 8, headerText);
+  drawRight(page, "P.U. HT", columns.unit + 50, y, bold, 8, headerText);
+  drawRight(page, "TVA", columns.tax + 28, y, bold, 8, headerText);
+  drawRight(page, "Total HT", columns.total - 6, y, bold, 8, headerText);
   y -= 30;
 
   for (const item of data.items) {
@@ -114,12 +134,12 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
       page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       y = 780;
       page.drawText(`${safeText(title)} ${safeText(data.number)} - suite`, { x: MARGIN, y: 805, font: bold, size: 12, color: INK });
-      page.drawRectangle({ x: MARGIN, y: y - 7, width: PAGE_WIDTH - MARGIN * 2, height: 24, color: INK });
-      page.drawText("Description", { x: columns.description + 6, y, font: bold, size: 8, color: rgb(1, 1, 1) });
-      drawRight(page, "Qte", columns.quantity + 22, y, bold, 8, rgb(1, 1, 1));
-      drawRight(page, "P.U. HT", columns.unit + 50, y, bold, 8, rgb(1, 1, 1));
-      drawRight(page, "TVA", columns.tax + 28, y, bold, 8, rgb(1, 1, 1));
-      drawRight(page, "Total HT", columns.total - 6, y, bold, 8, rgb(1, 1, 1));
+      page.drawRectangle({ x: MARGIN, y: y - 7, width: PAGE_WIDTH - MARGIN * 2, height: 24, color: headerColor });
+      page.drawText("Description", { x: columns.description + 6, y, font: bold, size: 8, color: headerText });
+      drawRight(page, "Qte", columns.quantity + 22, y, bold, 8, headerText);
+      drawRight(page, "P.U. HT", columns.unit + 50, y, bold, 8, headerText);
+      drawRight(page, "TVA", columns.tax + 28, y, bold, 8, headerText);
+      drawRight(page, "Total HT", columns.total - 6, y, bold, 8, headerText);
       y -= 30;
     }
     lines.forEach((line, index) => page.drawText(line, { x: columns.description + 6, y: y - index * 11, font: regular, size: 9, color: INK }));
@@ -155,7 +175,11 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
     noteY -= 6;
   }
 
-  const footer = safeText(`${data.org.name} - Document edite via Alymero.`);
-  page.drawText(footer, { x: (PAGE_WIDTH - regular.widthOfTextAtSize(footer, 8)) / 2, y: 28, font: regular, size: 8, color: MUTED });
+  const footerColor = pdfColor(data.footerColor, rgb(245 / 255, 247 / 255, 250 / 255));
+  const footerTextColor = data.footerColor ? contrastingText(data.footerColor) : MUTED;
+  const footer = safeText(data.footerText?.trim() || `${data.org.name} - Document edite via Alymero.`);
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: 48, color: footerColor });
+  const footerLines = wrapText(footer, regular, 8, PAGE_WIDTH - MARGIN * 2).slice(0, 2);
+  footerLines.forEach((line, index) => page.drawText(line, { x: (PAGE_WIDTH - regular.widthOfTextAtSize(line, 8)) / 2, y: 27 - index * 11, font: regular, size: 8, color: footerTextColor }));
   return Buffer.from(await document.save({ useObjectStreams: false }));
 }

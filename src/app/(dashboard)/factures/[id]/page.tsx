@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ArrowLeft, FileDown, Pencil } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getInvoice } from "@/server/services/invoice-service";
@@ -50,6 +50,7 @@ export default async function InvoiceDetailPage({
             <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {canUpdate && invoice.status === "DRAFT" ? <Button asChild variant="outline" size="sm"><Link href={`/factures/${invoice.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button> : null}
             <Button asChild variant="outline" size="sm">
               <a href={`/api/factures/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">
                 <FileDown className="size-4" />

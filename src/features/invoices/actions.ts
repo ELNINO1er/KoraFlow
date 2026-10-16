@@ -12,6 +12,26 @@ import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/emai
 import { brandedEmail } from "@/server/integrations/email/template";
 import { PermissionError } from "@/server/permissions/permissions";
 
+const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
+const updateInvoiceSchema = z.object({
+  dueDate: z.string().date().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  headerColor: colorSchema,
+  footerColor: colorSchema,
+  footerText: z.string().max(240).nullable().optional(),
+  discountType: z.enum(["PERCENT", "AMOUNT"]).nullable().optional(),
+  discountValue: z.number().int().min(0).max(100_000_000),
+  depositType: z.enum(["PERCENT", "AMOUNT"]).nullable().optional(),
+  depositValue: z.number().int().min(0).max(100_000_000),
+  items: z.array(z.object({
+    serviceId: z.string().nullable().optional(),
+    description: z.string().trim().min(1).max(500),
+    unitPriceMinor: z.number().int().min(0).max(1_000_000_000),
+    quantity: z.number().int().min(1).max(100_000),
+    taxRate: z.number().int().min(0).max(100),
+  })).min(1).max(100),
+});
+
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
   if (session.status === "unauthenticated") redirect("/login");
@@ -33,6 +53,29 @@ export async function generateInvoiceAction(
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
     throw e;
   }
+}
+
+export async function updateInvoiceAction(
+  id: string,
+  input: z.input<typeof updateInvoiceSchema>,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  const parsed = updateInvoiceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Vérifiez les lignes et les options de la facture." };
+  try {
+    await invoiceService.updateDraftInvoice(ctx, id, {
+      ...parsed.data,
+      dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T12:00:00Z`) : null,
+    });
+  } catch (error) {
+    if (error instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (error instanceof InvoiceError) return { ok: false, error: error.message };
+    throw error;
+  }
+  revalidatePath(`/factures/${id}`);
+  revalidatePath(`/factures/${id}/modifier`);
+  revalidatePath("/factures");
+  return { ok: true };
 }
 
 export async function sendInvoiceAction(

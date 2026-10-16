@@ -37,7 +37,7 @@ export async function generateInvoicePdf(
     where: { id: ctx.organizationId },
     select: {
       name: true, legalName: true, email: true, phone: true,
-      addressLine1: true, city: true, country: true, taxId: true, logoUrl: true,
+      addressLine1: true, city: true, country: true, taxId: true, logoUrl: true, brandColor: true,
     },
   });
 
@@ -67,6 +67,9 @@ export async function generateInvoicePdf(
     totalMinor: invoice.totalMinor,
     depositMinor: invoice.depositMinor,
     notes: invoice.notes,
+    headerColor: invoice.headerColor ?? org?.brandColor,
+    footerColor: invoice.footerColor ?? org?.brandColor,
+    footerText: invoice.footerText,
   };
 
   const buffer = await renderQuotePdf(data);
@@ -123,6 +126,9 @@ export async function generateInvoicePdfByToken(
     totalMinor: invoice.totalMinor,
     depositMinor: invoice.depositMinor,
     notes: invoice.notes,
+    headerColor: invoice.headerColor,
+    footerColor: invoice.footerColor,
+    footerText: invoice.footerText,
   };
 
   const buffer = await renderQuotePdf(data);

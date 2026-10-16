@@ -44,6 +44,29 @@ export async function getContract(ctx: AuthContext, id: string) {
   return contracts.getContractById(ctx.organizationId, id);
 }
 
+export async function updateDraftContract(
+  ctx: AuthContext,
+  id: string,
+  input: { title: string; content: string },
+) {
+  assertCan(ctx.role, "contracts.update");
+  const updated = await contracts.updateDraftContract(ctx.organizationId, id, input);
+  if (!updated) {
+    throw new ContractError("Seul un contrat brouillon peut être modifié.");
+  }
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.user.id,
+      action: "contract.updated",
+      targetType: "Contract",
+      targetId: id,
+      metadata: { title: input.title, characterCount: input.content.length },
+    },
+  });
+  return updated;
+}
+
 /** Génère un contrat à partir d'un devis ACCEPTÉ. */
 export async function generateFromQuote(
   ctx: AuthContext,

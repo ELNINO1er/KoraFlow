@@ -44,9 +44,9 @@ export default async function DashboardLayout({
   const localeTag = context.organization.locale === "fr" ? "fr-FR" : context.organization.locale;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar organization={context.organization} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {context.impersonatedBy ? <ImpersonationBanner /> : null}
         <Topbar
           user={context.user}
@@ -57,7 +57,7 @@ export default async function DashboardLayout({
           localeTag={localeTag}
           isPlatformAdmin={Boolean(platformAdmin)}
         />
-        <main className="flex-1 px-4 pb-24 pt-6 lg:px-8 lg:pb-8">
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-6 lg:px-8 lg:pb-8">
           {children}
         </main>
         <MobileNav />
