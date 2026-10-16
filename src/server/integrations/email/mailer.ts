@@ -68,13 +68,13 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
 export function emailDeliveryErrorMessage(error: unknown): string {
   const details = error as { code?: string; responseCode?: number; command?: string } | null;
   if (details?.code === "EAUTH" || details?.responseCode === 535) {
-    return "Brevo a refusé les identifiants SMTP. Vérifiez SMTP_USER et SMTP_PASSWORD dans l’environnement de production.";
+    return "Le service d’envoi d’e-mails a refusé la connexion. Vérifiez les identifiants SMTP dans l’environnement de production.";
   }
   if (["ETIMEDOUT", "ECONNECTION", "ECONNREFUSED", "ENETUNREACH"].includes(details?.code ?? "")) {
-    return "Le serveur d’hébergement n’arrive pas à joindre Brevo. Vérifiez SMTP_HOST, SMTP_PORT et SMTP_SECURE.";
+    return "Le service d’envoi d’e-mails est momentanément inaccessible. Vérifiez la configuration SMTP puis réessayez.";
   }
   if (details?.responseCode === 550 || details?.command === "MAIL FROM") {
-    return "Brevo a refusé l’expéditeur. Vérifiez que EMAIL_FROM utilise une adresse ou un domaine authentifié.";
+    return "L’adresse d’expédition n’est pas autorisée. Vérifiez qu’elle utilise une adresse ou un domaine authentifié.";
   }
   return "L’e-mail n’a pas pu être envoyé. Vérifiez la configuration SMTP puis réessayez.";
 }
