@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getQuote } from "@/server/services/quote-service";
@@ -11,9 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { QuoteStatusControl, QuoteDeleteButton } from "@/features/quotes/quote-controls";
 import { SendQuoteButton } from "@/features/quotes/send-quote-button";
+import { DownloadQuotePdfButton } from "@/features/quotes/download-quote-pdf-button";
 import { GenerateContractButton } from "@/features/contracts/generate-contract-button";
 import { GenerateInvoiceButton } from "@/features/invoices/generate-invoice-button";
-import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Devis" };
 
@@ -57,12 +57,7 @@ export default async function QuoteDetailPage({
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <a href={`/api/devis/${quote.id}/pdf`} download>
-                <FileDown className="size-4" />
-                PDF
-              </a>
-            </Button>
+            <DownloadQuotePdfButton quoteId={quote.id} number={quote.number} />
             {canUpdate ? (
               <SendQuoteButton id={quote.id} hasEmail={Boolean(quote.contact.email)} />
             ) : null}

@@ -6,6 +6,7 @@ import {
   BRAND_NAME,
   BRAND_TAGLINE,
 } from "@/lib/constants/brand";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 const inter = localFont({
@@ -56,7 +57,7 @@ export default function RootLayout({
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

@@ -8,7 +8,7 @@ import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as quoteService from "@/server/services/quote-service";
 import { InvalidQuoteError } from "@/server/services/quote-service";
 import { generateQuotePdf } from "@/server/services/quote-pdf";
-import { sendEmail } from "@/server/integrations/email/mailer";
+import { emailDeliveryErrorMessage, sendEmail } from "@/server/integrations/email/mailer";
 import { assertCan, PermissionError } from "@/server/permissions/permissions";
 import { brandedEmail } from "@/server/integrations/email/template";
 
@@ -118,14 +118,27 @@ export async function sendQuoteAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
+  let pdf: NonNullable<Awaited<ReturnType<typeof generateQuotePdf>>>;
   try {
     assertCan(ctx.role, "quotes.update");
-    const pdf = await generateQuotePdf(ctx, id);
-    if (!pdf) return { ok: false, error: "Devis introuvable." };
+    const generated = await generateQuotePdf(ctx, id);
+    if (!generated) return { ok: false, error: "Devis introuvable." };
+    pdf = generated;
     if (!pdf.contactEmail) {
       return { ok: false, error: "Le client n'a pas d'adresse e-mail renseignée." };
     }
+  } catch (e) {
+    if (e instanceof PermissionError) {
+      return { ok: false, error: "Vous n'avez pas la permission d'envoyer ce devis." };
+    }
+    console.error("quote.pdf_generation_failed", { quoteId: id, error: e instanceof Error ? e.message : "unknown" });
+    return {
+      ok: false,
+      error: "Le PDF du devis n’a pas pu être généré. Réessayez après avoir vérifié le logo de l’entreprise.",
+    };
+  }
 
+  try {
     const appUrl = process.env.APP_URL ?? "";
     const portalLink = pdf.publicToken ? `${appUrl}/q/${pdf.publicToken}` : null;
 
@@ -149,13 +162,10 @@ export async function sendQuoteAction(
     });
     await quoteService.changeQuoteStatus(ctx, id, "SENT");
   } catch (e) {
-    if (e instanceof PermissionError) {
-      return { ok: false, error: "Vous n'avez pas la permission d'envoyer ce devis." };
-    }
     console.error("quote.send_failed", { quoteId: id, error: e instanceof Error ? e.message : "unknown" });
     return {
       ok: false,
-      error: "L’e-mail n’a pas pu être envoyé. Vérifiez la configuration SMTP puis réessayez.",
+      error: emailDeliveryErrorMessage(e),
     };
   }
 

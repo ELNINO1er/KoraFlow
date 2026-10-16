@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Send, Loader2, Check } from "lucide-react";
 import { sendQuoteAction } from "@/features/quotes/actions";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 export function SendQuoteButton({
   id,
@@ -14,29 +15,29 @@ export function SendQuoteButton({
   hasEmail: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   function send() {
-    setError(null);
     startTransition(async () => {
       try {
         const result = await sendQuoteAction(id);
         if (!result.ok) {
-          setError(result.error ?? "Envoi impossible.");
+          toast({ title: "Envoi du devis impossible", description: result.error ?? "Réessayez dans quelques instants.", variant: "danger" });
           return;
         }
         setSent(true);
+        toast({ title: "Devis envoyé", description: "Le client a reçu le devis par e-mail.", variant: "success" });
         router.refresh();
       } catch {
-        setError("Une erreur inattendue empêche l’envoi. Réessayez dans quelques instants.");
+        toast({ title: "Erreur inattendue", description: "Le devis n’a pas pu être envoyé. Réessayez dans quelques instants.", variant: "danger" });
       }
     });
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div>
       <Button
         type="button"
         size="sm"
@@ -53,7 +54,6 @@ export function SendQuoteButton({
         )}
         {sent ? "Envoyé" : "Envoyer au client"}
       </Button>
-      {error ? <span className="max-w-72 text-right text-xs text-danger" role="alert">{error}</span> : null}
     </div>
   );
 }

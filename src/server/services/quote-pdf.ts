@@ -84,7 +84,7 @@ export async function generateQuotePdf(
     terms: quote.terms,
   };
 
-  const buffer = await renderQuotePdf(data);
+  const buffer = await renderQuotePdfWithLogoFallback(data, quote.id);
   return {
     buffer,
     filename: `${quote.number}.pdf`,
@@ -143,7 +143,7 @@ export async function generateQuotePdfByToken(
     terms: quote.terms,
   };
 
-  const buffer = await renderQuotePdf(data);
+  const buffer = await renderQuotePdfWithLogoFallback(data, `public:${token.slice(0, 8)}`);
   return {
     buffer,
     filename: `${quote.number}.pdf`,
@@ -154,4 +154,17 @@ export async function generateQuotePdfByToken(
     organizationEmail: org.email,
     organizationLogoUrl: org.logoUrl ? `${process.env.APP_URL ?? ""}/api/organization-logos/${org.id}` : null,
   };
+}
+
+async function renderQuotePdfWithLogoFallback(data: QuotePdfData, reference: string) {
+  try {
+    return await renderQuotePdf(data);
+  } catch (error) {
+    if (!data.org.logoDataUri) throw error;
+    console.warn("quote.pdf_logo_ignored", {
+      reference,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return renderQuotePdf({ ...data, org: { ...data.org, logoDataUri: null } });
+  }
 }

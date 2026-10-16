@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { QuoteDocument, type QuotePdfData } from "./quote-document";
 
@@ -26,6 +28,20 @@ describe("génération du PDF de devis", () => {
     // On appelle le composant directement pour éviter le JSX dans un .test.ts.
     const buffer = await renderToBuffer(
       QuoteDocument({ data: sample }) as Parameters<typeof renderToBuffer>[0],
+    );
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
+
+  it("produit un PDF valide avec le logo Alymero", async () => {
+    const logo = await readFile(path.join(process.cwd(), "public", "brand", "alymero-mark.png"));
+    const buffer = await renderToBuffer(
+      QuoteDocument({
+        data: {
+          ...sample,
+          org: { ...sample.org, logoDataUri: `data:image/png;base64,${logo.toString("base64")}` },
+        },
+      }) as Parameters<typeof renderToBuffer>[0],
     );
     expect(buffer.length).toBeGreaterThan(1000);
     expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");

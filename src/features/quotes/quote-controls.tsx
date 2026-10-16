@@ -8,6 +8,7 @@ import { QUOTE_STATUSES } from "@/lib/constants/quotes";
 import { changeQuoteStatusAction, deleteQuoteAction } from "@/features/quotes/actions";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 
 export function QuoteStatusControl({
   id,
@@ -17,9 +18,9 @@ export function QuoteStatusControl({
   current: QuoteStatus;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [value, setValue] = useState<QuoteStatus>(current);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex min-w-36 flex-col gap-1">
@@ -30,14 +31,14 @@ export function QuoteStatusControl({
           if (next === value) return;
           const previous = value;
           setValue(next);
-          setError(null);
           startTransition(async () => {
             const result = await changeQuoteStatusAction(id, next);
             if (!result.ok) {
               setValue(previous);
-              setError(result.error);
+              toast({ title: "Statut non modifié", description: result.error, variant: "danger" });
               return;
             }
+            toast({ title: "Statut mis à jour", variant: "success" });
             router.refresh();
           });
         }}
@@ -51,7 +52,6 @@ export function QuoteStatusControl({
           ))}
         </SelectContent>
       </Select>
-      {error ? <span className="text-xs text-danger" role="alert">{error}</span> : null}
     </div>
   );
 }

@@ -13,10 +13,19 @@ export async function GET(
   }
 
   const { id } = await params;
-  const pdf = await generateQuotePdf(session.context, id);
-  if (!pdf) {
-    return new Response("Devis introuvable", { status: 404 });
+  try {
+    const pdf = await generateQuotePdf(session.context, id);
+    if (!pdf) return Response.json({ error: "Devis introuvable" }, { status: 404 });
+    return pdfResponse(pdf.buffer, pdf.filename);
+  } catch (error) {
+    console.error("quote.pdf_download_failed", {
+      quoteId: id,
+      organizationId: session.context.organizationId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return Response.json(
+      { error: "Le PDF n’a pas pu être généré." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
-
-  return pdfResponse(pdf.buffer, pdf.filename);
 }

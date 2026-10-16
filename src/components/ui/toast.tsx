@@ -40,6 +40,12 @@ const TONE: Record<ToastVariant, string> = {
   danger: "text-danger",
 };
 
+const SURFACE: Record<ToastVariant, string> = {
+  default: "border-accent/30 bg-surface",
+  success: "border-success/35 bg-surface",
+  danger: "border-danger/35 bg-surface",
+};
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<ToastItem[]>([]);
 
@@ -66,8 +72,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 if (!open) remove(item.id);
               }}
               className={cn(
-                "flex items-start gap-3 rounded-xl border border-border bg-surface p-4 shadow-e3",
+                "flex items-start gap-3 rounded-xl border p-4 shadow-e3",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=open]:slide-in-from-right-full data-[swipe=end]:animate-out",
+                SURFACE[item.variant ?? "default"],
               )}
             >
               <Icon className={cn("mt-0.5 size-5 shrink-0", TONE[item.variant ?? "default"])} />
@@ -90,7 +97,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             </ToastPrimitive.Root>
           );
         })}
-        <ToastPrimitive.Viewport className="fixed bottom-0 right-0 z-[60] flex w-full max-w-sm flex-col gap-2 p-4 outline-none" />
+        <ToastPrimitive.Viewport className="fixed bottom-16 right-0 z-[60] flex w-full max-w-sm flex-col gap-2 p-4 outline-none md:bottom-0" />
       </ToastPrimitive.Provider>
     </ToastContext.Provider>
   );
