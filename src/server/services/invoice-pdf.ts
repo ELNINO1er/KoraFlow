@@ -5,6 +5,18 @@ import { getInvoice } from "./invoice-service";
 import { getInvoiceByToken } from "../repositories/invoice-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
 import type { QuotePdfData } from "../pdf/render-quote";
+import { getPrivateFile } from "../storage/private-storage";
+import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
+
+async function logoDataUri(storageKey: string | null | undefined) {
+  if (!storageKey?.startsWith("organization-logos/")) return null;
+  try {
+    const bytes = await getPrivateFile(storageKey);
+    return `data:${organizationLogoContentType(storageKey)};base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 export interface GeneratedInvoicePdf {
   buffer: Buffer;
@@ -25,7 +37,7 @@ export async function generateInvoicePdf(
     where: { id: ctx.organizationId },
     select: {
       name: true, legalName: true, email: true, phone: true,
-      addressLine1: true, city: true, country: true, taxId: true,
+      addressLine1: true, city: true, country: true, taxId: true, logoUrl: true,
     },
   });
 
@@ -36,7 +48,7 @@ export async function generateInvoicePdf(
 
   const data: QuotePdfData = {
     docTitle: "FACTURE",
-    org: org ?? { name: ctx.organization.name },
+    org: { ...(org ?? { name: ctx.organization.name }), logoDataUri: await logoDataUri(org?.logoUrl) },
     contact: { name: clientName, email: invoice.contact.email },
     number: invoice.number,
     issueDate: invoice.issueDate,
@@ -91,6 +103,7 @@ export async function generateInvoicePdfByToken(
       city: org.city,
       country: org.country,
       taxId: org.taxId,
+      logoDataUri: await logoDataUri(org.logoUrl),
     },
     contact: { name: clientName, email: invoice.contact.email },
     number: invoice.number,

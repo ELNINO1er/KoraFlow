@@ -149,6 +149,14 @@ export async function createTask(organizationId: string, data: TaskCreateData) {
   });
   if (!project) return null;
 
+  if (data.stageId) {
+    const stage = await prisma.projectStage.findFirst({
+      where: { id: data.stageId, organizationId, projectId: data.projectId },
+      select: { id: true },
+    });
+    if (!stage) return null;
+  }
+
   return prisma.task.create({
     data: {
       organizationId,
@@ -164,7 +172,7 @@ export async function createTask(organizationId: string, data: TaskCreateData) {
 /** Change le statut d'une tâche (scopé) et renvoie son projectId, ou null. */
 export async function setTaskStatus(organizationId: string, taskId: string, status: TaskStatus) {
   const task = await prisma.task.findFirst({
-    where: { id: taskId, organizationId },
+    where: { id: taskId, organizationId, project: { deletedAt: null } },
     select: { id: true, projectId: true },
   });
   if (!task) return null;

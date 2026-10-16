@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Download } from "lucide-react";
 import { getContractByToken } from "@/server/repositories/contract-repository";
 import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignForm } from "@/features/contracts/sign-form";
 import { PoweredByAlymero } from "@/components/brand/powered-by-alymero";
 import { OrganizationBrand } from "@/components/brand/organization-brand";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Signature du contrat" };
 
@@ -46,6 +47,13 @@ export default async function PublicContractPage({
           </pre>
         </CardContent>
       </Card>
+
+      <Button asChild variant="outline" className="self-start">
+        <a href={`/api/c/${token}/pdf`}>
+          <Download className="size-4" />
+          Télécharger le contrat{contract.status === "SIGNED" ? " signé" : ""}
+        </a>
+      </Button>
 
       {contract.status === "SENT" ? (
         <Card>

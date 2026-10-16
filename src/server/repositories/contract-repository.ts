@@ -48,14 +48,6 @@ export async function createContract(
         content: data.content,
         publicToken: randomBytes(24).toString("hex"),
         createdById: data.createdById,
-        events: {
-          create: {
-            organizationId,
-            type: "VIEWED",
-            actorName: "système",
-            metadata: { note: "Contrat généré" },
-          },
-        },
       },
       include: { events: true },
     });

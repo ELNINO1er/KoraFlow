@@ -5,24 +5,31 @@ import { useRouter } from "next/navigation";
 import { Send, Trash2, Loader2 } from "lucide-react";
 import { sendContractAction, deleteContractAction } from "@/features/contracts/actions";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
-export function SendForSignatureButton({ id }: { id: string }) {
+export function SendForSignatureButton({ id, resend = false }: { id: string; resend?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
   return (
     <Button
       type="button"
       size="sm"
       onClick={() =>
         startTransition(async () => {
-          await sendContractAction(id);
+          const result = await sendContractAction(id);
+          if (!result.ok) {
+            toast({ title: "Envoi du contrat impossible", description: result.error, variant: "danger" });
+            return;
+          }
+          toast({ title: "Contrat envoyé", description: "Le client a reçu le PDF et son lien sécurisé de signature.", variant: "success" });
           router.refresh();
         })
       }
       disabled={pending}
     >
       {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-      Envoyer pour signature
+      {pending ? "Envoi…" : resend ? "Renvoyer au client" : "Envoyer pour signature"}
     </Button>
   );
 }

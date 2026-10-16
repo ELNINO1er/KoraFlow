@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { guardPublicMutation } from "@/lib/security/public-mutation";
 import { signContractByToken } from "@/server/services/contract-service";
+import { generateContractPdfByToken } from "@/server/services/contract-pdf";
+import { sendEmail } from "@/server/integrations/email/mailer";
+import { brandedEmail } from "@/server/integrations/email/template";
 
 /**
  * Signature du contrat par le client via son jeton public (aucune auth).
@@ -34,6 +37,28 @@ export async function signContractAction(
   });
 
   if (!result.ok) return { ok: false, error: result.error };
+  try {
+    const pdf = await generateContractPdfByToken(parsed.data.token);
+    if (pdf?.contactEmail) {
+      await sendEmail({
+        to: pdf.contactEmail,
+        subject: `Confirmation de signature — ${pdf.number}`,
+        html: brandedEmail({
+          title: "Votre contrat a été signé",
+          body: `La signature du contrat ${pdf.number} a bien été enregistrée. Le document signé et son certificat de signature simple sont joints à cet e-mail.`,
+          brandName: pdf.organizationName,
+          logoUrl: pdf.organizationLogoUrl,
+        }),
+        text: `La signature du contrat ${pdf.number} a bien été enregistrée. Le document signé est joint à cet e-mail.`,
+        attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" }],
+      });
+    }
+  } catch (error) {
+    console.warn("contract.signed_confirmation_email_failed", {
+      contractId: result.contractId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
   revalidatePath(`/c/${parsed.data.token}`);
   return { ok: true };
 }

@@ -103,6 +103,19 @@ export async function changeContractStatus(
   status: ContractStatus,
 ) {
   assertCan(ctx.role, "contracts.update");
+  const current = await contracts.getContractById(ctx.organizationId, id);
+  if (!current) return null;
+  if (current.status === status) return current;
+  const allowed =
+    (current.status === "DRAFT" && (status === "SENT" || status === "CANCELED")) ||
+    (current.status === "SENT" && status === "CANCELED");
+  if (!allowed) {
+    throw new ContractError(
+      status === "SIGNED"
+        ? "La signature doit être réalisée par le client depuis son lien sécurisé."
+        : "Cette transition de statut n’est pas autorisée.",
+    );
+  }
   const updated = await contracts.updateContractStatus(ctx.organizationId, id, status);
   if (updated) {
     await prisma.auditLog.create({

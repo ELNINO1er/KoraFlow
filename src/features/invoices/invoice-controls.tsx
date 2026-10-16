@@ -11,12 +11,14 @@ import {
   changeInvoiceStatusAction,
 } from "@/features/invoices/actions";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 export function SendInvoiceButton({ id, hasEmail }: { id: string; hasEmail: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -31,9 +33,11 @@ export function SendInvoiceButton({ id, hasEmail }: { id: string; hasEmail: bool
             const r = await sendInvoiceAction(id);
             if (!r.ok) {
               setError(r.error ?? "Envoi impossible.");
+              toast({ title: "Envoi de la facture impossible", description: r.error, variant: "danger" });
               return;
             }
             setSent(true);
+            toast({ title: "Facture envoyée", description: "Le client a reçu le PDF et son accès sécurisé.", variant: "success" });
             router.refresh();
           })
         }
@@ -50,6 +54,7 @@ export function InvoiceStatusControl({ id, current }: { id: string; current: Inv
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const statuses = manualInvoiceStatusesFor(current);
   return (
     <div className="flex flex-col items-end gap-1">
@@ -64,8 +69,10 @@ export function InvoiceStatusControl({ id, current }: { id: string; current: Inv
             const result = await changeInvoiceStatusAction(id, next);
             if (!result.ok) {
               setError(result.error ?? "Changement impossible.");
+              toast({ title: "Statut non modifié", description: result.error, variant: "danger" });
               return;
             }
+            toast({ title: "Statut mis à jour", variant: "success" });
             router.refresh();
           });
         }}

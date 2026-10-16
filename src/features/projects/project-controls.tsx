@@ -7,10 +7,12 @@ import type { ProjectStatus } from "@prisma/client";
 import { PROJECT_STATUSES } from "@/lib/constants/projects";
 import { changeProjectStatusAction, deleteProjectAction } from "@/features/projects/actions";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 export function ProjectStatusControl({ id, current }: { id: string; current: ProjectStatus }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
   return (
     <select
       value={current}
@@ -19,7 +21,12 @@ export function ProjectStatusControl({ id, current }: { id: string; current: Pro
         const next = e.target.value as ProjectStatus;
         if (next === current) return;
         startTransition(async () => {
-          await changeProjectStatusAction(id, next);
+          const result = await changeProjectStatusAction(id, next);
+          if (!result.ok) {
+            toast({ title: "Statut non modifié", description: result.error, variant: "danger" });
+            return;
+          }
+          toast({ title: "Projet mis à jour", variant: "success" });
           router.refresh();
         });
       }}

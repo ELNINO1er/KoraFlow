@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, ShieldCheck } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getContract } from "@/server/services/contract-service";
 import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SendForSignatureButton, DeleteContractButton } from "@/features/contracts/contract-controls";
 
 export const metadata: Metadata = { title: "Contrat" };
@@ -50,7 +51,15 @@ export default async function ContractDetailPage({
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {canUpdate && contract.status === "DRAFT" ? <SendForSignatureButton id={contract.id} /> : null}
+            <Button asChild size="sm" variant="outline">
+              <a href={`/api/contrats/${contract.id}/pdf`}>
+                <Download className="size-4" />
+                PDF{contract.status === "SIGNED" ? " signé" : ""}
+              </a>
+            </Button>
+            {canUpdate && (contract.status === "DRAFT" || contract.status === "SENT") ? (
+              <SendForSignatureButton id={contract.id} resend={contract.status === "SENT"} />
+            ) : null}
             {canDelete && contract.status !== "SIGNED" ? <DeleteContractButton id={contract.id} /> : null}
           </div>
         </div>

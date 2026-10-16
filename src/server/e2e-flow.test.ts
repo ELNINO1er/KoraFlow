@@ -9,6 +9,7 @@ import { createQuote, changeQuoteStatus } from "./services/quote-service";
 import {
   generateFromQuote as generateContract,
   changeContractStatus,
+  signContractByToken,
 } from "./services/contract-service";
 import {
   generateFromQuote as generateInvoice,
@@ -110,7 +111,9 @@ describe("Parcours commercial de bout en bout", () => {
     expect(contract.id).toBeTruthy();
 
     // 6. Contrat signé
-    await changeContractStatus(ctx, contract.id, "SIGNED");
+    await changeContractStatus(ctx, contract.id, "SENT");
+    const signed = await signContractByToken(contract.publicToken!, { signerName: "Client E2E" });
+    expect(signed.ok).toBe(true);
     expect((await prisma.contract.findUnique({ where: { id: contract.id } }))?.status).toBe("SIGNED");
 
     // 7. Facture générée + envoyée

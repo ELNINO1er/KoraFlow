@@ -8,7 +8,8 @@ import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as invoiceService from "@/server/services/invoice-service";
 import { InvoiceError } from "@/server/services/invoice-service";
 import { generateInvoicePdf } from "@/server/services/invoice-pdf";
-import { sendEmail } from "@/server/integrations/email/mailer";
+import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
+import { brandedEmail } from "@/server/integrations/email/template";
 import { PermissionError } from "@/server/permissions/permissions";
 
 async function getContext(): Promise<AuthContext> {
@@ -48,16 +49,23 @@ export async function sendInvoiceAction(
   if (!pdf.contactEmail) return { ok: false, error: "Le client n'a pas d'adresse e-mail." };
 
   const appUrl = process.env.APP_URL ?? "";
+  if (pdf.publicToken && !appUrl) {
+    return { ok: false, error: "L’adresse publique de l’application n’est pas configurée." };
+  }
   const portalLink = pdf.publicToken ? `${appUrl}/i/${pdf.publicToken}` : null;
 
   try {
     await sendEmail({
       to: pdf.contactEmail,
       subject: `Votre facture ${pdf.number}`,
-      html: `<p>Bonjour,</p>
-<p>Veuillez trouver ci-joint votre facture <strong>${pdf.number}</strong>.</p>
-${portalLink ? `<p>Consultez-la et déclarez votre paiement en ligne : <a href="${portalLink}">${portalLink}</a></p>` : ""}
-<p>Cordialement,<br/>${ctx.organization.name}</p>`,
+      html: brandedEmail({
+        title: `Votre facture ${pdf.number}`,
+        intro: `Bonjour ${invoice.contact.firstName},`,
+        body: `Votre facture est disponible en pièce jointe. Consultez-la${portalLink ? " et déclarez votre paiement depuis votre espace sécurisé" : ""}.`,
+        action: portalLink ? { label: "Consulter la facture", url: portalLink } : undefined,
+        brandName: ctx.organization.name,
+        logoUrl: ctx.organization.logoUrl ? `${appUrl}/api/organization-logos/${ctx.organizationId}` : null,
+      }),
       text: `Votre facture ${pdf.number} est en pièce jointe.${portalLink ? ` En ligne : ${portalLink}` : ""}`,
       attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" }],
     });
@@ -67,7 +75,7 @@ ${portalLink ? `<p>Consultez-la et déclarez votre paiement en ligne : <a href="
   } catch (e) {
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
     if (e instanceof InvoiceError) return { ok: false, error: e.message };
-    throw e;
+    return { ok: false, error: emailDeliveryErrorMessage(e) };
   }
 
   revalidatePath(`/factures/${id}`);
