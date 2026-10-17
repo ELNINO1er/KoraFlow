@@ -7,22 +7,34 @@ import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgSuspendToggle } from "@/features/admin/admin-controls";
+import { OrgDeleteRestore } from "@/features/admin/org-controls";
+import { requirePlatformAdmin } from "@/server/auth/platform";
+import { AdminFilters, AdminPagination } from "@/features/admin/list-tools";
+import type { AdminSearchParams } from "@/lib/admin/query";
 
 export const metadata: Metadata = { title: "Organisations" };
 
-export default async function AdminOrganizationsPage() {
-  const orgs = await listOrganizations();
+export default async function AdminOrganizationsPage({ searchParams }: { searchParams: Promise<AdminSearchParams> }) {
+  await requirePlatformAdmin();
+  const params = await searchParams;
+  const result = await listOrganizations(params);
+  const orgs = result.items;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">
-          Organisations ({orgs.length})
+          {result.query.status === "deleted" ? "Corbeille" : "Organisations"} ({result.total})
         </h1>
         <p className="text-sm text-muted-foreground">
           Toutes les entreprises hébergées sur la plateforme.
         </p>
       </div>
+
+      <AdminFilters path="/admin/organizations" {...result.query} statuses={[
+        { value: "", label: "Toutes (hors corbeille)" }, { value: "active", label: "Actives" },
+        { value: "suspended", label: "Suspendues" }, { value: "deleted", label: "Corbeille" },
+      ]} />
 
       <Card>
         <CardContent className="pt-6">
@@ -34,7 +46,7 @@ export default async function AdminOrganizationsPage() {
                   <th className="pb-2 pr-4">Membres</th>
                   <th className="pb-2 pr-4">Contacts</th>
                   <th className="pb-2 pr-4">Factures</th>
-                  <th className="pb-2 pr-4">Revenu encaissé</th>
+                  <th className="pb-2 pr-4">Encaissements</th>
                   <th className="pb-2 pr-4">Créée le</th>
                   <th className="pb-2 pr-4 text-right">Action</th>
                 </tr>
@@ -51,7 +63,7 @@ export default async function AdminOrganizationsPage() {
                       </Link>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">/{org.slug}</span>
-                        {org.suspendedAt ? (
+                        {org.deletedAt ? <Badge variant="danger">archivée</Badge> : org.suspendedAt ? (
                           <Badge variant="danger">
                             <Ban className="size-3" /> suspendue
                           </Badge>
@@ -69,7 +81,7 @@ export default async function AdminOrganizationsPage() {
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex justify-end">
-                        <OrgSuspendToggle orgId={org.id} suspended={Boolean(org.suspendedAt)} />
+                        {org.deletedAt ? <OrgDeleteRestore orgId={org.id} name={org.name} deleted /> : <OrgSuspendToggle orgId={org.id} name={org.name} suspended={Boolean(org.suspendedAt)} />}
                       </div>
                     </td>
                   </tr>
@@ -86,6 +98,7 @@ export default async function AdminOrganizationsPage() {
           </div>
         </CardContent>
       </Card>
+      <AdminPagination path="/admin/organizations" params={params} {...result} />
     </div>
   );
 }

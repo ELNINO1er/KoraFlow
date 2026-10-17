@@ -16,10 +16,15 @@ const securityHeaders = [
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  // Next.js logs Server Action arguments in development; these include passwords and TOTP codes.
+  logging: { serverFunctions: false },
   // Image Docker autonome : Next.js trace uniquement les dépendances runtime.
   output: "standalone",
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] },
+    ];
   },
 };
 

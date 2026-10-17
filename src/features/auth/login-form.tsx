@@ -11,7 +11,7 @@ import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { AuthShell } from "./auth-shell";
 
-export function LoginForm() {
+export function LoginForm({ sessionExpired = false }: { sessionExpired?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +24,7 @@ export function LoginForm() {
     if (status === "loading") return; // anti double-soumission
     setError(null);
     setStatus("loading");
-    const { error } = await authClient.signIn.email({ email, password, rememberMe: remember });
+    const { data, error } = await authClient.signIn.email({ email, password, rememberMe: remember });
     if (error) {
       setError(
         error.code === "EMAIL_NOT_VERIFIED"
@@ -35,7 +35,7 @@ export function LoginForm() {
       return;
     }
     setStatus("success");
-    router.push("/dashboard");
+    router.push(data && "twoFactorRedirect" in data && data.twoFactorRedirect ? "/verification-2fa" : "/connexion-reussie");
     router.refresh();
   }
 
@@ -51,6 +51,8 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+        {sessionExpired ? <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm">Votre session a été fermée après 5 minutes d’inactivité. Connectez-vous pour continuer.</p> : null}
+        <p className="text-xs text-muted-foreground">Pour votre sécurité, la session se ferme après 5 minutes sans activité.</p>
         {error ? (
           <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
             {error}

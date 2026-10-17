@@ -4,6 +4,7 @@ import { ShieldAlert, ExternalLink } from "lucide-react";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 import { AdminNav } from "@/features/admin/admin-nav";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { AdminSignOutButton } from "@/features/admin/sign-out-button";
 
 export const metadata: Metadata = {
   title: { default: "Console plateforme", template: "%s · Console plateforme" },
@@ -25,7 +26,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const admin = await requirePlatformAdmin();
+  const admin = await requirePlatformAdmin({ requireTwoFactor: false });
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,11 +53,14 @@ export default async function AdminLayout({
               </span>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white/90 hover:bg-white/10"
+                aria-label="Retour à l’application"
+                title="Retour à l’application"
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-white/20 px-3 text-xs font-medium text-white/90 hover:bg-white/10"
               >
                 <ExternalLink className="size-3.5" />
-                Retour à l&apos;app
+                <span className="hidden sm:inline">Retour à l&apos;app</span>
               </Link>
+              <AdminSignOutButton />
             </div>
           </div>
           <AdminNav />

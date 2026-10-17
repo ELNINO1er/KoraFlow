@@ -9,11 +9,11 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { useMotionPref } from "./motion-preferences";
 
 const LINKS = [
-  { href: "#fonctionnalites", label: "Fonctionnalités" },
-  { href: "#solutions", label: "Solutions" },
-  { href: "#parcours", label: "Comment ça marche" },
-  { href: "#securite", label: "Sécurité" },
-  { href: "#tarifs", label: "Tarifs" },
+  { href: "/#fonctionnalites", label: "Fonctionnalités" },
+  { href: "/#solutions", label: "Solutions" },
+  { href: "/#parcours", label: "Comment ça marche" },
+  { href: "/#securite", label: "Sécurité" },
+  { href: "/#tarifs", label: "Tarifs" },
 ];
 
 export function Header() {

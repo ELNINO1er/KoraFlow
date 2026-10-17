@@ -5,8 +5,10 @@ import { Money } from "@/components/ui/money";
 import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requirePlatformAdmin } from "@/server/auth/platform";
 
 export default async function AdminOverviewPage() {
+  await requirePlatformAdmin();
   const o = await getPlatformOverview();
 
   const revenueEntries = Object.entries(o.revenueByCurrency);
@@ -50,7 +52,7 @@ export default async function AdminOverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Revenu encaissé (paiements confirmés)</CardTitle>
+          <CardTitle>Encaissements des organisations (paiements confirmés)</CardTitle>
         </CardHeader>
         <CardContent>
           {revenueEntries.length === 0 ? (

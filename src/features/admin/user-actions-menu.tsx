@@ -32,6 +32,8 @@ import {
   suspendUserAction,
   deleteUserAction,
 } from "@/features/admin/actions";
+import { SensitiveActionDialog } from "./sensitive-action-dialog";
+import type { SensitiveConfirmation } from "@/lib/admin/validation";
 
 export function UserActionsMenu({
   userId,
@@ -39,16 +41,19 @@ export function UserActionsMenu({
   isAdmin,
   suspended,
   emailVerified,
+  email,
 }: {
   userId: string;
   isSelf: boolean;
   isAdmin: boolean;
   suspended: boolean;
   emailVerified: boolean;
+  email: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  const [sensitive, setSensitive] = useState<"admin" | "delete" | "impersonate" | "suspend" | null>(null);
 
   function run(
     fn: () => Promise<{ ok: boolean; error?: string } | void>,
@@ -74,23 +79,17 @@ export function UserActionsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={pending}
-          className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="inline-flex size-11 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           aria-label="Actions"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" onCloseAutoFocus={(e) => { if (sensitive) e.preventDefault(); }}>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-          {!isSelf && !suspended ? (
+          {!isSelf && !suspended && !isAdmin ? (
             <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                run(
-                  () => impersonateAction(userId),
-                  "Ouvrir la session de cet utilisateur ? Vous verrez l'application en tant que lui (tracé dans l'audit).",
-                );
-              }}
+              onSelect={() => setSensitive("impersonate")}
             >
               <UserCog className="size-4" />
               Se connecter en tant que
@@ -137,15 +136,7 @@ export function UserActionsMenu({
 
           {!(isSelf && isAdmin) ? (
             <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                run(
-                  () => setPlatformAdminAction(userId, !isAdmin),
-                  isAdmin
-                    ? "Retirer l'accès administrateur de plateforme ?"
-                    : "Accorder l'accès administrateur de PLATEFORME (toutes les organisations) ?",
-                );
-              }}
+              onSelect={() => setSensitive("admin")}
               className={isAdmin ? "text-danger focus:bg-danger/10" : "text-accent focus:bg-accent/10"}
             >
               {isAdmin ? <ShieldOff className="size-4" /> : <ShieldCheck className="size-4" />}
@@ -155,15 +146,7 @@ export function UserActionsMenu({
 
           {!isSelf ? (
             <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                run(
-                  () => suspendUserAction(userId, !suspended),
-                  suspended
-                    ? "Réactiver ce compte ?"
-                    : "Suspendre ce compte ? L'utilisateur sera déconnecté et bloqué.",
-                );
-              }}
+              onSelect={() => setSensitive("suspend")}
               className={suspended ? "" : "text-danger focus:bg-danger/10"}
             >
               {suspended ? <RotateCcw className="size-4" /> : <Ban className="size-4" />}
@@ -175,13 +158,7 @@ export function UserActionsMenu({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  run(
-                    () => deleteUserAction(userId),
-                    "SUPPRIMER définitivement ce compte et ses sessions ? Action irréversible.",
-                  );
-                }}
+                onSelect={() => setSensitive("delete")}
                 className="text-danger focus:bg-danger/10"
               >
                 <Trash2 className="size-4" />
@@ -191,6 +168,13 @@ export function UserActionsMenu({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
+      {sensitive ? <SensitiveActionDialog
+        title={sensitive === "admin" ? (isAdmin ? "Retirer l’accès administrateur" : "Accorder l’accès administrateur") : sensitive === "delete" ? "Supprimer le compte" : sensitive === "suspend" ? (suspended ? "Réactiver le compte" : "Suspendre le compte") : "Ouvrir une session de support"}
+        target={email}
+        description={sensitive === "admin" ? "Les droits plateforme donnent accès à toutes les organisations. Cette opération sera inscrite dans le journal d’audit." : sensitive === "delete" ? "Cette suppression est définitive. Un dernier propriétaire ou un compte administrateur doit d’abord être remplacé." : sensitive === "suspend" ? "La suspension bloque l’accès au compte et déconnecte toutes ses sessions. Le motif sera conservé." : "Vous agirez avec les droits de cet utilisateur. Indiquez le motif de cette intervention."}
+        onClose={() => setSensitive(null)}
+        onConfirm={(confirmation: SensitiveConfirmation) => sensitive === "admin" ? setPlatformAdminAction(userId, !isAdmin, confirmation) : sensitive === "delete" ? deleteUserAction(userId, confirmation) : sensitive === "suspend" ? suspendUserAction(userId, !suspended, confirmation) : impersonateAction(userId, confirmation)}
+      /> : null}
       {msg ? <span className="max-w-[220px] text-right text-xs text-muted-foreground">{msg}</span> : null}
     </div>
   );

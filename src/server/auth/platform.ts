@@ -17,6 +17,7 @@ export interface PlatformAdmin {
   id: string;
   email: string;
   name: string | null;
+  twoFactorEnabled?: boolean;
 }
 
 /**
@@ -26,6 +27,8 @@ export interface PlatformAdmin {
 export async function resolvePlatformAdmin(): Promise<PlatformAdmin | null> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return null;
+  // A support session must never inherit platform privileges from its target.
+  if (session.session.impersonatedBy) return null;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -35,11 +38,12 @@ export async function resolvePlatformAdmin(): Promise<PlatformAdmin | null> {
       name: true,
       isPlatformAdmin: true,
       suspendedAt: true,
+      twoFactorEnabled: true,
     },
   });
 
   if (!user || !user.isPlatformAdmin || user.suspendedAt) return null;
-  return { id: user.id, email: user.email, name: user.name };
+  return { id: user.id, email: user.email, name: user.name, twoFactorEnabled: Boolean(user.twoFactorEnabled) };
 }
 
 /**
@@ -48,11 +52,12 @@ export async function resolvePlatformAdmin(): Promise<PlatformAdmin | null> {
  * - Connecté mais NON admin plateforme (ou suspendu) → 404 : on ne révèle pas
  *   l'existence de la console à un utilisateur ordinaire.
  */
-export async function requirePlatformAdmin(): Promise<PlatformAdmin> {
+export async function requirePlatformAdmin(options: { requireTwoFactor?: boolean } = {}): Promise<PlatformAdmin> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login");
 
   const admin = await resolvePlatformAdmin();
   if (!admin) notFound();
+  if (options.requireTwoFactor !== false && !admin.twoFactorEnabled) redirect("/admin/security");
   return admin;
 }

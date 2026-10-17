@@ -1,22 +1,21 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { SOLUTIONS } from "@/lib/seo/solutions";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Produit",
     links: [
-      { label: "Fonctionnalités", href: "#fonctionnalites" },
-      { label: "Solutions", href: "#solutions" },
-      { label: "Comment ça marche", href: "#parcours" },
-      { label: "Sécurité", href: "#securite" },
-      { label: "Tarifs", href: "#tarifs" },
+      { label: "Fonctionnalités", href: "/#fonctionnalites" },
+      { label: "Solutions", href: "/#solutions" },
+      { label: "Comment ça marche", href: "/#parcours" },
+      { label: "Sécurité", href: "/#securite" },
+      { label: "Tarifs", href: "/#tarifs" },
     ],
   },
   {
-    title: "Ressources",
-    links: [
-      { label: "Rejoindre le pilote", href: "#tarifs" },
-    ],
+    title: "Solutions",
+    links: SOLUTIONS.map((entry) => ({ label: entry.label, href: `/solutions/${entry.slug}` })),
   },
   {
     title: "Compte",

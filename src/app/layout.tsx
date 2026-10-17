@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { connection } from "next/server";
 import {
   BRAND_DESCRIPTION,
   BRAND_DOMAIN,
@@ -7,6 +8,8 @@ import {
   BRAND_TAGLINE,
 } from "@/lib/constants/brand";
 import { ToastProvider } from "@/components/ui/toast";
+import { IdleSessionGuard } from "@/components/app/idle-session-guard";
+import { PRIVATE_ROBOTS } from "@/lib/seo/site";
 import "./globals.css";
 
 const inter = localFont({
@@ -31,6 +34,8 @@ export const metadata: Metadata = {
     template: `%s · ${BRAND_NAME}`,
   },
   description: BRAND_DESCRIPTION,
+  robots: PRIVATE_ROBOTS,
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || undefined },
   openGraph: {
     type: "website",
     locale: "fr_CI",
@@ -46,18 +51,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // The existing per-request CSP nonce requires dynamic HTML, including public pages.
+  await connection();
   return (
     <html
       lang="fr"
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider><IdleSessionGuard />{children}</ToastProvider>
       </body>
     </html>
   );

@@ -6,6 +6,8 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "../database/client";
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { brandedEmail } from "@/server/integrations/email/template";
+import { idleSessionPlugin } from "./idle-session-plugin";
+import { IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_MS } from "@/lib/security/idle-session";
 
 const appUrl = process.env.APP_URL ?? "https://alymero.com";
 const alymeroLogo = `${appUrl}/brand/alymero-mark.png`;
@@ -23,9 +25,26 @@ const alymeroLogo = `${appUrl}/brand/alymero-mark.png`;
  */
 export const auth = betterAuth({
   appName: BRAND_NAME,
+  advanced: { disableOriginCheck: false, disableCSRFCheck: false },
+  session: {
+    expiresIn: IDLE_TIMEOUT_SECONDS,
+    disableSessionRefresh: true,
+    cookieCache: { enabled: false },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => ({ data: {
+          ...session,
+          expiresAt: new Date(Math.min(new Date(session.expiresAt).getTime(), Date.now() + IDLE_TIMEOUT_MS)),
+        } }),
+      },
+    },
+  },
   // Origines autorisées (protection CSRF). En plus de localhost, on accepte les
   // origines listées dans TRUSTED_ORIGINS (ex. l'IP LAN pour une démo WiFi).
   trustedOrigins: [
+    new URL(appUrl).origin,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     ...(process.env.TRUSTED_ORIGINS
@@ -86,5 +105,5 @@ export const auth = betterAuth({
   //   isPlatformAdmin de notre couche métier). Le bannissement du plugin n'est pas
   //   utilisé (suspension gérée via suspendedAt).
   // nextCookies doit rester le DERNIER plugin.
-  plugins: [twoFactor(), admin({ adminRoles: ["admin"] }), nextCookies()],
+  plugins: [twoFactor(), admin({ adminRoles: ["admin"], impersonationSessionDuration: 15 * 60 }), idleSessionPlugin(), nextCookies()],
 });

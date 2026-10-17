@@ -14,6 +14,11 @@ import {
   removeOrgMember,
   forceVerifyEmail,
   PlatformAdminError,
+  adminMutation,
+  deletePlatformUser,
+  listUsers,
+  listOrganizations,
+  listAuditLog,
 } from "./platform-admin";
 
 const SUFFIX = "plat-admin-test";
@@ -220,5 +225,100 @@ describe("platform-admin — gestion des accès", () => {
     await forceVerifyEmail(admin(), targetUserId);
     const u = await prisma.user.findUnique({ where: { id: targetUserId } });
     expect(u?.emailVerified).toBe(true);
+  });
+
+  it("refuse une mutation demandée par un acteur qui n’est pas administrateur", async () => {
+    await expect(setUserPlatformAdmin({ id: targetUserId, email: "forged@test.local", name: null }, adminUserId, false)).rejects.toThrow("Accès administrateur requis");
+    expect((await prisma.user.findUnique({ where: { id: adminUserId } }))?.isPlatformAdmin).toBe(true);
+  });
+
+  it("annule la modification si l’écriture d’audit échoue", async () => {
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: targetUserId } });
+    await expect(adminMutation(admin(), async (tx) => {
+      await tx.user.update({ where: { id: targetUserId }, data: { name: "SHOULD ROLLBACK" } });
+      await tx.auditLog.create({ data: { actorUserId: "missing-admin-for-rollback-test", action: "platform.test" } });
+    })).rejects.toThrow();
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: targetUserId } })).name).toBe(before.name);
+  });
+
+  it("ne promeut pas un compte suspendu et synchronise les deux marqueurs d’accès", async () => {
+    await setUserSuspended(admin(), targetUserId, true);
+    await expect(setUserPlatformAdmin(admin(), targetUserId, true)).rejects.toThrow("Réactivez");
+    await setUserSuspended(admin(), targetUserId, false);
+    await setUserPlatformAdmin(admin(), targetUserId, true, "Renfort équipe support");
+    expect(await prisma.user.findUnique({ where: { id: targetUserId }, select: { isPlatformAdmin: true, role: true } })).toEqual({ isPlatformAdmin: true, role: "admin" });
+    const audit = await prisma.auditLog.findFirstOrThrow({ where: { action: "platform.admin_granted", targetId: targetUserId }, orderBy: { createdAt: "desc" } });
+    expect(audit.metadata).toMatchObject({ reason: "Renfort équipe support", before: { isPlatformAdmin: false }, after: { isPlatformAdmin: true } });
+    await setUserPlatformAdmin(admin(), targetUserId, false);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: targetUserId } })).role).toBe("user");
+  });
+
+  it("combine les filtres d’audit sans perdre la recherche ou l’organisation", async () => {
+    const result = await listAuditLog({ q: orgId, organization: orgId, actor: `admin-${SUFFIX}`, action: "platform.org_updated" });
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.items.every((entry) => entry.targetId === orgId && entry.organizationId === orgId && entry.action === "platform.org_updated")).toBe(true);
+    expect((await listAuditLog({ q: "missing-target-for-test", organization: orgId })).total).toBe(0);
+  });
+
+  it("permet de retirer les droits d’un administrateur suspendu sans bloquer l’admin actif", async () => {
+    await setUserPlatformAdmin(admin(), targetUserId, true);
+    await setUserSuspended(admin(), targetUserId, true);
+    await setUserPlatformAdmin(admin(), targetUserId, false);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: targetUserId } })).isPlatformAdmin).toBe(false);
+    await setUserSuspended(admin(), targetUserId, false);
+  });
+
+  it("retrouve les organisations archivées dans la corbeille uniquement", async () => {
+    await softDeleteOrganization(admin(), orgId, "Demande de fermeture");
+    expect((await listOrganizations({ q: `plat-org-${SUFFIX}` })).total).toBe(0);
+    const deleted = await listOrganizations({ q: `plat-org-${SUFFIX}`, status: "deleted" });
+    expect(deleted.total).toBe(1);
+    expect(deleted.items[0]!.deletedAt).not.toBeNull();
+    await restoreOrganization(admin(), orgId);
+  });
+
+  it("limite les listes et ramène une page hors limites à la dernière page", async () => {
+    const result = await listUsers({ q: `target-${SUFFIX}`, page: "99999" });
+    expect(result.total).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.items[0]!.id).toBe(targetUserId);
+    expect(result.items.length).toBeLessThanOrEqual(25);
+  });
+
+  it("répartit réellement les comptes entre deux pages sans doublon", async () => {
+    const emails = Array.from({ length: 26 }, (_, index) => `pagination-${SUFFIX}-${index}@test.local`);
+    await prisma.user.createMany({ data: emails.map((email) => ({ email, name: "Pagination fixture" })) });
+    try {
+      const first = await listUsers({ q: `pagination-${SUFFIX}` });
+      const second = await listUsers({ q: `pagination-${SUFFIX}`, page: "2" });
+      expect(first.total).toBe(26);
+      expect(first.items).toHaveLength(25);
+      expect(second.items).toHaveLength(1);
+      expect(second.page).toBe(2);
+      expect(new Set([...first.items, ...second.items].map((user) => user.id)).size).toBe(26);
+    } finally { await prisma.user.deleteMany({ where: { email: { in: emails } } }); }
+  });
+
+  it("empêche deux rétrogradations concurrentes de retirer tous les propriétaires", async () => {
+    const other = await prisma.user.create({ data: { email: `race-owner-${SUFFIX}@test.local` } });
+    try {
+      await addOrgMember(admin(), orgId, `target-${SUFFIX}@test.local`, "OWNER");
+      await addOrgMember(admin(), orgId, other.email, "OWNER");
+      const owners = await prisma.membership.findMany({ where: { organizationId: orgId, role: "OWNER" } });
+      const results = await Promise.allSettled(owners.map((owner) => changeOrgMemberRole(admin(), orgId, owner.id, "SALES")));
+      expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      expect(await prisma.membership.count({ where: { organizationId: orgId, role: "OWNER" } })).toBe(1);
+    } finally {
+      await prisma.membership.deleteMany({ where: { organizationId: orgId } });
+      await prisma.user.delete({ where: { id: other.id } });
+    }
+  });
+
+  it("protège le dernier propriétaire lors de la suppression d’un compte", async () => {
+    await addOrgMember(admin(), orgId, `target-${SUFFIX}@test.local`, "OWNER");
+    try {
+      await expect(deletePlatformUser(admin(), targetUserId, "Demande de suppression")).rejects.toThrow("dernier propriétaire");
+      expect(await prisma.user.findUnique({ where: { id: targetUserId } })).not.toBeNull();
+    } finally { await prisma.membership.deleteMany({ where: { organizationId: orgId } }); }
   });
 });

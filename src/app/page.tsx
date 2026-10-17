@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
-import { resolveSession } from "@/server/auth/context";
+import { publicPageMetadata, jsonLd, SITE_URL } from "@/lib/seo/site";
+import { BRAND_NAME, BRAND_DESCRIPTION } from "@/lib/constants/brand";
+import { SolutionsSection } from "@/features/marketing/solutions-section";
 import {
   MotionPreferencesProvider,
   MotionToggleButton,
@@ -18,14 +19,22 @@ import { WaitlistSection } from "@/features/marketing/waitlist-section";
 import { FinalCTA } from "@/features/marketing/final-cta";
 import { Footer } from "@/features/marketing/footer";
 
-export default async function Home() {
-  const session = await resolveSession();
-  if (session.status === "ok") redirect("/dashboard");
-  if (session.status === "no-organization") redirect("/create-organization");
-  if (session.status === "suspended") redirect("/compte-suspendu");
+export const metadata = publicPageMetadata(
+  "Alymero — CRM, devis et facturation pour PME en Côte d’Ivoire",
+  "Gérez clients, devis, contrats, factures et projets avec Alymero, votre logiciel de gestion commerciale en français pour indépendants, agences et PME.",
+  "/",
+);
+
+export default function Home() {
 
   return (
     <MotionPreferencesProvider>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd({
+        "@context": "https://schema.org", "@graph": [
+          { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: BRAND_NAME, url: SITE_URL, logo: `${SITE_URL}/brand/alymero-mark.png`, description: BRAND_DESCRIPTION },
+          { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: BRAND_NAME, url: SITE_URL, inLanguage: "fr", publisher: { "@id": `${SITE_URL}/#organization` } },
+        ],
+      }) }} />
       <BrandFlowPath />
       <Header />
       <main className="relative">
@@ -37,6 +46,7 @@ export default async function Home() {
         <ClientPortalDemo />
         <SecuritySection />
         <AudienceSection />
+        <SolutionsSection />
         <WaitlistSection />
         <FinalCTA />
       </main>

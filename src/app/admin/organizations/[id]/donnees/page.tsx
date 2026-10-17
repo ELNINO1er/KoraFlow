@@ -7,6 +7,7 @@ import { Money } from "@/components/ui/money";
 import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { requirePlatformAdmin } from "@/server/auth/platform";
 
 export const metadata: Metadata = { title: "Données de l'organisation" };
 
@@ -15,8 +16,9 @@ export default async function AdminOrgDataPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const admin = await requirePlatformAdmin();
   const { id } = await params;
-  const data = await getOrganizationData(id);
+  const data = await getOrganizationData(id, admin);
   if (!data) notFound();
 
   const { org, contacts, quotes, invoices, projects } = data;

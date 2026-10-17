@@ -43,7 +43,7 @@ export function HeroOrchestration() {
 
           <Reveal variant="up" delay={0.08}>
             <h1 className="mt-5 font-display text-4xl font-bold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Votre entreprise,
+              Votre gestion commerciale,
               <br />
               <span className="text-accent">parfaitement orchestrée.</span>
             </h1>

@@ -18,6 +18,7 @@ import {
   changeMemberRoleAction,
   removeMemberAction,
 } from "@/features/admin/actions";
+import { SensitiveActionDialog } from "./sensitive-action-dialog";
 
 export function OrgEditForm({
   orgId,
@@ -96,19 +97,21 @@ function Field({
   );
 }
 
-export function OrgDeleteRestore({ orgId, deleted }: { orgId: string; deleted: boolean }) {
+export function OrgDeleteRestore({ orgId, deleted, name }: { orgId: string; deleted: boolean; name: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function act() {
+    if (!deleted) { setConfirmOpen(true); return; }
     const confirmMsg = deleted
       ? "Restaurer cette organisation ?"
       : "Supprimer (archiver) cette organisation ? Ses membres perdront l'accès. Réversible via Restaurer.";
     if (!window.confirm(confirmMsg)) return;
     startTransition(async () => {
       setError(null);
-      const r = deleted ? await restoreOrgAction(orgId) : await deleteOrgAction(orgId);
+      const r = await restoreOrgAction(orgId);
       if (!r.ok) {
         setError(r.error ?? "Action impossible.");
         return;
@@ -137,6 +140,11 @@ export function OrgDeleteRestore({ orgId, deleted }: { orgId: string; deleted: b
         {deleted ? "Restaurer" : "Supprimer"}
       </Button>
       {error ? <span className="text-xs text-danger">{error}</span> : null}
+      {confirmOpen ? <SensitiveActionDialog
+        title="Archiver l’organisation" target={name}
+        description="Les membres perdront l’accès. Vous pourrez restaurer cette organisation depuis la corbeille."
+        onClose={() => setConfirmOpen(false)} onConfirm={(confirmation) => deleteOrgAction(orgId, confirmation)}
+      /> : null}
     </div>
   );
 }

@@ -5,9 +5,10 @@ import { LoginForm } from "@/features/auth/login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ reason?: string }> }) {
   const session = await resolveSession();
   if (session.status === "ok") redirect("/dashboard");
   if (session.status === "no-organization") redirect("/create-organization");
-  return <LoginForm />;
+  const { reason } = await searchParams;
+  return <LoginForm sessionExpired={reason === "inactivity"} />;
 }

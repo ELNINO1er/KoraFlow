@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requirePlatformAdmin } from "@/server/auth/platform";
 import { ArrowLeft, Ban, Database } from "lucide-react";
 import { getOrganizationDetail } from "@/server/services/platform-admin";
 import { Money } from "@/components/ui/money";
@@ -22,6 +23,7 @@ export default async function AdminOrganizationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePlatformAdmin();
   const { id } = await params;
   const data = await getOrganizationDetail(id);
   if (!data) notFound();
@@ -66,13 +68,14 @@ export default async function AdminOrganizationDetailPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/organizations/${org.id}/donnees`}
+            prefetch={false}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted"
           >
             <Database className="size-4" />
             Voir les données
           </Link>
-          {!deleted ? <OrgSuspendToggle orgId={org.id} suspended={Boolean(org.suspendedAt)} /> : null}
-          <OrgDeleteRestore orgId={org.id} deleted={deleted} />
+          {!deleted ? <OrgSuspendToggle orgId={org.id} name={org.name} suspended={Boolean(org.suspendedAt)} /> : null}
+          <OrgDeleteRestore orgId={org.id} name={org.name} deleted={deleted} />
         </div>
       </div>
 

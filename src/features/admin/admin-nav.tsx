@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, Users, ScrollText } from "lucide-react";
+import { LayoutDashboard, Building2, Users, ScrollText, ShieldCheck, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard, exact: true },
   { href: "/admin/organizations", label: "Organisations", icon: Building2 },
   { href: "/admin/users", label: "Utilisateurs", icon: Users },
+  { href: "/admin/admins", label: "Administrateurs", icon: ShieldCheck },
   { href: "/admin/audit", label: "Journal d'audit", icon: ScrollText },
+  { href: "/admin/security", label: "Sécurité", icon: KeyRound },
 ];
 
 export function AdminNav() {
