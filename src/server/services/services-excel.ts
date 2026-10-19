@@ -1,5 +1,4 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
 import type { AuthContext } from "../auth/context";
 import { assertCan } from "../permissions/permissions";
 import { prisma } from "../database/client";
@@ -9,6 +8,7 @@ import { parseFrenchDecimal } from "@/lib/excel/number-fr";
 import { minorUnitsFor } from "@/lib/formatting/currency";
 import { MAX_MONEY_MINOR } from "@/lib/quotes/totals";
 import { putPrivateFile, getPrivateFile, deletePrivateFile } from "../storage/private-storage";
+import { newImportPreviewId, isPreviewExpired } from "@/lib/excel/preview-id";
 import { SERVICE_UNITS } from "@/lib/validation/service";
 
 export const SERVICE_FIELDS: FieldSpec[] = [
@@ -156,7 +156,7 @@ export async function prepareServiceImport(
     invalid: rows.filter((r) => r.status === "invalid").length,
   };
 
-  const previewId = randomBytes(18).toString("hex");
+  const previewId = newImportPreviewId(Date.now());
   await putPrivateFile(importKey(ctx, previewId), buffer);
   return { ok: true, preview: { previewId, sheetNames: parsed.sheetNames, sheetName: parsed.sheetName, header: parsed.header, mapping, missingRequired, currency, rows, summary } };
 }
@@ -182,6 +182,10 @@ export async function commitServiceImport(
   if (already) return { ok: true, result: { ...(already.summary as unknown as ServiceImportResult), replayed: true } };
 
   const key = importKey(ctx, input.previewId);
+  if (isPreviewExpired(input.previewId, Date.now())) {
+    await deletePrivateFile(key).catch(() => {});
+    return { ok: false, error: "L'aperçu d'import a expiré. Recommencez l'import." };
+  }
   let buffer: Buffer;
   try { buffer = await getPrivateFile(key); }
   catch { return { ok: false, error: "Fichier d'import introuvable ou expiré. Recommencez l'import." }; }

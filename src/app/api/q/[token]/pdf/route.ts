@@ -1,4 +1,6 @@
 import { generateQuotePdfByToken } from "@/server/services/quote-pdf";
+import { getQuoteByPublicToken } from "@/server/repositories/quote-repository";
+import { getStoredArchivePdf } from "@/server/services/document-archive-service";
 import { pdfResponse } from "@/lib/http/pdf-response";
 import {
   isValidPublicDocumentToken,
@@ -17,6 +19,12 @@ export async function GET(
   const limited = limitPublicDocumentRequest(request);
   if (limited) return limited;
 
+  // Devis finalisé & archivé : servir le fichier conservé (non régénéré).
+  const quote = await getQuoteByPublicToken(token);
+  if (quote) {
+    const archived = await getStoredArchivePdf(quote.organizationId, "QUOTE", quote.id);
+    if (archived) return pdfResponse(archived, `${quote.number}.pdf`);
+  }
   const pdf = await generateQuotePdfByToken(token);
   if (!pdf) {
     return new Response("Devis introuvable", { status: 404 });

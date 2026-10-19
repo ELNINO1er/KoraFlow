@@ -7,6 +7,7 @@ import { createContactSchema } from "@/lib/validation/contact";
 import { parseWorkbook, buildWorkbook, INSTRUCTIONS_SHEET } from "@/lib/excel/workbook";
 import { autoMapColumns, type FieldSpec } from "@/lib/excel/headers";
 import { putPrivateFile, getPrivateFile, deletePrivateFile } from "../storage/private-storage";
+import { newImportPreviewId, isPreviewExpired } from "@/lib/excel/preview-id";
 
 /** Champs importables/exportables d'un client. Seul le prénom est obligatoire. */
 export const CONTACT_FIELDS: FieldSpec[] = [
@@ -139,7 +140,7 @@ export async function prepareContactImport(
     invalid: rows.filter((r) => r.status === "invalid").length,
   };
 
-  const previewId = randomBytes(18).toString("hex");
+  const previewId = newImportPreviewId(Date.now());
   await putPrivateFile(importKey(ctx, previewId), buffer);
 
   return {
@@ -187,6 +188,12 @@ export async function commitContactImport(
   }
 
   const key = importKey(ctx, input.previewId);
+  // Expiration côté serveur : au-delà du TTL, le fichier préparé n'est plus
+  // valable (il sera purgé). On le supprime et on refuse le commit.
+  if (isPreviewExpired(input.previewId, Date.now())) {
+    await deletePrivateFile(key).catch(() => {});
+    return { ok: false, error: "L'aperçu d'import a expiré. Recommencez l'import." };
+  }
   let buffer: Buffer;
   try {
     buffer = await getPrivateFile(key);

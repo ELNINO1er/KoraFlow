@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { computeQuoteTotals, type AmountKind } from "@/lib/quotes/totals";
 import { formatCurrency } from "@/lib/formatting/currency";
-import { createQuoteAction } from "@/features/quotes/actions";
+import { createQuoteAction, updateQuoteAction } from "@/features/quotes/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,23 @@ interface Line {
   taxRate: number;
 }
 
+interface SectionItem { key: number; heading: string; body: string }
+
+export interface QuoteInitial {
+  id: string;
+  contactLabel?: string;
+  title?: string | null;
+  introduction?: string | null;
+  notes?: string | null;
+  terms?: string | null;
+  expiryDate?: string | null;
+  discountType?: AmountKind | null;
+  discountValue?: number;
+  depositType?: AmountKind | null;
+  depositValue?: number;
+  sections?: { heading: string; body: string }[];
+  items: { serviceId: string | null; description: string; unitPriceMajor: number; quantity: number; taxRate: number }[];
+}
 
 export function QuoteForm({
   contacts,
@@ -47,27 +64,42 @@ export function QuoteForm({
   currency,
   localeTag,
   minorUnits,
+  quote,
 }: {
   contacts: ContactOption[];
   services: ServiceOption[];
   currency: string;
   localeTag: string;
   minorUnits: number;
+  /** Fourni en mode ÉDITION (brouillon) : préremplit le formulaire et bascule sur la mise à jour. */
+  quote?: QuoteInitial;
 }) {
   const router = useRouter();
-  const keyRef = useRef(1);
+  const isEdit = Boolean(quote);
+  const keyRef = useRef(1000);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [contactId, setContactId] = useState("");
-  const [lines, setLines] = useState<Line[]>([]);
-  const [discountType, setDiscountType] = useState<"" | AmountKind>("");
-  const [discountValue, setDiscountValue] = useState(0);
-  const [depositType, setDepositType] = useState<"" | AmountKind>("");
-  const [depositValue, setDepositValue] = useState(0);
-  const [expiryDate, setExpiryDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [terms, setTerms] = useState("");
+  const [lines, setLines] = useState<Line[]>(
+    () => (quote?.items ?? []).map((it, i) => ({ key: i + 1, serviceId: it.serviceId, description: it.description, unitPriceMajor: it.unitPriceMajor, quantity: it.quantity, taxRate: it.taxRate })),
+  );
+  const [discountType, setDiscountType] = useState<"" | AmountKind>(quote?.discountType ?? "");
+  const [discountValue, setDiscountValue] = useState(
+    () => (quote?.discountType === "AMOUNT" ? (quote.discountValue ?? 0) / 10 ** minorUnits : quote?.discountValue ?? 0),
+  );
+  const [depositType, setDepositType] = useState<"" | AmountKind>(quote?.depositType ?? "");
+  const [depositValue, setDepositValue] = useState(
+    () => (quote?.depositType === "AMOUNT" ? (quote.depositValue ?? 0) / 10 ** minorUnits : quote?.depositValue ?? 0),
+  );
+  const [expiryDate, setExpiryDate] = useState(quote?.expiryDate ?? "");
+  const [notes, setNotes] = useState(quote?.notes ?? "");
+  const [terms, setTerms] = useState(quote?.terms ?? "");
+  const [title, setTitle] = useState(quote?.title ?? "");
+  const [introduction, setIntroduction] = useState(quote?.introduction ?? "");
+  const [sections, setSections] = useState<SectionItem[]>(
+    () => (quote?.sections ?? []).map((s, i) => ({ key: i + 1, heading: s.heading, body: s.body })),
+  );
 
   const toMinor = (major: number) => Math.round(major * 10 ** minorUnits);
   const money = (minor: number) => formatCurrency(minor, currency, localeTag);
@@ -115,9 +147,19 @@ export function QuoteForm({
     setLines((prev) => prev.filter((l) => l.key !== key));
   }
 
+  function addSection() {
+    setSections((prev) => [...prev, { key: keyRef.current++, heading: "", body: "" }]);
+  }
+  function updateSection(key: number, patch: Partial<SectionItem>) {
+    setSections((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)));
+  }
+  function removeSection(key: number) {
+    setSections((prev) => prev.filter((s) => s.key !== key));
+  }
+
   function submit() {
     setError(null);
-    if (!contactId) {
+    if (!isEdit && !contactId) {
       setError("Sélectionnez un client.");
       return;
     }
@@ -125,11 +167,16 @@ export function QuoteForm({
       setError("Ajoutez au moins une ligne.");
       return;
     }
-    const payload = {
-      contactId,
+    const cleanSections = sections
+      .map((s) => ({ heading: s.heading.trim(), body: s.body.trim() }))
+      .filter((s) => s.heading && s.body);
+    const common = {
       expiryDate: expiryDate || undefined,
       notes: notes || undefined,
       terms: terms || undefined,
+      title: title || undefined,
+      introduction: introduction || undefined,
+      sections: cleanSections.length ? cleanSections : undefined,
       discountType: discountType || null,
       discountValue: discountType === "AMOUNT" ? toMinor(discountValue) : discountValue,
       depositType: depositType || null,
@@ -143,12 +190,15 @@ export function QuoteForm({
       })),
     };
     startTransition(async () => {
-      const result = await createQuoteAction(payload);
-      if (!result.ok) {
-        setError(result.error ?? "Impossible de créer le devis.");
-        return;
+      if (isEdit && quote) {
+        const result = await updateQuoteAction(quote.id, common);
+        if (!result.ok) { setError(result.error ?? "Impossible d'enregistrer le devis."); return; }
+        router.push(`/devis/${quote.id}`);
+      } else {
+        const result = await createQuoteAction({ contactId, ...common });
+        if (!result.ok) { setError(result.error ?? "Impossible de créer le devis."); return; }
+        router.push(`/devis/${result.quoteId}`);
       }
-      router.push(`/devis/${result.quoteId}`);
       router.refresh();
     });
   }
@@ -168,13 +218,17 @@ export function QuoteForm({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contact">Client *</Label>
-            <FormSelect
-              id="contact"
-              value={contactId}
-              onValueChange={setContactId}
-              placeholder="— Sélectionner —"
-              options={contacts.map((c) => ({ value: c.id, label: c.label }))}
-            />
+            {isEdit ? (
+              <p className="rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm text-foreground">{quote?.contactLabel ?? "Client"}</p>
+            ) : (
+              <FormSelect
+                id="contact"
+                value={contactId}
+                onValueChange={setContactId}
+                placeholder="— Sélectionner —"
+                options={contacts.map((c) => ({ value: c.id, label: c.label }))}
+              />
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="expiry">Date d’expiration</Label>
@@ -184,6 +238,37 @@ export function QuoteForm({
               value={expiryDate}
               onChange={(e) => setExpiryDate(e.target.value)}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Rédaction</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="q-title">Objet</Label>
+            <Input id="q-title" value={title} maxLength={160} onChange={(e) => setTitle(e.target.value)} placeholder="Ex. : Refonte du site vitrine" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="q-intro">Introduction / contexte</Label>
+            <Textarea id="q-intro" rows={3} value={introduction} onChange={(e) => setIntroduction(e.target.value)} placeholder="Présentation du besoin et du contexte (facultatif)." />
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label>Sections (livrables, périmètre, exclusions, délais…)</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addSection}><Plus className="size-4" />Ajouter une section</Button>
+            </div>
+            {sections.map((s) => (
+              <div key={s.key} className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
+                <div className="flex items-center gap-2">
+                  <Input value={s.heading} maxLength={160} onChange={(e) => updateSection(s.key, { heading: e.target.value })} placeholder="Titre de la section (ex. Livrables)" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => removeSection(s.key)}><Trash2 className="size-4" /></Button>
+                </div>
+                <Textarea rows={2} value={s.body} onChange={(e) => updateSection(s.key, { body: e.target.value })} placeholder="Contenu de la section" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -365,13 +450,54 @@ export function QuoteForm({
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Aperçu du devis</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          {title ? <p className="font-display text-lg font-bold text-foreground">{title}</p> : null}
+          {introduction ? <p className="whitespace-pre-wrap text-muted-foreground">{introduction}</p> : null}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-1 pr-2">Description</th><th className="px-2 py-1 text-right">Qté</th><th className="px-2 py-1 text-right">P.U. HT</th><th className="py-1 pl-2 text-right">Total HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((l) => (
+                  <tr key={l.key} className="border-b border-border last:border-0">
+                    <td className="py-1 pr-2 text-foreground">{l.description || <span className="text-muted-foreground">—</span>}</td>
+                    <td className="px-2 py-1 text-right text-muted-foreground">{l.quantity}</td>
+                    <td className="px-2 py-1 text-right text-muted-foreground">{money(toMinor(l.unitPriceMajor))}</td>
+                    <td className="py-1 pl-2 text-right text-foreground">{money(toMinor(l.unitPriceMajor) * l.quantity)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="sm:ml-auto sm:w-64">
+            <Row label="Total TTC" value={money(totals.totalMinor)} strong />
+          </div>
+          {sections.filter((s) => s.heading.trim() && s.body.trim()).map((s) => (
+            <div key={s.key}>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">{s.heading}</p>
+              <p className="whitespace-pre-wrap text-foreground">{s.body}</p>
+            </div>
+          ))}
+          {notes ? <div><p className="text-xs font-semibold uppercase text-muted-foreground">Notes</p><p className="whitespace-pre-wrap text-foreground">{notes}</p></div> : null}
+          {terms ? <div><p className="text-xs font-semibold uppercase text-muted-foreground">Conditions</p><p className="whitespace-pre-wrap text-foreground">{terms}</p></div> : null}
+          <p className="text-xs text-muted-foreground">Aperçu indicatif ; le PDF envoyé reprend ces éléments.</p>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end gap-3">
         <Button asChild variant="outline" type="button">
-          <Link href="/devis">Annuler</Link>
+          <Link href={isEdit && quote ? `/devis/${quote.id}` : "/devis"}>Annuler</Link>
         </Button>
         <Button type="button" onClick={submit} disabled={pending}>
           {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Créer le devis
+          {isEdit ? "Enregistrer le brouillon" : "Créer le devis"}
         </Button>
       </div>
     </div>

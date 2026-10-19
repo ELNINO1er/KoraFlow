@@ -2,10 +2,11 @@ import "server-only";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export class StorageConfigurationError extends Error {}
@@ -97,6 +98,53 @@ export async function getPrivateFile(key: string): Promise<Buffer> {
     return Buffer.from(await response.Body.transformToByteArray());
   }
   return readFile(resolveStorageKey(key));
+}
+
+/**
+ * Liste les clés présentes sous un préfixe (pour la purge des fichiers
+ * temporaires). Préfixe validé comme un sous-dossier simple.
+ */
+export async function listPrivateFiles(prefix: string): Promise<string[]> {
+  if (!/^[a-zA-Z0-9/_-]+$/.test(prefix) || prefix.includes("..")) {
+    throw new Error("Préfixe de stockage invalide.");
+  }
+  if (process.env.STORAGE_DRIVER === "s3") {
+    const { client, bucket } = getS3Client();
+    const keys: string[] = [];
+    let token: string | undefined;
+    do {
+      const res = await client.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }),
+      );
+      for (const obj of res.Contents ?? []) if (obj.Key) keys.push(obj.Key);
+      token = res.IsTruncated ? res.NextContinuationToken : undefined;
+    } while (token);
+    return keys;
+  }
+  const root = storageRoot();
+  const base = path.resolve(/* turbopackIgnore: true */ root, prefix);
+  const out: string[] = [];
+  async function walk(dir: string) {
+    let names: string[];
+    try {
+      names = await readdir(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      const full = path.join(dir, name);
+      let isDir = false;
+      try {
+        isDir = (await stat(full)).isDirectory();
+      } catch {
+        continue;
+      }
+      if (isDir) await walk(full);
+      else out.push(path.relative(root, full).split(path.sep).join("/"));
+    }
+  }
+  await walk(base);
+  return out;
 }
 
 export async function deletePrivateFile(key: string): Promise<void> {

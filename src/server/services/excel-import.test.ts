@@ -12,6 +12,9 @@ import {
 } from "./contacts-excel";
 import { prepareServiceImport, commitServiceImport } from "./services-excel";
 import { parseWorkbook } from "@/lib/excel/workbook";
+import { putPrivateFile, getPrivateFile } from "../storage/private-storage";
+import { purgeExpiredImports } from "./import-purge";
+import { newImportPreviewId, IMPORT_PREVIEW_TTL_MS } from "@/lib/excel/preview-id";
 
 /** Tests d'intégration Import/Export Excel (base + stockage isolés). */
 
@@ -141,6 +144,24 @@ describe("Modèle d'import clients", () => {
     expect(data.header).toContain("Prénom");
     expect(data.header).toContain("Téléphone");
     expect(data.rows).toHaveLength(0); // aucune ligne d'exemple dans la feuille de données
+  });
+});
+
+describe("Purge des imports abandonnés", () => {
+  it("supprime les fichiers d'aperçu expirés, conserve les récents", async () => {
+    const now = Date.now();
+    const oldId = newImportPreviewId(now - IMPORT_PREVIEW_TTL_MS - 60_000);
+    const freshId = newImportPreviewId(now);
+    const oldKey = `imports/${orgId}/${userId}/${oldId}.xlsx`;
+    const freshKey = `imports/${orgId}/${userId}/${freshId}.xlsx`;
+    await putPrivateFile(oldKey, Buffer.from("vieux"));
+    await putPrivateFile(freshKey, Buffer.from("recent"));
+
+    const res = await purgeExpiredImports(now);
+    expect(res.deleted).toBeGreaterThanOrEqual(1);
+
+    await expect(getPrivateFile(oldKey)).rejects.toBeTruthy(); // supprimé
+    await expect(getPrivateFile(freshKey)).resolves.toBeTruthy(); // conservé
   });
 });
 

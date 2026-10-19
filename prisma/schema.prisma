@@ -476,6 +476,12 @@ model Quote {
   notes      String?
   terms      String?
 
+  // Rédaction
+  title        String? // objet / titre du devis
+  introduction String? // texte d'introduction / contexte
+  /// Sections rédactionnelles libres : [{ heading, body }] (livrables, périmètre, exclusions, délais…).
+  sections     Json?
+
   // Remise globale
   discountType  AmountKind?
   discountValue Int         @default(0) // points de % ou montant (plus petite unité)
@@ -759,6 +765,13 @@ model Invoice {
   issueDate DateTime  @default(now())
   dueDate   DateTime?
   notes     String?
+
+  // Rédaction (figée à la génération depuis le devis le cas échéant)
+  title        String? // objet / titre de la facture
+  introduction String?
+  terms        String? // conditions de règlement / commerciales
+  /// Sections rédactionnelles libres : [{ heading, body }].
+  sections     Json?
 
   // Habillage figé du document. Le logo reste celui de l'organisation.
   headerColor String?

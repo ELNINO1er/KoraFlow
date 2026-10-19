@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { DocumentArchiveType, Prisma } from "@prisma/client";
 import * as archives from "../repositories/document-archive-repository";
+import { getLatestStoredArchive } from "../repositories/document-archive-repository";
 import { putPrivateFile, getPrivateFile } from "../storage/private-storage";
 
 function sha256(bytes: Uint8Array): string {
@@ -11,6 +12,26 @@ function sha256(bytes: Uint8Array): string {
 /** Empreinte stable d'un instantané (sert de discriminant de version). */
 export function snapshotFingerprint(snapshot: unknown): string {
   return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+}
+
+/**
+ * Renvoie les octets du PDF ARCHIVÉ (version de référence conservée) d'un
+ * document, ou null si aucune archive STORED n'existe / fichier illisible.
+ * Les appelants servent ce fichier pour les documents finalisés (jamais une
+ * régénération présentée comme l'original).
+ */
+export async function getStoredArchivePdf(
+  organizationId: string,
+  documentType: DocumentArchiveType,
+  documentId: string,
+): Promise<Buffer | null> {
+  const archive = await getLatestStoredArchive({ organizationId, documentType, documentId });
+  if (!archive?.pdfStorageKey) return null;
+  try {
+    return await getPrivateFile(archive.pdfStorageKey);
+  } catch {
+    return null;
+  }
 }
 
 /** Vrai si l'erreur de stockage signifie « la clé existe déjà » (write-once). */

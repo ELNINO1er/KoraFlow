@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
+import { Button } from "@/components/ui/button";
 import { getQuote } from "@/server/services/quote-service";
 import { listContractTemplates } from "@/server/services/contract-service";
 import { formatCurrency } from "@/lib/formatting/currency";
@@ -63,6 +64,9 @@ export default async function QuoteDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DownloadQuotePdfButton quoteId={quote.id} number={quote.number} />
+            {canUpdate && quote.status === "DRAFT" ? (
+              <Button asChild variant="outline" size="sm"><Link href={`/devis/${quote.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button>
+            ) : null}
             {canUpdate ? (
               <SendQuoteButton id={quote.id} hasEmail={Boolean(quote.contact.email)} />
             ) : null}

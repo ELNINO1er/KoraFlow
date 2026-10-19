@@ -26,11 +26,19 @@ const amountKind = z.enum(["PERCENT", "AMOUNT"]).nullable().optional();
 
 // Bornes alignées sur celles des factures (src/features/invoices/actions.ts)
 // pour une validation symétrique devis/factures.
+const sectionsSchema = z
+  .array(z.object({ heading: z.string().trim().min(1).max(160), body: z.string().trim().min(1).max(8000) }))
+  .max(20)
+  .optional();
+
 const createQuotePayloadSchema = z.object({
   contactId: z.string().min(1, "Sélectionnez un client."),
   expiryDate: z.string().optional(),
   notes: z.string().max(2000).optional(),
   terms: z.string().max(5000).optional(),
+  title: z.string().max(160).optional(),
+  introduction: z.string().max(5000).optional(),
+  sections: sectionsSchema,
   discountType: amountKind,
   discountValue: z.number().int().min(0).max(100_000_000).optional(),
   depositType: amountKind,
@@ -79,6 +87,9 @@ export async function createQuoteAction(
           : null,
       notes: data.notes,
       terms: data.terms,
+      title: data.title,
+      introduction: data.introduction,
+      sections: data.sections,
       discountType: data.discountType ?? null,
       discountValue: data.discountValue ?? 0,
       depositType: data.depositType ?? null,
@@ -103,6 +114,42 @@ export async function createQuoteAction(
     }
     throw e;
   }
+}
+
+const updateQuotePayloadSchema = createQuotePayloadSchema.omit({ contactId: true });
+
+export async function updateQuoteAction(
+  id: string,
+  payload: z.input<typeof updateQuotePayloadSchema>,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  const parsed = updateQuotePayloadSchema.safeParse(payload);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Données du devis invalides." };
+  const data = parsed.data;
+  try {
+    await quoteService.updateDraftQuote(ctx, id, {
+      expiryDate: data.expiryDate && data.expiryDate !== "" ? new Date(data.expiryDate) : null,
+      notes: data.notes,
+      terms: data.terms,
+      title: data.title,
+      introduction: data.introduction,
+      sections: data.sections,
+      discountType: data.discountType ?? null,
+      discountValue: data.discountValue ?? 0,
+      depositType: data.depositType ?? null,
+      depositValue: data.depositValue ?? 0,
+      items: data.items.map((i) => ({ serviceId: i.serviceId ?? null, description: i.description, unitPriceMinor: i.unitPriceMinor, quantity: i.quantity, taxRate: i.taxRate })),
+    });
+  } catch (e) {
+    if (e instanceof MoneyBoundsError) return { ok: false, error: "Les montants du devis sont trop élevés pour être enregistrés." };
+    if (e instanceof InvalidQuoteError) return { ok: false, error: e.message };
+    if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    throw e;
+  }
+  revalidatePath("/devis");
+  revalidatePath(`/devis/${id}`);
+  revalidatePath(`/devis/${id}/modifier`);
+  return { ok: true };
 }
 
 export async function changeQuoteStatusAction(id: string, status: QuoteStatus) {

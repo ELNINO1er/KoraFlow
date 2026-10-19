@@ -11,6 +11,9 @@ export interface CreateQuoteServiceInput {
   expiryDate?: Date | null;
   notes?: string;
   terms?: string;
+  title?: string | null;
+  introduction?: string | null;
+  sections?: unknown;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -76,6 +79,9 @@ export async function createQuote(
     expiryDate: input.expiryDate ?? null,
     notes: input.notes,
     terms: input.terms,
+    title: input.title ?? null,
+    introduction: input.introduction ?? null,
+    sections: (input.sections as never) ?? undefined,
     discountType: input.discountType ?? null,
     discountValue: input.discountValue ?? 0,
     depositType: input.depositType ?? null,
@@ -95,6 +101,53 @@ export async function createQuote(
   });
 
   return quote;
+}
+
+export type UpdateQuoteServiceInput = Omit<CreateQuoteServiceInput, "contactId">;
+
+export async function updateDraftQuote(
+  ctx: AuthContext,
+  id: string,
+  input: UpdateQuoteServiceInput,
+) {
+  assertCan(ctx.role, "quotes.update");
+  if (input.items.length === 0) {
+    throw new InvalidQuoteError("Le devis doit comporter au moins une ligne.");
+  }
+  // Même défense que createQuote : ne garder un serviceId que s'il appartient à l'org.
+  const referencedIds = input.items.map((i) => i.serviceId).filter((v): v is string => Boolean(v));
+  const ownServiceIds = new Set(
+    referencedIds.length > 0
+      ? (await prisma.service.findMany({ where: { organizationId: ctx.organizationId, id: { in: referencedIds } }, select: { id: true } })).map((s) => s.id)
+      : [],
+  );
+  const safeItems = input.items.map((i) => ({ ...i, serviceId: i.serviceId && ownServiceIds.has(i.serviceId) ? i.serviceId : null }));
+
+  const updated = await quotes.updateDraftQuote(ctx.organizationId, id, {
+    expiryDate: input.expiryDate ?? null,
+    notes: input.notes ?? null,
+    terms: input.terms ?? null,
+    title: input.title ?? null,
+    introduction: input.introduction ?? null,
+    sections: (input.sections as never) ?? undefined,
+    discountType: input.discountType ?? null,
+    discountValue: input.discountValue ?? 0,
+    depositType: input.depositType ?? null,
+    depositValue: input.depositValue ?? 0,
+    items: safeItems,
+  });
+  if (!updated) throw new InvalidQuoteError("Seul un devis brouillon peut être modifié.");
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.user.id,
+      action: "quote.updated",
+      targetType: "Quote",
+      targetId: id,
+      metadata: { itemCount: input.items.length, totalMinor: updated.totalMinor },
+    },
+  });
+  return updated;
 }
 
 export async function changeQuoteStatus(

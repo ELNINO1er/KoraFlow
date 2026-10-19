@@ -5,7 +5,7 @@ import type { AuthContext } from "../auth/context";
 import { permissionsForRole } from "../permissions/permissions";
 import { createOrganization } from "./organization-service";
 import { createContact } from "./contact-service";
-import { createQuote } from "./quote-service";
+import { createQuote, updateDraftQuote } from "./quote-service";
 import * as contractService from "./contract-service";
 import * as invoiceService from "./invoice-service";
 import * as contractRepo from "../repositories/contract-repository";
@@ -324,6 +324,48 @@ describe("Facture — retard dérivé (découplé du statut de paiement)", () =>
     const recomputed = await recomputeInvoicePayment(orgId, invoice.id);
     expect(recomputed?.status).toBe("SENT");
     expect(isInvoiceOverdue({ status: recomputed!.status, dueDate: recomputed!.dueDate })).toBe(false);
+  });
+});
+
+describe("Devis — rédaction & conversion figée", () => {
+  it("modifie un devis brouillon (objet, sections) ; refuse si non brouillon", async () => {
+    const quote = await createQuote(ctx, {
+      contactId,
+      items: [{ description: "Ligne", unitPriceMinor: 100000, quantity: 1, taxRate: 0 }],
+    });
+    const updated = await updateDraftQuote(ctx, quote.id, {
+      title: "Refonte",
+      introduction: "Contexte du projet",
+      sections: [{ heading: "Livrables", body: "Site + formation" }],
+      items: [{ serviceId: null, description: "Prestation revue", unitPriceMinor: 200000, quantity: 2, taxRate: 18 }],
+    });
+    expect(updated.title).toBe("Refonte");
+    expect(updated.totalMinor).toBeGreaterThan(0);
+
+    await prisma.quote.update({ where: { id: quote.id }, data: { status: "SENT" } });
+    await expect(updateDraftQuote(ctx, quote.id, { items: [{ serviceId: null, description: "x", unitPriceMinor: 1, quantity: 1, taxRate: 0 }] })).rejects.toThrow(/brouillon/i);
+  });
+
+  it("fige les conditions/rédaction dans la facture (indépendant d'une modif ultérieure du devis)", async () => {
+    const quote = await createQuote(ctx, {
+      contactId,
+      title: "Objet initial",
+      terms: "Paiement à 30 jours",
+      sections: [{ heading: "Périmètre", body: "Inclus A, B" }],
+      items: [{ description: "Prestation", unitPriceMinor: 500000, quantity: 1, taxRate: 18 }],
+    });
+    await prisma.quote.update({ where: { id: quote.id }, data: { status: "ACCEPTED" } });
+    const invoice = await invoiceService.generateFromQuote(ctx, quote.id);
+    const row = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
+    expect(row.title).toBe("Objet initial");
+    expect(row.terms).toBe("Paiement à 30 jours");
+    expect((row.sections as { heading: string }[])[0]?.heading).toBe("Périmètre");
+
+    // Modifier le devis source NE change PAS la facture déjà générée.
+    await prisma.quote.update({ where: { id: quote.id }, data: { title: "Objet MODIFIÉ", terms: "Autres conditions" } });
+    const rowAfter = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
+    expect(rowAfter.title).toBe("Objet initial");
+    expect(rowAfter.terms).toBe("Paiement à 30 jours");
   });
 });
 

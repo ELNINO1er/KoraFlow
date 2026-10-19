@@ -8,6 +8,7 @@ import type { QuotePdfData } from "../pdf/render-quote";
 import { getPrivateFile } from "../storage/private-storage";
 import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
 import { isInvoiceOverdue } from "@/lib/constants/invoices";
+import { parseSections } from "@/lib/documents/sections";
 
 async function logoDataUri(storageKey: string | null | undefined) {
   if (!storageKey?.startsWith("organization-logos/")) return null;
@@ -70,6 +71,10 @@ export async function generateInvoicePdf(
     paidMinor: invoice.paidMinor,
     overdue: isInvoiceOverdue(invoice),
     notes: invoice.notes,
+    terms: invoice.terms,
+    docSubject: invoice.title,
+    introduction: invoice.introduction,
+    sections: parseSections(invoice.sections),
     headerColor: invoice.headerColor ?? org?.brandColor,
     footerColor: invoice.footerColor ?? org?.brandColor,
     footerText: invoice.footerText,
@@ -131,6 +136,10 @@ export async function generateInvoicePdfByToken(
     paidMinor: invoice.paidMinor,
     overdue: isInvoiceOverdue(invoice),
     notes: invoice.notes,
+    terms: invoice.terms,
+    docSubject: invoice.title,
+    introduction: invoice.introduction,
+    sections: parseSections(invoice.sections),
     headerColor: invoice.headerColor,
     footerColor: invoice.footerColor,
     footerText: invoice.footerText,

@@ -11,7 +11,7 @@ import { prisma } from "../database/client";
 async function serializableTransaction<T>(
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
-  const maxAttempts = 3;
+  const maxAttempts = 5;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await prisma.$transaction(operation, { isolationLevel: "Serializable" });

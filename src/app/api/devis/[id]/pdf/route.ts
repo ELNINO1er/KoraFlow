@@ -1,5 +1,6 @@
 import { resolveSession } from "@/server/auth/context";
 import { generateQuotePdf } from "@/server/services/quote-pdf";
+import { getStoredArchivePdf } from "@/server/services/document-archive-service";
 import { pdfResponse } from "@/lib/http/pdf-response";
 
 /** Téléchargement du PDF d'un devis (auth + scoping via generateQuotePdf). */
@@ -14,6 +15,9 @@ export async function GET(
 
   const { id } = await params;
   try {
+    // Document finalisé & archivé : servir le fichier conservé (non régénéré).
+    const archived = await getStoredArchivePdf(session.context.organizationId, "QUOTE", id);
+    if (archived) return pdfResponse(archived, `${id}.pdf`);
     const pdf = await generateQuotePdf(session.context, id);
     if (!pdf) return Response.json({ error: "Devis introuvable" }, { status: 404 });
     return pdfResponse(pdf.buffer, pdf.filename);

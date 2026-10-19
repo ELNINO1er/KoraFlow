@@ -13,7 +13,7 @@ import { nextDocumentSequence } from "./document-sequence-repository";
 async function serializableTransaction<T>(
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
-  const maxAttempts = 3;
+  const maxAttempts = 5;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await prisma.$transaction(operation, { isolationLevel: "Serializable" });
@@ -46,6 +46,10 @@ export interface InvoiceCreateInput {
   createdById?: string;
   dueDate?: Date | null;
   notes?: string;
+  title?: string | null;
+  introduction?: string | null;
+  terms?: string | null;
+  sections?: Prisma.InputJsonValue;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -56,6 +60,10 @@ export interface InvoiceCreateInput {
 export interface InvoiceUpdateInput {
   dueDate?: Date | null;
   notes?: string | null;
+  title?: string | null;
+  introduction?: string | null;
+  terms?: string | null;
+  sections?: Prisma.InputJsonValue;
   headerColor?: string | null;
   footerColor?: string | null;
   footerText?: string | null;
@@ -113,6 +121,10 @@ async function buildInvoiceInTx(
       createdById: input.createdById,
       dueDate: input.dueDate ?? null,
       notes: input.notes,
+      title: input.title ?? null,
+      introduction: input.introduction ?? null,
+      terms: input.terms ?? null,
+      sections: input.sections ?? undefined,
       discountType: input.discountType ?? null,
       discountValue: input.discountValue ?? 0,
       depositType: input.depositType ?? null,
@@ -256,6 +268,10 @@ export async function updateDraftInvoice(
       data: {
         dueDate: input.dueDate ?? null,
         notes: input.notes ?? null,
+        title: input.title ?? null,
+        introduction: input.introduction ?? null,
+        terms: input.terms ?? null,
+        sections: input.sections ?? undefined,
         headerColor: input.headerColor ?? null,
         footerColor: input.footerColor ?? null,
         footerText: input.footerText ?? null,

@@ -91,6 +91,12 @@ export async function generateFromQuote(ctx: AuthContext, quoteId: string) {
       createdById: ctx.user.id,
       dueDate,
       notes: quote.notes ?? undefined,
+      // Conditions et rédaction FIGÉES depuis le devis au moment de la conversion
+      // (ne dépendent plus d'une modification ultérieure du devis source).
+      title: quote.title,
+      introduction: quote.introduction,
+      terms: quote.terms,
+      sections: (quote.sections as never) ?? undefined,
       discountType: quote.discountType,
       discountValue: quote.discountValue,
       depositType: quote.depositType,

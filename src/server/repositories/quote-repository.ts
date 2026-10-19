@@ -24,6 +24,23 @@ export interface QuoteCreateInput {
   expiryDate?: Date | null;
   notes?: string;
   terms?: string;
+  title?: string | null;
+  introduction?: string | null;
+  sections?: Prisma.InputJsonValue;
+  discountType?: AmountKind | null;
+  discountValue?: number;
+  depositType?: AmountKind | null;
+  depositValue?: number;
+  items: QuoteItemInput[];
+}
+
+export interface QuoteUpdateInput {
+  expiryDate?: Date | null;
+  notes?: string | null;
+  terms?: string | null;
+  title?: string | null;
+  introduction?: string | null;
+  sections?: Prisma.InputJsonValue;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -80,6 +97,9 @@ export async function createQuote(
         expiryDate: input.expiryDate ?? null,
         notes: input.notes,
         terms: input.terms,
+        title: input.title ?? null,
+        introduction: input.introduction ?? null,
+        sections: input.sections ?? undefined,
         discountType: input.discountType ?? null,
         discountValue: input.discountValue ?? 0,
         depositType: input.depositType ?? null,
@@ -155,6 +175,64 @@ export function getQuoteById(organizationId: string, id: string) {
         },
       },
     },
+  });
+}
+
+/** Met à jour un devis BROUILLON uniquement (recalcul des totaux + bornes). */
+export async function updateDraftQuote(
+  organizationId: string,
+  id: string,
+  input: QuoteUpdateInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.quote.findFirst({
+      where: { id, organizationId, status: "DRAFT", deletedAt: null },
+      select: { id: true },
+    });
+    if (!current) return null;
+
+    const totals = computeQuoteTotals({
+      lines: input.items,
+      discountType: input.discountType,
+      discountValue: input.discountValue,
+      depositType: input.depositType,
+      depositValue: input.depositValue,
+    });
+    if (!totalsWithinColumnBounds(totals)) throw new MoneyBoundsError();
+
+    await tx.quoteItem.deleteMany({ where: { quoteId: id, organizationId } });
+    return tx.quote.update({
+      where: { id },
+      data: {
+        expiryDate: input.expiryDate ?? null,
+        notes: input.notes ?? null,
+        terms: input.terms ?? null,
+        title: input.title ?? null,
+        introduction: input.introduction ?? null,
+        sections: input.sections ?? undefined,
+        discountType: input.discountType ?? null,
+        discountValue: input.discountValue ?? 0,
+        depositType: input.depositType ?? null,
+        depositValue: input.depositValue ?? 0,
+        subtotalMinor: totals.subtotalMinor,
+        discountMinor: totals.discountMinor,
+        taxMinor: totals.taxMinor,
+        totalMinor: totals.totalMinor,
+        depositMinor: totals.depositMinor,
+        items: {
+          create: input.items.map((it, i) => ({
+            organizationId,
+            serviceId: it.serviceId ?? null,
+            description: it.description,
+            unitPriceMinor: it.unitPriceMinor,
+            quantity: it.quantity,
+            taxRate: it.taxRate,
+            position: i,
+          })),
+        },
+      },
+      include: { items: { orderBy: { position: "asc" } } },
+    });
   });
 }
 

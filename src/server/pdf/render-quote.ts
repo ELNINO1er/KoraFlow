@@ -25,6 +25,11 @@ export interface QuotePdfData {
   overdue?: boolean;
   notes?: string | null;
   terms?: string | null;
+  /** Objet / titre du document. */
+  docSubject?: string | null;
+  introduction?: string | null;
+  /** Sections rédactionnelles [{ heading, body }]. */
+  sections?: { heading: string; body: string }[] | null;
   headerColor?: string | null;
   footerColor?: string | null;
   footerText?: string | null;
@@ -155,6 +160,11 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
   page.drawText("ADRESSE A", { x: MARGIN, y: 660, font: bold, size: 8, color: MUTED });
   page.drawText(safeText(data.contact.name), { x: MARGIN, y: 644, font: bold, size: 10, color: INK });
   if (data.contact.email) page.drawText(safeText(data.contact.email), { x: MARGIN, y: 630, font: regular, size: 9, color: MUTED });
+  // Objet / titre (une ligne, au-dessus du tableau).
+  if (data.docSubject) {
+    const subject = wrapText(`Objet : ${data.docSubject}`, bold, 9.5, PAGE_WIDTH - MARGIN * 2)[0] ?? "";
+    page.drawText(subject, { x: MARGIN, y: 614, font: bold, size: 9.5, color: INK });
+  }
 
   const columns = { description: MARGIN, quantity: 325, unit: 370, tax: 437, total: PAGE_WIDTH - MARGIN };
   let y = 590;
@@ -218,7 +228,13 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
       noteY = 790;
     }
   };
-  for (const [label, content] of [["NOTES", data.notes], ["CONDITIONS", data.terms]] as const) {
+  const blocks: [string, string | null | undefined][] = [
+    ["INTRODUCTION", data.introduction],
+    ...(data.sections ?? []).map((s): [string, string] => [s.heading.toUpperCase(), s.body]),
+    ["NOTES", data.notes],
+    ["CONDITIONS", data.terms],
+  ];
+  for (const [label, content] of blocks) {
     if (!content) continue;
     ensureRoom(80);
     page.drawText(label, { x: MARGIN, y: noteY, font: bold, size: 8, color: MUTED });

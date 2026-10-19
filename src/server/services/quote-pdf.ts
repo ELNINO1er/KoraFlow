@@ -4,6 +4,7 @@ import { prisma } from "../database/client";
 import { getQuote } from "./quote-service";
 import { getQuoteByPublicToken } from "../repositories/quote-repository";
 import { renderQuotePdf } from "../pdf/render-quote";
+import { parseSections } from "@/lib/documents/sections";
 import type { QuotePdfData } from "../pdf/render-quote";
 import { getPrivateFile } from "../storage/private-storage";
 import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
@@ -82,6 +83,9 @@ export async function generateQuotePdf(
     depositMinor: quote.depositMinor,
     notes: quote.notes,
     terms: quote.terms,
+    docSubject: quote.title,
+    introduction: quote.introduction,
+    sections: parseSections(quote.sections),
   };
 
   const buffer = await renderQuotePdfWithLogoFallback(data, quote.id);
@@ -141,6 +145,9 @@ export async function generateQuotePdfByToken(
     depositMinor: quote.depositMinor,
     notes: quote.notes,
     terms: quote.terms,
+    docSubject: quote.title,
+    introduction: quote.introduction,
+    sections: parseSections(quote.sections),
   };
 
   const buffer = await renderQuotePdfWithLogoFallback(data, `public:${token.slice(0, 8)}`);

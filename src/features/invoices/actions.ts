@@ -19,6 +19,10 @@ const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
 const updateInvoiceSchema = z.object({
   dueDate: z.string().date().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  title: z.string().max(160).nullable().optional(),
+  introduction: z.string().max(5000).nullable().optional(),
+  terms: z.string().max(5000).nullable().optional(),
+  sections: z.array(z.object({ heading: z.string().trim().min(1).max(160), body: z.string().trim().min(1).max(8000) })).max(20).optional(),
   headerColor: colorSchema,
   footerColor: colorSchema,
   footerText: z.string().max(240).nullable().optional(),
@@ -123,6 +127,10 @@ export async function sendInvoiceAction(
   const pdf = await generateInvoicePdf(ctx, id);
   if (!pdf) return { ok: false, error: "Facture introuvable." };
   if (!pdf.contactEmail) return { ok: false, error: "Le client n'a pas d'adresse e-mail." };
+  // Pièce jointe = fichier conservé si une archive existe déjà (renvoi), sinon
+  // le PDF fraîchement généré (identique à ce qui sera archivé juste après).
+  const { getStoredArchivePdf } = await import("@/server/services/document-archive-service");
+  const attachmentBytes = (await getStoredArchivePdf(ctx.organizationId, "INVOICE", id)) ?? pdf.buffer;
 
   const appUrl = process.env.APP_URL ?? "";
   if (pdf.publicToken && !appUrl) {
@@ -143,7 +151,7 @@ export async function sendInvoiceAction(
         logoUrl: ctx.organization.logoUrl ? `${appUrl}/api/organization-logos/${ctx.organizationId}` : null,
       }),
       text: `Votre facture ${pdf.number} est en pièce jointe.${portalLink ? ` En ligne : ${portalLink}` : ""}`,
-      attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" }],
+      attachments: [{ filename: pdf.filename, content: attachmentBytes, contentType: "application/pdf" }],
     });
     if (invoice.status === "DRAFT") {
       await invoiceService.changeInvoiceStatus(ctx, id, "SENT");

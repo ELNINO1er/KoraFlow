@@ -1,4 +1,6 @@
 import { generateInvoicePdfByToken } from "@/server/services/invoice-pdf";
+import { getInvoiceByToken } from "@/server/repositories/invoice-repository";
+import { getStoredArchivePdf } from "@/server/services/document-archive-service";
 import { pdfResponse } from "@/lib/http/pdf-response";
 import {
   isValidPublicDocumentToken,
@@ -17,6 +19,12 @@ export async function GET(
   const limited = limitPublicDocumentRequest(request);
   if (limited) return limited;
 
+  // Facture finalisée & archivée : servir le fichier conservé (non régénéré).
+  const invoice = await getInvoiceByToken(token);
+  if (invoice) {
+    const archived = await getStoredArchivePdf(invoice.organizationId, "INVOICE", invoice.id);
+    if (archived) return pdfResponse(archived, `${invoice.number}.pdf`);
+  }
   const pdf = await generateInvoicePdfByToken(token);
   if (!pdf) return new Response("Facture introuvable", { status: 404 });
   return pdfResponse(pdf.buffer, pdf.filename);

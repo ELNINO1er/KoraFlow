@@ -7,7 +7,7 @@ import { guardPublicMutation } from "@/lib/security/public-mutation";
 import { signContractByToken } from "@/server/services/contract-service";
 import { generateContractPdfByToken } from "@/server/services/contract-pdf";
 import { getContractByToken } from "@/server/repositories/contract-repository";
-import { archiveDocument } from "@/server/services/document-archive-service";
+import { archiveDocument, getStoredArchivePdf } from "@/server/services/document-archive-service";
 import { sendEmail } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
 
@@ -84,6 +84,12 @@ export async function signContractAction(
   try {
     const pdf = await generateContractPdfByToken(parsed.data.token);
     if (pdf?.contactEmail) {
+      // Pièce jointe = fichier signé CONSERVÉ si l'archive a réussi juste avant,
+      // sinon le PDF fraîchement rendu (bytes identiques au contenu figé signé).
+      const signedContract = await getContractByToken(parsed.data.token);
+      const attachmentBytes = signedContract
+        ? (await getStoredArchivePdf(signedContract.organizationId, "CONTRACT", signedContract.id)) ?? pdf.buffer
+        : pdf.buffer;
       await sendEmail({
         to: pdf.contactEmail,
         subject: `Confirmation de signature — ${pdf.number}`,
@@ -94,7 +100,7 @@ export async function signContractAction(
           logoUrl: pdf.organizationLogoUrl,
         }),
         text: `La signature du contrat ${pdf.number} a bien été enregistrée. Le document signé est joint à cet e-mail.`,
-        attachments: [{ filename: pdf.filename, content: pdf.buffer, contentType: "application/pdf" }],
+        attachments: [{ filename: pdf.filename, content: attachmentBytes, contentType: "application/pdf" }],
       });
     }
   } catch (error) {
