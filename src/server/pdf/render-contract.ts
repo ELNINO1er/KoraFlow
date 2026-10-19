@@ -1,5 +1,6 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { sanitizeWinAnsi } from "@/lib/pdf/winansi";
 
 export interface ContractPdfData {
   number: string;
@@ -23,13 +24,27 @@ const MUTED = rgb(102 / 255, 112 / 255, 133 / 255);
 const BORDER = rgb(228 / 255, 231 / 255, 236 / 255);
 const SUCCESS = rgb(47 / 255, 133 / 255, 90 / 255);
 
+// Conserve le fran\u00e7ais (accents, \u0153/\u0152, \u20ac\u2026) via WinAnsi ; seuls les caract\u00e8res
+// non repr\u00e9sentables deviennent \u00ab ? \u00bb (\u00e9mission normalement bloqu\u00e9e en amont).
 function safeText(value: string | null | undefined) {
-  return (value ?? "")
-    .replace(/[\u202f\u00a0]/g, " ")
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201c\u201d]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
-    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
+  return sanitizeWinAnsi(value);
+}
+
+function breakLongWord(word: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  if (font.widthOfTextAtSize(word, size) <= maxWidth) return [word];
+  const pieces: string[] = [];
+  let chunk = "";
+  for (const ch of word) {
+    const candidate = chunk + ch;
+    if (chunk && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      pieces.push(chunk);
+      chunk = ch;
+    } else {
+      chunk = candidate;
+    }
+  }
+  if (chunk) pieces.push(chunk);
+  return pieces;
 }
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
@@ -41,12 +56,14 @@ function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
       continue;
     }
     let line = "";
-    for (const word of paragraph.split(/\s+/)) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (font.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
-      else {
-        if (line) lines.push(line);
-        line = word;
+    for (const rawWord of paragraph.split(/\s+/)) {
+      for (const word of breakLongWord(rawWord, font, size, maxWidth)) {
+        const candidate = line ? `${line} ${word}` : word;
+        if (font.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
+        else {
+          if (line) lines.push(line);
+          line = word;
+        }
       }
     }
     if (line) lines.push(line);
@@ -114,7 +131,7 @@ export async function renderContractPdf(data: ContractPdfData): Promise<Buffer> 
     page.drawRectangle({ x: MARGIN, y: y - 105, width: WIDTH - MARGIN * 2, height: 120, borderColor: SUCCESS, borderWidth: 1, color: rgb(247 / 255, 252 / 255, 249 / 255) });
     page.drawText("CERTIFICAT DE SIGNATURE ELECTRONIQUE SIMPLE", { x: MARGIN + 16, y: y - 10, font: bold, size: 10, color: SUCCESS });
     page.drawText(`Signe par : ${safeText(data.signerName)}`, { x: MARGIN + 16, y: y - 32, font: regular, size: 9, color: INK });
-    page.drawText(`Adresse e-mail : ${safeText(data.signerEmail)}`, { x: MARGIN + 16, y: y - 48, font: regular, size: 9, color: INK });
+    page.drawText(`Lien transmis a : ${safeText(data.signerEmail)} (adresse non verifiee)`, { x: MARGIN + 16, y: y - 48, font: regular, size: 9, color: INK });
     page.drawText(`Date : ${safeText(date.format(data.signedAt))}`, { x: MARGIN + 16, y: y - 64, font: regular, size: 9, color: INK });
     const hash = safeText(data.contentHash);
     page.drawText("Empreinte SHA-256 :", { x: MARGIN + 16, y: y - 82, font: bold, size: 8, color: MUTED });

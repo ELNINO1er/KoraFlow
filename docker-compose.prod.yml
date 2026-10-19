@@ -32,6 +32,11 @@ services:
       target: runner
     restart: unless-stopped
     env_file: ${ALYMERO_ENV_FILE:-.env.production}
+    # IMPORTANT : ces valeurs ont PRIORITÉ sur env_file. Le déploiement Docker
+    # mono-instance utilise DÉLIBÉRÉMENT un stockage local sur volume persistant
+    # (alymero_prod_uploads). Toute variable S3_* présente dans .env.production
+    # est donc IGNORÉE sur ce chemin Docker. Pour utiliser S3 (multi-instance,
+    # Hostinger/Supabase), déployer SANS ce compose et sans cet override.
     environment:
       NODE_ENV: production
       STORAGE_DRIVER: local

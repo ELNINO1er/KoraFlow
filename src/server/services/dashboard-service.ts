@@ -7,6 +7,8 @@ export interface DashboardData {
   quotesAwaiting: number;
   receivedMinor: number;
   unpaidInvoices: number;
+  /** Factures en retard (dérivé : échéance passée + solde dû). */
+  overdueInvoices: number;
   revenueByMonth: { month: string; value: number }[];
   recentActivity: { id: string; action: string; createdAt: Date }[];
   mobileMoney: { method: string; amountMinor: number; count: number }[];
@@ -28,6 +30,7 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
     quotesAwaiting,
     receivedAgg,
     unpaidInvoices,
+    overdueInvoices,
     confirmedPayments,
     recentActivity,
     mobileMoneyRows,
@@ -36,6 +39,8 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
     prisma.quote.count({ where: { organizationId, status: { in: ["SENT", "VIEWED"] }, deletedAt: null } }),
     prisma.payment.aggregate({ where: { organizationId, status: "CONFIRMED" }, _sum: { amountMinor: true } }),
     prisma.invoice.count({ where: { organizationId, status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] }, deletedAt: null } }),
+    // Retard dérivé : SENT/PARTIALLY_PAID (solde dû) dont l'échéance est passée.
+    prisma.invoice.count({ where: { organizationId, status: { in: ["SENT", "PARTIALLY_PAID"] }, dueDate: { lt: new Date() }, deletedAt: null } }),
     prisma.payment.findMany({
       where: { organizationId, status: "CONFIRMED" },
       select: { amountMinor: true, createdAt: true },
@@ -87,6 +92,7 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
     quotesAwaiting,
     receivedMinor: receivedAgg._sum.amountMinor ?? 0,
     unpaidInvoices,
+    overdueInvoices,
     revenueByMonth: buckets.map((b) => ({ month: b.month, value: b.value })),
     recentActivity,
     mobileMoney,

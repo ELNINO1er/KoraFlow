@@ -6,6 +6,8 @@ import { z } from "zod";
 import { guardPublicMutation } from "@/lib/security/public-mutation";
 import { signContractByToken } from "@/server/services/contract-service";
 import { generateContractPdfByToken } from "@/server/services/contract-pdf";
+import { getContractByToken } from "@/server/repositories/contract-repository";
+import { archiveDocument } from "@/server/services/document-archive-service";
 import { sendEmail } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
 
@@ -16,11 +18,15 @@ import { brandedEmail } from "@/server/integrations/email/template";
 export async function signContractAction(
   token: string,
   signerName: string,
+  consent: boolean,
+  expectedContentHash: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const parsed = z.object({
     token: z.string(),
     signerName: z.string().trim().min(2).max(120),
-  }).safeParse({ token, signerName });
+    consent: z.literal(true, { message: "Consentement requis." }),
+    expectedContentHash: z.string().regex(/^[a-f0-9]{64}$/, "Empreinte invalide."),
+  }).safeParse({ token, signerName, consent, expectedContentHash });
   if (!parsed.success) return { ok: false, error: "Informations de signature invalides." };
 
   const guard = guardPublicMutation({
@@ -32,11 +38,49 @@ export async function signContractAction(
 
   const result = await signContractByToken(parsed.data.token, {
     signerName: parsed.data.signerName,
+    consent: parsed.data.consent,
+    expectedContentHash: parsed.data.expectedContentHash,
     ipAddress: guard.ipAddress,
     userAgent: guard.userAgent,
   });
 
   if (!result.ok) return { ok: false, error: result.error };
+
+  // Archivage du PDF signé = version de référence conservée dans le stockage
+  // privé (write-once + empreinte). Non bloquant : un échec laisse l'archive en
+  // FAILED (reprise possible) sans invalider la signature déjà enregistrée.
+  try {
+    const pdf = await generateContractPdfByToken(parsed.data.token);
+    const contract = await getContractByToken(parsed.data.token);
+    if (pdf && contract) {
+      await archiveDocument({
+        organizationId: contract.organizationId,
+        documentType: "CONTRACT",
+        documentId: contract.id,
+        reason: "SIGNED",
+        contentHash: contract.contentHash,
+        pdf: pdf.buffer,
+        snapshot: {
+          number: contract.number,
+          title: contract.title,
+          content: contract.content,
+          organizationName: contract.organization.name,
+          clientName: contract.contact.companyName
+            || `${contract.contact.firstName} ${contract.contact.lastName ?? ""}`.trim(),
+          clientEmail: contract.contact.email,
+          signerName: contract.signerName,
+          signedAt: contract.signedAt?.toISOString() ?? null,
+          contentHash: contract.contentHash,
+        },
+      });
+    }
+  } catch (error) {
+    console.warn("contract.archive_failed", {
+      token: parsed.data.token.slice(0, 8),
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+
   try {
     const pdf = await generateContractPdfByToken(parsed.data.token);
     if (pdf?.contactEmail) {

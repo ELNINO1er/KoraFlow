@@ -28,7 +28,7 @@ export default async function DashboardPage() {
     { label: "Prospects", value: data.prospects.toLocaleString(localeTag), sub: "contacts à convertir", icon: Users, tint: "bg-primary/10 text-primary" },
     { label: "Devis en attente", value: data.quotesAwaiting.toLocaleString(localeTag), sub: "envoyés ou consultés", icon: FileText, tint: "bg-accent/15 text-accent" },
     { label: "Paiements reçus", value: formatCurrency(data.receivedMinor, currency, localeTag), sub: "encaissé (confirmé)", icon: Wallet, tint: "bg-success/15 text-success" },
-    { label: "Factures impayées", value: data.unpaidInvoices.toLocaleString(localeTag), sub: "à recouvrer", icon: ReceiptText, tint: "bg-warning/15 text-warning" },
+    { label: "Factures impayées", value: data.unpaidInvoices.toLocaleString(localeTag), sub: data.overdueInvoices > 0 ? `à recouvrer · ${data.overdueInvoices} en retard` : "à recouvrer", icon: ReceiptText, tint: data.overdueInvoices > 0 ? "bg-danger/15 text-danger" : "bg-warning/15 text-warning" },
   ];
 
   return (

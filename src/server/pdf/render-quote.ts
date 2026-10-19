@@ -1,6 +1,7 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import { formatCurrency } from "@/lib/formatting/currency";
+import { sanitizeWinAnsi } from "@/lib/pdf/winansi";
 
 export interface QuotePdfData {
   docTitle?: string;
@@ -18,6 +19,10 @@ export interface QuotePdfData {
   taxMinor: number;
   totalMinor: number;
   depositMinor: number;
+  /** Montant déjà encaissé (factures). Si défini, le PDF affiche payé + solde dû. */
+  paidMinor?: number | null;
+  /** Indicateur de retard dérivé (factures) : échéance passée + solde dû. */
+  overdue?: boolean;
   notes?: string | null;
   terms?: string | null;
   headerColor?: string | null;
@@ -48,21 +53,54 @@ function contrastingText(value: string | null | undefined) {
   return (0.299 * r! + 0.587 * g! + 0.114 * b!) / 255 > 0.62 ? INK : rgb(1, 1, 1);
 }
 
+// Conserve le fran\u00e7ais (accents, \u0153/\u0152, \u20ac, guillemets typographiques) via WinAnsi ;
+// seuls les caract\u00e8res r\u00e9ellement non repr\u00e9sentables deviennent \u00ab ? \u00bb (l'envoi
+// est normalement bloqu\u00e9 en amont, cf. collectUnsupportedCharacters).
 function safeText(value: string | null | undefined) {
-  return (value ?? "").replace(/[\u202f\u00a0]/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
+  return sanitizeWinAnsi(value);
+}
+
+/** D\u00e9coupe un mot trop long pour la largeur donn\u00e9e (\u00e9vite tout d\u00e9bordement). */
+function breakLongWord(word: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  if (font.widthOfTextAtSize(word, size) <= maxWidth) return [word];
+  const pieces: string[] = [];
+  let chunk = "";
+  for (const ch of word) {
+    const candidate = chunk + ch;
+    if (chunk && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      pieces.push(chunk);
+      chunk = ch;
+    } else {
+      chunk = candidate;
+    }
+  }
+  if (chunk) pieces.push(chunk);
+  return pieces;
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
   const words = safeText(text).split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = "";
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
-    else { if (line) lines.push(line); line = word; }
+  for (const rawWord of words) {
+    for (const word of breakLongWord(rawWord, font, size, maxWidth)) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
+      else { if (line) lines.push(line); line = word; }
+    }
   }
   if (line) lines.push(line);
   return lines.length ? lines : [""];
+}
+
+/** Comme wrapText mais PR\u00c9SERVE les paragraphes (retours \u00e0 la ligne explicites). */
+function wrapParagraphs(text: string, font: PDFFont, size: number, maxWidth: number) {
+  const out: string[] = [];
+  for (const paragraph of safeText(text).split(/\r?\n/)) {
+    if (!paragraph.trim()) { out.push(""); continue; }
+    out.push(...wrapText(paragraph, font, size, maxWidth));
+  }
+  return out;
 }
 
 function drawRight(page: PDFPage, text: string, x: number, y: number, font: PDFFont, size: number, color = INK) {
@@ -111,7 +149,8 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
   drawRight(page, `N ${data.number}`, PAGE_WIDTH - MARGIN, 766, regular, 9, MUTED);
   drawRight(page, `Emis le ${date.format(data.issueDate)}`, PAGE_WIDTH - MARGIN, 752, regular, 9, MUTED);
   if (data.expiryDate) drawRight(page, `Valable jusqu'au ${date.format(data.expiryDate)}`, PAGE_WIDTH - MARGIN, 738, regular, 9, MUTED);
-  if (data.dueDate) drawRight(page, `Echeance : ${date.format(data.dueDate)}`, PAGE_WIDTH - MARGIN, 738, regular, 9, MUTED);
+  if (data.dueDate) drawRight(page, `Echeance : ${date.format(data.dueDate)}`, PAGE_WIDTH - MARGIN, 738, regular, 9, data.overdue ? ACCENT : MUTED);
+  if (data.overdue) drawRight(page, "FACTURE EN RETARD", PAGE_WIDTH - MARGIN, 725, bold, 9, ACCENT);
 
   page.drawText("ADRESSE A", { x: MARGIN, y: 660, font: bold, size: 8, color: MUTED });
   page.drawText(safeText(data.contact.name), { x: MARGIN, y: 644, font: bold, size: 10, color: INK });
@@ -165,13 +204,30 @@ export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
   totalY -= 4;
   totalRow("Total TTC", money(data.totalMinor), true);
   if (data.depositMinor > 0) { totalRow("Acompte demande", money(data.depositMinor)); totalRow("Reste a payer", money(data.totalMinor - data.depositMinor)); }
+  // Factures : montant déjà encaissé et solde réellement dû.
+  if (data.paidMinor != null) {
+    totalRow("Deja paye", money(data.paidMinor));
+    totalRow("Solde du", money(Math.max(0, data.totalMinor - data.paidMinor)), true);
+  }
 
+  // Notes et conditions : paginées si nécessaire — AUCUNE troncature silencieuse.
   let noteY = Math.min(totalY - 10, 165);
+  const ensureRoom = (minY: number) => {
+    if (noteY < minY) {
+      page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      noteY = 790;
+    }
+  };
   for (const [label, content] of [["NOTES", data.notes], ["CONDITIONS", data.terms]] as const) {
-    if (!content || noteY < 65) continue;
+    if (!content) continue;
+    ensureRoom(80);
     page.drawText(label, { x: MARGIN, y: noteY, font: bold, size: 8, color: MUTED });
     noteY -= 14;
-    for (const line of wrapText(content, regular, 8.5, 500).slice(0, 4)) { page.drawText(line, { x: MARGIN, y: noteY, font: regular, size: 8.5, color: INK }); noteY -= 11; }
+    for (const line of wrapParagraphs(content, regular, 8.5, 500)) {
+      ensureRoom(70);
+      if (line) page.drawText(line, { x: MARGIN, y: noteY, font: regular, size: 8.5, color: INK });
+      noteY -= line ? 11 : 6;
+    }
     noteY -= 6;
   }
 

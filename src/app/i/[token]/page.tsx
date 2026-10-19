@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { FileDown, CheckCircle2 } from "lucide-react";
 import { getInvoiceByToken } from "@/server/repositories/invoice-repository";
 import { formatCurrency, minorUnitsFor } from "@/lib/formatting/currency";
-import { invoiceStatusLabel, invoiceStatusVariant, paymentMethodLabel } from "@/lib/constants/invoices";
+import { invoiceStatusLabel, invoiceStatusVariant, paymentMethodLabel, isInvoiceOverdue } from "@/lib/constants/invoices";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,10 @@ export default async function PublicInvoicePage({
           <OrganizationBrand id={invoice.organization.id} name={invoice.organization.name} hasLogo={Boolean(invoice.organization.logoUrl)} className="text-xl text-primary" imageClassName="size-12" priority />
           <PoweredByAlymero />
         </div>
-        <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
+        <div className="flex items-center gap-1.5">
+          <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
+          {isInvoiceOverdue(invoice) ? <Badge variant="danger">En retard</Badge> : null}
+        </div>
       </div>
 
       <Card>

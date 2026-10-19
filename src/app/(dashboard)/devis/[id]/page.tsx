@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getQuote } from "@/server/services/quote-service";
+import { listContractTemplates } from "@/server/services/contract-service";
 import { formatCurrency } from "@/lib/formatting/currency";
 import { quoteStatusLabel, quoteStatusVariant } from "@/lib/constants/quotes";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,10 @@ export default async function QuoteDetailPage({
     ? quote.contact.companyName
     : `${quote.contact.firstName} ${quote.contact.lastName ?? ""}`.trim();
   const remaining = quote.totalMinor - quote.depositMinor;
+  const contractTemplates =
+    quote.status === "ACCEPTED" && can(ctx.role, "contracts.create")
+      ? (await listContractTemplates(ctx)).map((t) => ({ id: t.id, name: t.name }))
+      : [];
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -62,7 +67,7 @@ export default async function QuoteDetailPage({
               <SendQuoteButton id={quote.id} hasEmail={Boolean(quote.contact.email)} />
             ) : null}
             {quote.status === "ACCEPTED" && can(ctx.role, "contracts.create") ? (
-              <GenerateContractButton quoteId={quote.id} />
+              <GenerateContractButton quoteId={quote.id} templates={contractTemplates} />
             ) : null}
             {quote.status === "ACCEPTED" && can(ctx.role, "invoices.create") ? (
               <GenerateInvoiceButton quoteId={quote.id} />

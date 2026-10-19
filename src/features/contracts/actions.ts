@@ -9,6 +9,7 @@ import { PermissionError } from "@/server/permissions/permissions";
 import { generateContractPdf } from "@/server/services/contract-pdf";
 import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
+import { collectUnsupportedCharacters, unsupportedCharactersMessage } from "@/lib/pdf/winansi";
 import { z } from "zod";
 
 const updateContractSchema = z.object({
@@ -26,10 +27,13 @@ async function getContext(): Promise<AuthContext> {
 
 export async function generateContractAction(
   quoteId: string,
+  templateId?: string | null,
 ): Promise<{ ok: boolean; contractId?: string; error?: string }> {
   const ctx = await getContext();
   try {
-    const contract = await contractService.generateFromQuote(ctx, quoteId);
+    const contract = await contractService.generateFromQuote(ctx, quoteId, {
+      templateId: templateId || undefined,
+    });
     revalidatePath("/contrats");
     return { ok: true, contractId: contract.id };
   } catch (e) {
@@ -88,6 +92,11 @@ export async function sendContractAction(
     return { ok: false, error: "Ce contrat ne peut plus être envoyé pour signature." };
   }
 
+  const unsupported = collectUnsupportedCharacters([contract.title, contract.content]);
+  if (unsupported.length) {
+    return { ok: false, error: unsupportedCharactersMessage(unsupported) };
+  }
+
   let pdf: Awaited<ReturnType<typeof generateContractPdf>>;
   try {
     pdf = await generateContractPdf(ctx, id);
@@ -132,6 +141,44 @@ export async function sendContractAction(
   revalidatePath(`/contrats/${id}`);
   revalidatePath("/contrats");
   return { ok: true };
+}
+
+/** Relance l'archivage d'un contrat signé dont l'archive est en échec/attente. */
+export async function retryContractArchiveAction(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getContext();
+  try {
+    const contract = await contractService.getContract(ctx, id);
+    if (!contract) return { ok: false, error: "Contrat introuvable." };
+    if (contract.status !== "SIGNED") return { ok: false, error: "Seul un contrat signé peut être archivé." };
+    const pdf = await generateContractPdf(ctx, id);
+    if (!pdf) return { ok: false, error: "PDF indisponible." };
+    const { archiveDocument } = await import("@/server/services/document-archive-service");
+    const res = await archiveDocument({
+      organizationId: ctx.organizationId,
+      documentType: "CONTRACT",
+      documentId: contract.id,
+      reason: "SIGNED",
+      contentHash: contract.contentHash,
+      pdf: pdf.buffer,
+      snapshot: {
+        number: contract.number,
+        title: contract.title,
+        content: contract.content,
+        signerName: contract.signerName,
+        signedAt: contract.signedAt?.toISOString() ?? null,
+        contentHash: contract.contentHash,
+      },
+    });
+    revalidatePath(`/contrats/${id}`);
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (e instanceof ContractError) return { ok: false, error: e.message };
+    throw e;
+  }
 }
 
 export async function deleteContractAction(id: string) {

@@ -1,8 +1,30 @@
 import { randomBytes } from "node:crypto";
-import type { Prisma, InvoiceStatus, AmountKind } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { InvoiceStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
-import { computeQuoteTotals } from "@/lib/quotes/totals";
+import { computeQuoteTotals, MoneyBoundsError, totalsWithinColumnBounds } from "@/lib/quotes/totals";
 import { nextDocumentSequence } from "./document-sequence-repository";
+
+/**
+ * Transaction SÉRIALISABLE avec rejeu sur conflit (P2034). Garantit qu'un
+ * contrôle « existe-t-il déjà une facture pour ce devis ? » suivi d'une
+ * création ne peut pas être doublé par deux requêtes concurrentes.
+ */
+async function serializableTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, { isolationLevel: "Serializable" });
+    } catch (error) {
+      const retryable =
+        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+      if (!retryable || attempt === maxAttempts) throw error;
+    }
+  }
+  throw new Error("Transaction de facture impossible.");
+}
 
 /**
  * Couche d'accès aux factures — enforcement multi-tenant (organizationId
@@ -46,6 +68,8 @@ export interface InvoiceUpdateInput {
 
 export interface InvoiceListParams {
   status?: InvoiceStatus;
+  /** Filtre dérivé « en retard » : échéance passée + solde dû (SENT/PARTIALLY_PAID). */
+  overdue?: boolean;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -54,62 +78,97 @@ export interface InvoiceListParams {
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+/** Construit une facture (numéro séquentiel + totaux figés) dans la transaction fournie. */
+async function buildInvoiceInTx(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  input: InvoiceCreateInput,
+) {
+  const org = await tx.organization.findUnique({
+    where: { id: organizationId },
+    select: { invoicePrefix: true },
+  });
+  const prefix = org?.invoicePrefix ?? "FAC";
+  const year = new Date().getFullYear();
+  const sequence = await nextDocumentSequence(tx, organizationId, "INVOICE", year);
+  const number = `${prefix}-${year}-${String(sequence).padStart(4, "0")}`;
+
+  const totals = computeQuoteTotals({
+    lines: input.items,
+    discountType: input.discountType,
+    discountValue: input.discountValue,
+    depositType: input.depositType,
+    depositValue: input.depositValue,
+  });
+  if (!totalsWithinColumnBounds(totals)) throw new MoneyBoundsError();
+
+  return tx.invoice.create({
+    data: {
+      organizationId,
+      contactId: input.contactId,
+      quoteId: input.quoteId ?? null,
+      number,
+      currency: input.currency,
+      publicToken: randomBytes(24).toString("hex"),
+      createdById: input.createdById,
+      dueDate: input.dueDate ?? null,
+      notes: input.notes,
+      discountType: input.discountType ?? null,
+      discountValue: input.discountValue ?? 0,
+      depositType: input.depositType ?? null,
+      depositValue: input.depositValue ?? 0,
+      subtotalMinor: totals.subtotalMinor,
+      discountMinor: totals.discountMinor,
+      taxMinor: totals.taxMinor,
+      totalMinor: totals.totalMinor,
+      depositMinor: totals.depositMinor,
+      items: {
+        create: input.items.map((it, i) => ({
+          organizationId,
+          serviceId: it.serviceId ?? null,
+          description: it.description,
+          unitPriceMinor: it.unitPriceMinor,
+          quantity: it.quantity,
+          taxRate: it.taxRate,
+          position: i,
+        })),
+      },
+    },
+    include: { items: { orderBy: { position: "asc" } } },
+  });
+}
+
 export async function createInvoice(
   organizationId: string,
   input: InvoiceCreateInput,
 ) {
-  return prisma.$transaction(async (tx) => {
-    const org = await tx.organization.findUnique({
-      where: { id: organizationId },
-      select: { invoicePrefix: true },
-    });
-    const prefix = org?.invoicePrefix ?? "FAC";
-    const year = new Date().getFullYear();
-    const sequence = await nextDocumentSequence(tx, organizationId, "INVOICE", year);
-    const number = `${prefix}-${year}-${String(sequence).padStart(4, "0")}`;
+  return prisma.$transaction((tx) => buildInvoiceInTx(tx, organizationId, input));
+}
 
-    const totals = computeQuoteTotals({
-      lines: input.items,
-      discountType: input.discountType,
-      discountValue: input.discountValue,
-      depositType: input.depositType,
-      depositValue: input.depositValue,
-    });
-
-    return tx.invoice.create({
-      data: {
-        organizationId,
-        contactId: input.contactId,
-        quoteId: input.quoteId ?? null,
-        number,
-        currency: input.currency,
-        publicToken: randomBytes(24).toString("hex"),
-        createdById: input.createdById,
-        dueDate: input.dueDate ?? null,
-        notes: input.notes,
-        discountType: input.discountType ?? null,
-        discountValue: input.discountValue ?? 0,
-        depositType: input.depositType ?? null,
-        depositValue: input.depositValue ?? 0,
-        subtotalMinor: totals.subtotalMinor,
-        discountMinor: totals.discountMinor,
-        taxMinor: totals.taxMinor,
-        totalMinor: totals.totalMinor,
-        depositMinor: totals.depositMinor,
-        items: {
-          create: input.items.map((it, i) => ({
-            organizationId,
-            serviceId: it.serviceId ?? null,
-            description: it.description,
-            unitPriceMinor: it.unitPriceMinor,
-            quantity: it.quantity,
-            taxRate: it.taxRate,
-            position: i,
-          })),
-        },
-      },
+/**
+ * Génère une facture depuis un devis de façon IDEMPOTENTE et sûre en
+ * concurrence. Règle métier retenue : le parcours « générer la facture » depuis
+ * un devis produit AU PLUS UNE facture par devis. Si une facture non annulée
+ * existe déjà pour ce devis, elle est renvoyée telle quelle (`created: false`)
+ * sans en créer une seconde — y compris si deux requêtes arrivent en même temps
+ * (transaction sérialisable). Les factures multiples (acomptes, échéances) ne
+ * sont pas interdites au niveau base : aucune contrainte d'unicité sur
+ * `quoteId` n'est posée, afin de laisser la place à un futur parcours dédié.
+ */
+export async function generateInvoiceFromQuoteIdempotent(
+  organizationId: string,
+  quoteId: string,
+  input: InvoiceCreateInput,
+): Promise<{ invoice: Awaited<ReturnType<typeof buildInvoiceInTx>>; created: boolean }> {
+  return serializableTransaction(async (tx) => {
+    const existing = await tx.invoice.findFirst({
+      where: { organizationId, quoteId, deletedAt: null, status: { not: "CANCELED" } },
+      orderBy: { createdAt: "asc" },
       include: { items: { orderBy: { position: "asc" } } },
     });
+    if (existing) return { invoice: existing, created: false };
+    const invoice = await buildInvoiceInTx(tx, organizationId, { ...input, quoteId });
+    return { invoice, created: true };
   });
 }
 
@@ -121,7 +180,14 @@ export async function listInvoices(
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE));
 
   const where: Prisma.InvoiceWhereInput = { organizationId, deletedAt: null };
-  if (params.status) where.status = params.status;
+  if (params.overdue) {
+    // Retard dérivé : SENT/PARTIALLY_PAID (solde dû par construction) + échéance
+    // passée. Prend le pas sur un éventuel filtre de statut.
+    where.status = { in: ["SENT", "PARTIALLY_PAID"] };
+    where.dueDate = { lt: new Date() };
+  } else if (params.status) {
+    where.status = params.status;
+  }
   if (params.search && params.search.trim() !== "") {
     where.number = { contains: params.search.trim(), mode: "insensitive" };
   }
@@ -182,6 +248,7 @@ export async function updateDraftInvoice(
       depositType: input.depositType,
       depositValue: input.depositValue,
     });
+    if (!totalsWithinColumnBounds(totals)) throw new MoneyBoundsError();
 
     await tx.invoiceItem.deleteMany({ where: { invoiceId: id, organizationId } });
     return tx.invoice.update({
@@ -248,7 +315,7 @@ export async function recomputeInvoicePayment(organizationId: string, invoiceId:
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
       where: { id: invoiceId, organizationId },
-      select: { totalMinor: true, status: true },
+      select: { totalMinor: true, status: true, dueDate: true },
     });
     if (!invoice) return null;
 
@@ -260,6 +327,10 @@ export async function recomputeInvoicePayment(organizationId: string, invoiceId:
 
     let status = invoice.status;
     if (invoice.status !== "CANCELED" && invoice.status !== "DRAFT") {
+      // Le statut reflète UNIQUEMENT le paiement ; le retard est un indicateur
+      // dérivé (isInvoiceOverdue) calculé à l'affichage depuis dueDate. On ne
+      // stocke donc jamais OVERDUE : une facture partiellement payée reste
+      // PARTIALLY_PAID même échue, sans perdre le signal de retard (dérivé).
       if (paidMinor >= invoice.totalMinor && invoice.totalMinor > 0) status = "PAID";
       else if (paidMinor > 0) status = "PARTIALLY_PAID";
       else status = "SENT";

@@ -11,6 +11,8 @@ import { generateQuotePdf } from "@/server/services/quote-pdf";
 import { emailDeliveryErrorMessage, sendEmail } from "@/server/integrations/email/mailer";
 import { assertCan, PermissionError } from "@/server/permissions/permissions";
 import { brandedEmail } from "@/server/integrations/email/template";
+import { MoneyBoundsError } from "@/lib/quotes/totals";
+import { collectUnsupportedCharacters, unsupportedCharactersMessage } from "@/lib/pdf/winansi";
 
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
@@ -22,26 +24,29 @@ async function getContext(): Promise<AuthContext> {
 
 const amountKind = z.enum(["PERCENT", "AMOUNT"]).nullable().optional();
 
+// Bornes alignées sur celles des factures (src/features/invoices/actions.ts)
+// pour une validation symétrique devis/factures.
 const createQuotePayloadSchema = z.object({
   contactId: z.string().min(1, "Sélectionnez un client."),
   expiryDate: z.string().optional(),
-  notes: z.string().optional(),
-  terms: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+  terms: z.string().max(5000).optional(),
   discountType: amountKind,
-  discountValue: z.number().int().min(0).optional(),
+  discountValue: z.number().int().min(0).max(100_000_000).optional(),
   depositType: amountKind,
-  depositValue: z.number().int().min(0).optional(),
+  depositValue: z.number().int().min(0).max(100_000_000).optional(),
   items: z
     .array(
       z.object({
         serviceId: z.string().nullable().optional(),
-        description: z.string().trim().min(1, "Description requise."),
-        unitPriceMinor: z.number().int().min(0),
-        quantity: z.number().int().min(1),
+        description: z.string().trim().min(1, "Description requise.").max(500),
+        unitPriceMinor: z.number().int().min(0).max(1_000_000_000),
+        quantity: z.number().int().min(1).max(100_000),
         taxRate: z.number().int().min(0).max(100),
       }),
     )
-    .min(1, "Ajoutez au moins une ligne."),
+    .min(1, "Ajoutez au moins une ligne.")
+    .max(100, "Un devis ne peut pas comporter plus de 100 lignes."),
 });
 
 export type CreateQuotePayload = z.infer<typeof createQuotePayloadSchema>;
@@ -89,6 +94,9 @@ export async function createQuoteAction(
     revalidatePath("/devis");
     return { ok: true, quoteId: quote.id };
   } catch (e) {
+    if (e instanceof MoneyBoundsError) {
+      return { ok: false, error: "Les montants du devis sont trop élevés pour être enregistrés." };
+    }
     if (e instanceof InvalidQuoteError) return { ok: false, error: e.message };
     if (e instanceof PermissionError) {
       return { ok: false, error: "Vous n'avez pas la permission de créer un devis." };
@@ -118,6 +126,17 @@ export async function sendQuoteAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
+  const existing = await quoteService.getQuote(ctx, id);
+  if (existing) {
+    const unsupported = collectUnsupportedCharacters([
+      existing.notes,
+      existing.terms,
+      ...existing.items.map((it) => it.description),
+    ]);
+    if (unsupported.length) {
+      return { ok: false, error: unsupportedCharactersMessage(unsupported) };
+    }
+  }
   let pdf: NonNullable<Awaited<ReturnType<typeof generateQuotePdf>>>;
   try {
     assertCan(ctx.role, "quotes.update");

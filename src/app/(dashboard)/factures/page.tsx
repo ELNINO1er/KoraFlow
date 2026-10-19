@@ -5,7 +5,7 @@ import type { InvoiceStatus } from "@prisma/client";
 import { requireAuthContext } from "@/server/auth/context";
 import { listInvoices } from "@/server/services/invoice-service";
 import { formatCurrency } from "@/lib/formatting/currency";
-import { INVOICE_STATUSES, invoiceStatusLabel, invoiceStatusVariant } from "@/lib/constants/invoices";
+import { INVOICE_STATUSES, invoiceStatusLabel, invoiceStatusVariant, isInvoiceOverdue } from "@/lib/constants/invoices";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,20 +27,25 @@ function query(params: Record<string, string | undefined>): string {
   return s ? `?${s}` : "";
 }
 
+// Statuts proposés en filtre (le retard « En retard » est un filtre dérivé à part ;
+// OVERDUE n'est plus un statut sélectionnable).
+const FILTERABLE_STATUSES = INVOICE_STATUSES.filter((s) => s.value !== "OVERDUE");
+
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string; overdue?: string }>;
 }) {
   const ctx = await requireAuthContext();
   const sp = await searchParams;
-  const status = sp.status && VALID.has(sp.status as InvoiceStatus) ? (sp.status as InvoiceStatus) : undefined;
+  const overdue = sp.overdue === "1";
+  const status = !overdue && sp.status && VALID.has(sp.status as InvoiceStatus) ? (sp.status as InvoiceStatus) : undefined;
   const q = sp.q?.trim() || undefined;
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const localeTag = ctx.organization.locale === "fr" ? "fr-FR" : ctx.organization.locale;
   const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium" });
 
-  const { items, total } = await listInvoices(ctx, { status, search: q, page });
+  const { items, total } = await listInvoices(ctx, { status, overdue, search: q, page });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -54,14 +59,17 @@ export default async function InvoicesPage({
       <div className="flex flex-col gap-3">
         <ListSearch placeholder="Rechercher une facture (n°)…" />
         <div className="flex flex-wrap gap-2">
-          <Link href={`/factures${query({ q })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+          <Link href={`/factures${query({ q })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status && !overdue ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
             Toutes
           </Link>
-          {INVOICE_STATUSES.map((s) => (
+          {FILTERABLE_STATUSES.map((s) => (
             <Link key={s.value} href={`/factures${query({ q, status: s.value })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
               {s.label}
             </Link>
           ))}
+          <Link href={`/factures${query({ q, overdue: "1" })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", overdue ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+            En retard
+          </Link>
         </div>
       </div>
 
@@ -105,7 +113,10 @@ export default async function InvoicesPage({
                     <td className="px-4 py-3 font-medium text-foreground">{formatCurrency(inv.totalMinor, inv.currency, localeTag)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatCurrency(inv.paidMinor, inv.currency, localeTag)}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={invoiceStatusVariant(inv.status)}>{invoiceStatusLabel(inv.status)}</Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant={invoiceStatusVariant(inv.status)}>{invoiceStatusLabel(inv.status)}</Badge>
+                        {isInvoiceOverdue(inv) ? <Badge variant="danger">En retard</Badge> : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

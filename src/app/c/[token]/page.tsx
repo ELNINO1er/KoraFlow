@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Download } from "lucide-react";
 import { getContractByToken } from "@/server/repositories/contract-repository";
+import { hashContractContent } from "@/lib/contracts/hash";
 import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +21,15 @@ export default async function PublicContractPage({
   const { token } = await params;
   const contract = await getContractByToken(token);
   if (!contract) notFound();
+  // Un brouillon n'est pas destiné au public : le lien ne révèle rien tant que
+  // le contrat n'a pas été envoyé pour signature.
+  if (contract.status === "DRAFT") notFound();
 
   const localeTag = contract.organization.locale === "fr" ? "fr-FR" : contract.organization.locale;
   const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short" });
+  const isCanceled = contract.status === "CANCELED";
+  // Empreinte de la version EXACTE affichée, renvoyée telle quelle à la signature.
+  const contentHash = hashContractContent(contract.content);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -36,24 +43,32 @@ export default async function PublicContractPage({
         </Badge>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{contract.title}</CardTitle>
-          <p className="text-sm text-muted-foreground">Contrat {contract.number}</p>
-        </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
-            {contract.content}
-          </pre>
-        </CardContent>
-      </Card>
+      {isCanceled ? (
+        <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm text-muted-foreground">
+          Ce contrat a été annulé et n’est plus disponible.
+        </p>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{contract.title}</CardTitle>
+              <p className="text-sm text-muted-foreground">Contrat {contract.number}</p>
+            </CardHeader>
+            <CardContent>
+              <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
+                {contract.content}
+              </pre>
+            </CardContent>
+          </Card>
 
-      <Button asChild variant="outline" className="self-start">
-        <a href={`/api/c/${token}/pdf`}>
-          <Download className="size-4" />
-          Télécharger le contrat{contract.status === "SIGNED" ? " signé" : ""}
-        </a>
-      </Button>
+          <Button asChild variant="outline" className="self-start">
+            <a href={`/api/c/${token}/pdf`}>
+              <Download className="size-4" />
+              Télécharger le contrat{contract.status === "SIGNED" ? " signé" : ""}
+            </a>
+          </Button>
+        </>
+      )}
 
       {contract.status === "SENT" ? (
         <Card>
@@ -61,7 +76,7 @@ export default async function PublicContractPage({
             <CardTitle>Signature</CardTitle>
           </CardHeader>
           <CardContent>
-            <SignForm token={token} />
+            <SignForm token={token} contentHash={contentHash} />
           </CardContent>
         </Card>
       ) : contract.status === "SIGNED" ? (

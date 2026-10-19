@@ -37,8 +37,45 @@ export interface QuoteTotals {
   remainingMinor: number; // reste à payer
 }
 
+/**
+ * Plafond de sécurité pour TOUT montant persisté (plus petite unité). Les
+ * colonnes Prisma sont des `Int` → entiers 32 bits PostgreSQL (`int4`, max
+ * 2 147 483 647). On reste nettement en dessous pour éviter tout débordement,
+ * y compris sur des totaux agrégés. Un dépassement doit être refusé AVANT
+ * l'écriture plutôt que de provoquer une erreur base « integer out of range ».
+ */
+export const MAX_MONEY_MINOR = 2_000_000_000;
+
+/** Levée quand un montant calculé dépasse la capacité des colonnes `Int`. */
+export class MoneyBoundsError extends Error {
+  constructor() {
+    super("MONEY_OUT_OF_BOUNDS");
+    this.name = "MoneyBoundsError";
+  }
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Vérifie que tous les montants calculés tiennent dans les colonnes `Int`.
+ * Fonction pure (sans effet de bord) : la couche service/dépôt décide de lever
+ * une erreur métier si elle renvoie false.
+ */
+export function totalsWithinColumnBounds(totals: QuoteTotals): boolean {
+  const values = [
+    totals.subtotalMinor,
+    totals.discountMinor,
+    totals.totalHtMinor,
+    totals.taxMinor,
+    totals.totalMinor,
+    totals.depositMinor,
+    totals.remainingMinor,
+  ];
+  return values.every(
+    (v) => Number.isSafeInteger(v) && v >= 0 && v <= MAX_MONEY_MINOR,
+  );
 }
 
 export function computeQuoteTotals(input: QuoteTotalsInput): QuoteTotals {

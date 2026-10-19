@@ -60,6 +60,10 @@ export async function generateContractPdf(ctx: AuthContext, id: string) {
 export async function generateContractPdfByToken(token: string) {
   const contract = await contracts.getContractByToken(token);
   if (!contract) return null;
+  // Accès public restreint : seuls un contrat envoyé pour signature ou déjà
+  // signé sont téléchargeables via le lien. Un brouillon ou un contrat annulé
+  // ne sont pas exposés.
+  if (contract.status !== "SENT" && contract.status !== "SIGNED") return null;
   const locale = contract.organization.locale === "fr" ? "fr-FR" : contract.organization.locale;
   const buffer = await renderContractPdf({
     number: contract.number,

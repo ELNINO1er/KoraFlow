@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeQuoteTotals } from "./totals";
+import { computeQuoteTotals, totalsWithinColumnBounds, MAX_MONEY_MINOR } from "./totals";
 
 describe("computeQuoteTotals", () => {
   it("ligne simple sans taxe ni remise", () => {
@@ -96,5 +96,23 @@ describe("computeQuoteTotals", () => {
       totalMinor: 0,
       remainingMinor: 0,
     });
+  });
+});
+
+describe("totalsWithinColumnBounds (compatibilité colonnes Int)", () => {
+  it("accepte des totaux normaux", () => {
+    const t = computeQuoteTotals({
+      lines: [{ unitPriceMinor: 100000, quantity: 2, taxRate: 18 }],
+    });
+    expect(totalsWithinColumnBounds(t)).toBe(true);
+  });
+
+  it("refuse un total qui dépasse la capacité d'un entier 32 bits", () => {
+    // 1 000 000 000 × 100 000 = 1e14, bien au-delà de MAX_MONEY_MINOR.
+    const t = computeQuoteTotals({
+      lines: [{ unitPriceMinor: 1_000_000_000, quantity: 100_000, taxRate: 0 }],
+    });
+    expect(t.subtotalMinor).toBeGreaterThan(MAX_MONEY_MINOR);
+    expect(totalsWithinColumnBounds(t)).toBe(false);
   });
 });

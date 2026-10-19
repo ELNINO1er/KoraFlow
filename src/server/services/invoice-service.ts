@@ -79,36 +79,45 @@ export async function generateFromQuote(ctx: AuthContext, quoteId: string) {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
 
-  const invoice = await invoices.createInvoice(ctx.organizationId, {
-    contactId: quote.contactId,
-    quoteId: quote.id,
-    currency: quote.currency,
-    createdById: ctx.user.id,
-    dueDate,
-    notes: quote.notes ?? undefined,
-    discountType: quote.discountType,
-    discountValue: quote.discountValue,
-    depositType: quote.depositType,
-    depositValue: quote.depositValue,
-    items: quote.items.map((it) => ({
-      serviceId: it.serviceId,
-      description: it.description,
-      unitPriceMinor: it.unitPriceMinor,
-      quantity: it.quantity,
-      taxRate: it.taxRate,
-    })),
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      organizationId: ctx.organizationId,
-      actorUserId: ctx.user.id,
-      action: "invoice.created",
-      targetType: "Invoice",
-      targetId: invoice.id,
-      metadata: { number: invoice.number, quoteId: quote.id },
+  // Idempotent + sûr en concurrence : renvoie la facture existante si le devis
+  // a déjà été facturé, au lieu de créer un doublon à chaque clic/requête.
+  const { invoice, created } = await invoices.generateInvoiceFromQuoteIdempotent(
+    ctx.organizationId,
+    quote.id,
+    {
+      contactId: quote.contactId,
+      quoteId: quote.id,
+      currency: quote.currency,
+      createdById: ctx.user.id,
+      dueDate,
+      notes: quote.notes ?? undefined,
+      discountType: quote.discountType,
+      discountValue: quote.discountValue,
+      depositType: quote.depositType,
+      depositValue: quote.depositValue,
+      items: quote.items.map((it) => ({
+        serviceId: it.serviceId,
+        description: it.description,
+        unitPriceMinor: it.unitPriceMinor,
+        quantity: it.quantity,
+        taxRate: it.taxRate,
+      })),
     },
-  });
+  );
+
+  // N'écrire l'audit que lors d'une création réelle (pas sur un renvoi idempotent).
+  if (created) {
+    await prisma.auditLog.create({
+      data: {
+        organizationId: ctx.organizationId,
+        actorUserId: ctx.user.id,
+        action: "invoice.created",
+        targetType: "Invoice",
+        targetId: invoice.id,
+        metadata: { number: invoice.number, quoteId: quote.id },
+      },
+    });
+  }
 
   return invoice;
 }

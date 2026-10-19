@@ -67,6 +67,7 @@ export function QuoteForm({
   const [depositValue, setDepositValue] = useState(0);
   const [expiryDate, setExpiryDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [terms, setTerms] = useState("");
 
   const toMinor = (major: number) => Math.round(major * 10 ** minorUnits);
   const money = (minor: number) => formatCurrency(minor, currency, localeTag);
@@ -128,6 +129,7 @@ export function QuoteForm({
       contactId,
       expiryDate: expiryDate || undefined,
       notes: notes || undefined,
+      terms: terms || undefined,
       discountType: discountType || null,
       discountValue: discountType === "AMOUNT" ? toMinor(discountValue) : discountValue,
       depositType: depositType || null,
@@ -330,7 +332,12 @@ export function QuoteForm({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Message visible par le client (facultatif)." />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="terms">Conditions commerciales</Label>
+              <Textarea id="terms" rows={3} value={terms} onChange={(e) => setTerms(e.target.value)} placeholder="Validité, modalités de paiement, acompte, délais, périmètre et exclusions…" />
+              <p className="text-xs text-muted-foreground">Affichées dans le devis PDF, sous la rubrique « Conditions ».</p>
             </div>
           </CardContent>
         </Card>

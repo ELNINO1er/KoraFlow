@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Pencil, ShieldCheck } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
-import { getContract } from "@/server/services/contract-service";
+import { getContract, listContractArchives } from "@/server/services/contract-service";
 import { contractStatusLabel, contractStatusVariant } from "@/lib/constants/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SendForSignatureButton, DeleteContractButton, CorrectContractButton } from "@/features/contracts/contract-controls";
+import { RetryArchiveButton } from "@/features/contracts/archive-controls";
 
 export const metadata: Metadata = { title: "Contrat" };
 
@@ -28,6 +29,7 @@ export default async function ContractDetailPage({
   const { id } = await params;
   const contract = await getContract(ctx, id);
   if (!contract) notFound();
+  const archives = await listContractArchives(ctx, id);
 
   const localeTag = ctx.organization.locale === "fr" ? "fr-FR" : ctx.organization.locale;
   const dtf = new Intl.DateTimeFormat(localeTag, { dateStyle: "medium", timeStyle: "short" });
@@ -99,13 +101,42 @@ export default async function ContractDetailPage({
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm">
                 <Info label="Signataire" value={contract.signerName} />
-                <Info label="E-mail" value={contract.signerEmail} />
+                <Info label="Lien transmis à (non vérifié)" value={contract.signerEmail} />
                 <Info label="Date" value={contract.signedAt ? dtf.format(contract.signedAt) : null} />
                 <Info label="Adresse IP" value={contract.signerIp} />
                 <div>
                   <p className="text-xs text-muted-foreground">Empreinte SHA-256</p>
                   <code className="break-all text-xs text-foreground">{contract.contentHash}</code>
                 </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {archives.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Versions archivées</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                {archives.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">
+                      v{a.version} · {a.reason}
+                      {a.status !== "STORED" ? ` (${a.status === "PENDING" ? "en cours" : "échec — à réessayer"})` : ""}
+                    </span>
+                    {a.status === "STORED" ? (
+                      <a href={`/api/archives/${a.id}`} className="inline-flex items-center gap-1 text-accent hover:underline">
+                        <Download className="size-3.5" />
+                        Télécharger
+                      </a>
+                    ) : canUpdate ? (
+                      <RetryArchiveButton contractId={contract.id} />
+                    ) : null}
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  Fichier conservé par l’application avec empreinte SHA-256. Ceci n’est pas un stockage WORM ni un archivage certifié.
+                </p>
               </CardContent>
             </Card>
           ) : null}

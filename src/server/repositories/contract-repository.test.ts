@@ -50,12 +50,14 @@ afterAll(async () => {
 });
 
 describe("isolation multi-tenant des contrats", () => {
-  it("génère un numéro et un jeton public, avec un événement initial", async () => {
+  it("génère un numéro et un jeton public, sans événement de signature initial", async () => {
     const c = await repo.getContractById(orgBId, contractBId);
     expect(c?.number).toMatch(/^CTR-\d{4}-0001$/);
     const full = await prisma.contract.findUnique({ where: { id: contractBId } });
     expect(full?.publicToken).toBeTruthy();
-    expect(c?.events.length).toBeGreaterThanOrEqual(1);
+    // Les SignatureEvent ne concernent que le cycle de signature (consentement,
+    // signature) : la création d'un contrat n'en produit aucun.
+    expect(c?.events.length).toBe(0);
   });
 
   it("listContracts(A) ne renvoie que les contrats de A", async () => {

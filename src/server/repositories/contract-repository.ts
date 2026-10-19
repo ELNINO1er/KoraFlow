@@ -97,14 +97,42 @@ export function getContractById(organizationId: string, id: string) {
   });
 }
 
+/**
+ * Transition de statut atomique. Si `expectedStatus` est fourni, l'écriture
+ * n'a lieu que si le contrat est ENCORE dans cet état (garde optimiste) : une
+ * transition concurrente (p. ex. une signature qui arrive entre la lecture et
+ * l'écriture) ne peut donc pas être écrasée. Renvoie null si rien n'a changé.
+ */
 export async function updateContractStatus(
   organizationId: string,
   id: string,
   status: ContractStatus,
+  expectedStatus?: ContractStatus,
 ) {
   const result = await prisma.contract.updateMany({
-    where: { id, organizationId, deletedAt: null },
+    where: {
+      id,
+      organizationId,
+      deletedAt: null,
+      ...(expectedStatus ? { status: expectedStatus } : {}),
+    },
     data: { status },
+  });
+  if (result.count === 0) return null;
+  return getContractById(organizationId, id);
+}
+
+/**
+ * Rouvre un contrat en brouillon pour correction, de façon ATOMIQUE et
+ * uniquement s'il est toujours en attente de signature (`SENT`). Le jeton public
+ * est simultanément ROTATÉ : l'ancien lien de signature est révoqué pour éviter
+ * qu'il réactive un contenu modifié. Si une signature est arrivée entre-temps
+ * (statut devenu `SIGNED`), aucune ligne n'est touchée et null est renvoyé.
+ */
+export async function reopenContractToDraft(organizationId: string, id: string) {
+  const result = await prisma.contract.updateMany({
+    where: { id, organizationId, status: "SENT", deletedAt: null },
+    data: { status: "DRAFT", publicToken: randomBytes(24).toString("hex") },
   });
   if (result.count === 0) return null;
   return getContractById(organizationId, id);
@@ -146,28 +174,80 @@ export function getContractByToken(token: string) {
 
 export interface SignatureProof {
   signerName: string;
-  signerEmail?: string | null;
+  /** Adresse à laquelle le lien de signature a été transmis (non vérifiée). */
+  linkRecipientEmail?: string | null;
   signerIp?: string | null;
+  userAgent?: string | null;
   contentHash: string;
+  consentText: string;
 }
 
 /**
- * Enregistre la signature : ne réussit que si le contrat est en attente (SENT).
- * Renvoie true si la signature a été appliquée.
+ * Enregistre la signature et TOUTES ses preuves obligatoires dans UNE SEULE
+ * transaction cohérente :
+ *   1. bascule atomique `SENT → SIGNED` (conditionnelle : échoue si le contrat
+ *      a été rouvert/corrigé ou déjà signé entre-temps) ;
+ *   2. événement `CONSENT` (consentement explicite horodaté) ;
+ *   3. événement `SIGNED` (empreinte du contenu signé) ;
+ *   4. entrée du journal d'audit.
+ *
+ * Si la bascule ne touche aucune ligne, la transaction est annulée et aucun
+ * événement/preuve orphelin n'est écrit. Renvoie true si la signature a été
+ * appliquée.
  */
-export async function markContractSigned(token: string, proof: SignatureProof) {
-  const result = await prisma.contract.updateMany({
-    where: { publicToken: token, status: "SENT", deletedAt: null },
-    data: {
-      status: "SIGNED",
-      signedAt: new Date(),
-      signerName: proof.signerName,
-      signerEmail: proof.signerEmail ?? null,
-      signerIp: proof.signerIp ?? null,
-      contentHash: proof.contentHash,
-    },
+export async function recordSignature(
+  organizationId: string,
+  contractId: string,
+  token: string,
+  proof: SignatureProof,
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const applied = await tx.contract.updateMany({
+      where: { id: contractId, publicToken: token, organizationId, status: "SENT", deletedAt: null },
+      data: {
+        status: "SIGNED",
+        signedAt: new Date(),
+        signerName: proof.signerName,
+        signerEmail: proof.linkRecipientEmail ?? null,
+        signerIp: proof.signerIp ?? null,
+        contentHash: proof.contentHash,
+      },
+    });
+    if (applied.count === 0) return false;
+
+    await tx.signatureEvent.create({
+      data: {
+        organizationId,
+        contractId,
+        type: "CONSENT",
+        actorName: proof.signerName,
+        ipAddress: proof.signerIp ?? undefined,
+        userAgent: proof.userAgent ?? undefined,
+        metadata: { consent: proof.consentText, contentHash: proof.contentHash },
+      },
+    });
+    await tx.signatureEvent.create({
+      data: {
+        organizationId,
+        contractId,
+        type: "SIGNED",
+        actorName: proof.signerName,
+        ipAddress: proof.signerIp ?? undefined,
+        userAgent: proof.userAgent ?? undefined,
+        metadata: { contentHash: proof.contentHash, algorithm: "SHA-256" },
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        organizationId,
+        action: "contract.signed_by_client",
+        targetType: "Contract",
+        targetId: contractId,
+        metadata: { contentHash: proof.contentHash },
+      },
+    });
+    return true;
   });
-  return result.count > 0;
 }
 
 export function createSignatureEvent(

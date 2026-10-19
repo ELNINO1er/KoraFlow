@@ -84,6 +84,7 @@ model User {
   createdQuotes           Quote[]           @relation("QuoteCreatedBy")
   createdContracts        Contract[]        @relation("ContractCreatedBy")
   createdInvoices         Invoice[]         @relation("InvoiceCreatedBy")
+  importBatches           ImportBatch[]     @relation("ImportBatchUser")
   confirmedPayments       Payment[]         @relation("PaymentConfirmedBy")
   createdProjects         Project[]         @relation("ProjectCreatedBy")
   assignedTasks           Task[]            @relation("TaskAssignee")
@@ -149,6 +150,8 @@ model Organization {
   contractTemplates ContractTemplate[]
   contracts         Contract[]
   signatureEvents   SignatureEvent[]
+  documentArchives  DocumentArchive[]
+  importBatches     ImportBatch[]
   invoices          Invoice[]
   invoiceItems      InvoiceItem[]
   payments          Payment[]
@@ -355,6 +358,8 @@ model Contact {
   source      String? // origine du prospect (formulaire, référence, etc.)
   notes       String? // note interne rapide
   portalToken String? @unique // jeton d'accès au portail client unifié
+  /// Référence externe facultative (identifiant stable pour l'import/réimport Excel).
+  externalRef String?
 
   ownerId String? // responsable (membre de l'organisation)
 
@@ -372,6 +377,7 @@ model Contact {
   formSubmissions FormSubmission[]
   appointments    Appointment[]
 
+  @@unique([organizationId, externalRef])
   @@index([organizationId, stage])
   @@index([organizationId, type])
   @@index([organizationId, createdAt])
@@ -407,6 +413,8 @@ model Service {
   organizationId String
   name           String
   description    String?
+  /// Référence/code catalogue facultatif (identifiant stable pour l'import/réimport Excel).
+  reference      String?
 
   /// Prix HORS TAXE, en entier, dans la plus petite unité de la devise de l'organisation.
   priceMinor               Int     @default(0)
@@ -427,6 +435,7 @@ model Service {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   quoteItems   QuoteItem[]
 
+  @@unique([organizationId, reference])
   @@index([organizationId, active])
   @@index([organizationId, category])
   @@map("service")
@@ -616,6 +625,94 @@ model SignatureEvent {
 
   @@index([organizationId, contractId, createdAt])
   @@map("signature_event")
+}
+
+// ---------------------------------------------------------------------------
+// Archives de documents finalisés (instantané + PDF de référence conservé)
+// ---------------------------------------------------------------------------
+
+enum DocumentArchiveType {
+  QUOTE
+  INVOICE
+  CONTRACT
+}
+
+/// État de l'archivage du fichier PDF dans le stockage privé.
+enum DocumentArchiveStatus {
+  PENDING // ligne créée, PDF pas encore confirmé dans le stockage
+  STORED // PDF conservé et empreinte enregistrée
+  FAILED // échec de stockage — à réessayer (idempotent)
+}
+
+/// Version figée d'un document finalisé : instantané des données de restitution
+/// (émetteur, client, lignes, montants, devise, conditions, habillage) + PDF de
+/// référence conservé dans le stockage privé avec son empreinte SHA-256. Une
+/// modification ultérieure du logo, du client, du catalogue ou d'un modèle ne
+/// modifie PAS une archive existante.
+model DocumentArchive {
+  id             String                @id @default(cuid())
+  organizationId String
+  documentType   DocumentArchiveType
+  documentId     String
+  version        Int
+  /// Événement déclencheur : SENT | ACCEPTED | SIGNED.
+  reason         String
+  /// Instantané JSON complet pour restitution (voir archive-service).
+  snapshot       Json
+  /// Empreinte du contenu signé/figé associé (ex. contentHash du contrat).
+  contentHash    String?
+  /// Clé immuable du PDF dans le stockage privé.
+  pdfStorageKey  String?
+  /// Empreinte SHA-256 du PDF conservé.
+  pdfSha256      String?
+  status         DocumentArchiveStatus @default(PENDING)
+  /// Jeton de téléchargement public de l'archive (facultatif).
+  publicToken    String?               @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, documentType, documentId, version])
+  @@index([organizationId, documentType, documentId])
+  @@map("document_archive")
+}
+
+// ---------------------------------------------------------------------------
+// Lots d'import Excel (idempotence anti-rejeu + bilan d'audit)
+// ---------------------------------------------------------------------------
+
+enum ImportKind {
+  CONTACT
+  SERVICE
+}
+
+enum ImportBatchStatus {
+  COMPLETED
+  FAILED
+}
+
+/// Trace d'un lot d'import confirmé. La clé d'idempotence empêche qu'une double
+/// confirmation (ou une reprise réseau) ne rejoue le même lot. Le `summary`
+/// conserve le bilan (créés/mis à jour/ignorés/rejetés) sans recopier les
+/// données personnelles.
+model ImportBatch {
+  id             String            @id @default(cuid())
+  organizationId String
+  userId         String?
+  kind           ImportKind
+  idempotencyKey String
+  status         ImportBatchStatus
+  summary        Json
+  createdAt      DateTime          @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("ImportBatchUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, kind, createdAt])
+  @@map("import_batch")
 }
 
 // ---------------------------------------------------------------------------

@@ -37,6 +37,28 @@ describe("génération du PDF avec pdf-lib", () => {
     expect((await PDFDocument.load(buffer)).getPageCount()).toBe(1);
   });
 
+  it("embarque réellement les ligatures françaises œ/Œ (octets WinAnsi), sans « ? »", async () => {
+    const buffer = await renderQuotePdf({
+      ...sample,
+      items: [{ description: "Cœur de métier — Œuvre", quantity: 1, unitPriceMinor: 500000, taxRate: 0 }],
+      notes: "Conditions : œuvre livrée. Montant en €.",
+    });
+    const latin1 = buffer.toString("latin1");
+    // œ => 0x9C, Œ => 0x8C, € => 0x80 en WinAnsi : présents dans le flux de contenu.
+    expect(latin1).toContain("\x9C"); // œ
+    expect(latin1).toContain("\x8C"); // Œ
+    expect(latin1).toContain("\x80"); // €
+    // Le mot n'a pas été dégradé en "C?ur".
+    expect(latin1).not.toContain("C?ur");
+  });
+
+  it("paginera des conditions longues sans les tronquer", async () => {
+    const longTerms = Array.from({ length: 60 }, (_, i) => `Clause ${i + 1} : engagement détaillé du prestataire et du client.`).join("\n");
+    const buffer = await renderQuotePdf({ ...sample, terms: longTerms });
+    const doc = await PDFDocument.load(buffer);
+    expect(doc.getPageCount()).toBeGreaterThan(1);
+  });
+
   it("conserve toutes les lignes en créant des pages supplémentaires", async () => {
     const buffer = await renderQuotePdf({
       ...sample,

@@ -11,6 +11,9 @@ import { generateInvoicePdf } from "@/server/services/invoice-pdf";
 import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
 import { PermissionError } from "@/server/permissions/permissions";
+import { MoneyBoundsError } from "@/lib/quotes/totals";
+import { collectUnsupportedCharacters, unsupportedCharactersMessage } from "@/lib/pdf/winansi";
+import { archiveDocument, snapshotFingerprint } from "@/server/services/document-archive-service";
 
 const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
 const updateInvoiceSchema = z.object({
@@ -49,6 +52,9 @@ export async function generateInvoiceAction(
     revalidatePath("/factures");
     return { ok: true, invoiceId: invoice.id };
   } catch (e) {
+    if (e instanceof MoneyBoundsError) {
+      return { ok: false, error: "Les montants de la facture sont trop élevés pour être enregistrés." };
+    }
     if (e instanceof InvoiceError) return { ok: false, error: e.message };
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
     throw e;
@@ -68,6 +74,9 @@ export async function updateInvoiceAction(
       dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T12:00:00Z`) : null,
     });
   } catch (error) {
+    if (error instanceof MoneyBoundsError) {
+      return { ok: false, error: "Les montants de la facture sont trop élevés pour être enregistrés." };
+    }
     if (error instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
     if (error instanceof InvoiceError) return { ok: false, error: error.message };
     throw error;
@@ -103,6 +112,14 @@ export async function sendInvoiceAction(
   if (invoice.status === "CANCELED") {
     return { ok: false, error: "Une facture annulée ne peut pas être envoyée." };
   }
+  const unsupported = collectUnsupportedCharacters([
+    invoice.notes,
+    invoice.footerText,
+    ...invoice.items.map((it) => it.description),
+  ]);
+  if (unsupported.length) {
+    return { ok: false, error: unsupportedCharactersMessage(unsupported) };
+  }
   const pdf = await generateInvoicePdf(ctx, id);
   if (!pdf) return { ok: false, error: "Facture introuvable." };
   if (!pdf.contactEmail) return { ok: false, error: "Le client n'a pas d'adresse e-mail." };
@@ -131,6 +148,34 @@ export async function sendInvoiceAction(
     if (invoice.status === "DRAFT") {
       await invoiceService.changeInvoiceStatus(ctx, id, "SENT");
     }
+    // Conservation : à l'ÉMISSION, archive le PDF de la facture (version figée).
+    // Non bloquant. Une facture corrigée puis renvoyée produit une nouvelle
+    // version (empreinte différente) sans écraser la précédente.
+    try {
+      const snapshot = {
+        number: invoice.number,
+        clientName: invoice.contact.companyName || `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
+        currency: invoice.currency,
+        subtotalMinor: invoice.subtotalMinor,
+        discountMinor: invoice.discountMinor,
+        taxMinor: invoice.taxMinor,
+        totalMinor: invoice.totalMinor,
+        depositMinor: invoice.depositMinor,
+        dueDate: invoice.dueDate?.toISOString() ?? null,
+        notes: invoice.notes ?? null,
+      };
+      await archiveDocument({
+        organizationId: ctx.organizationId,
+        documentType: "INVOICE",
+        documentId: invoice.id,
+        reason: "SENT",
+        contentHash: snapshotFingerprint(snapshot),
+        snapshot,
+        pdf: pdf.buffer,
+      });
+    } catch (error) {
+      console.warn("invoice.archive_failed", { invoiceId: id, error: error instanceof Error ? error.message : "unknown" });
+    }
   } catch (e) {
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
     if (e instanceof InvoiceError) return { ok: false, error: e.message };
@@ -144,7 +189,7 @@ export async function sendInvoiceAction(
 
 export async function changeInvoiceStatusAction(id: string, status: InvoiceStatus) {
   const ctx = await getContext();
-  const parsed = z.enum(["DRAFT", "SENT", "OVERDUE", "CANCELED"]).safeParse(status);
+  const parsed = z.enum(["DRAFT", "SENT", "CANCELED"]).safeParse(status);
   if (!parsed.success) return { ok: false, error: "Statut de facture invalide." };
   try {
     await invoiceService.changeInvoiceStatus(ctx, id, parsed.data);

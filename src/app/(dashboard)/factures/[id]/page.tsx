@@ -6,7 +6,7 @@ import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { getInvoice } from "@/server/services/invoice-service";
 import { formatCurrency } from "@/lib/formatting/currency";
-import { invoiceStatusLabel, invoiceStatusVariant, paymentMethodLabel } from "@/lib/constants/invoices";
+import { invoiceStatusLabel, invoiceStatusVariant, paymentMethodLabel, isInvoiceOverdue } from "@/lib/constants/invoices";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ export default async function InvoiceDetailPage({
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-display text-2xl font-bold text-foreground">{invoice.number}</h1>
             <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
+            {isInvoiceOverdue(invoice) ? <Badge variant="danger">En retard</Badge> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canUpdate && invoice.status === "DRAFT" ? <Button asChild variant="outline" size="sm"><Link href={`/factures/${invoice.id}/modifier`}><Pencil className="size-4" />Modifier</Link></Button> : null}

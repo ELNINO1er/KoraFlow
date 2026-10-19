@@ -16,6 +16,7 @@ import {
   changeInvoiceStatus,
 } from "./services/invoice-service";
 import { declarePaymentByToken, confirmPayment } from "./services/payment-service";
+import { hashContractContent } from "@/lib/contracts/hash";
 
 /**
  * Test END-TO-END du parcours commercial, à travers les VRAIS services :
@@ -110,9 +111,13 @@ describe("Parcours commercial de bout en bout", () => {
     const contract = await generateContract(ctx, quote.id);
     expect(contract.id).toBeTruthy();
 
-    // 6. Contrat signé
+    // 6. Contrat signé (consentement explicite + empreinte de la version affichée)
     await changeContractStatus(ctx, contract.id, "SENT");
-    const signed = await signContractByToken(contract.publicToken!, { signerName: "Client E2E" });
+    const signed = await signContractByToken(contract.publicToken!, {
+      signerName: "Client E2E",
+      consent: true,
+      expectedContentHash: hashContractContent(contract.content),
+    });
     expect(signed.ok).toBe(true);
     expect((await prisma.contract.findUnique({ where: { id: contract.id } }))?.status).toBe("SIGNED");
 

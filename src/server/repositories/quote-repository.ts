@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Prisma, QuoteStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
-import { computeQuoteTotals } from "@/lib/quotes/totals";
+import { computeQuoteTotals, MoneyBoundsError, totalsWithinColumnBounds } from "@/lib/quotes/totals";
 import { nextDocumentSequence } from "./document-sequence-repository";
 
 /**
@@ -67,6 +67,7 @@ export async function createQuote(
       depositType: input.depositType,
       depositValue: input.depositValue,
     });
+    if (!totalsWithinColumnBounds(totals)) throw new MoneyBoundsError();
 
     return tx.quote.create({
       data: {
@@ -196,7 +197,10 @@ export async function markQuoteViewedByToken(token: string) {
 
 /**
  * Réponse du client : acceptation ou refus. N'agit que si le devis est encore
- * en attente (SENT ou VIEWED). Renvoie true si le statut a changé.
+ * en attente (SENT ou VIEWED). L'ACCEPTATION est en outre refusée si la date de
+ * validité est dépassée (vérification côté serveur, au moment de l'acte, qui ne
+ * dépend pas d'un éventuel passage automatique à EXPIRED). Renvoie true si le
+ * statut a changé.
  */
 export async function respondToQuoteByToken(
   token: string,
@@ -207,8 +211,29 @@ export async function respondToQuoteByToken(
       publicToken: token,
       status: { in: ["SENT", "VIEWED"] },
       deletedAt: null,
+      // Un devis expiré ne peut plus être accepté (le refus reste possible).
+      ...(decision === "ACCEPTED"
+        ? { OR: [{ expiryDate: null }, { expiryDate: { gte: new Date() } }] }
+        : {}),
     },
     data: { status: decision },
+  });
+  return result.count > 0;
+}
+
+/**
+ * Bascule en EXPIRED un devis en attente dont la date de validité est passée.
+ * Renvoie true si une expiration a été appliquée.
+ */
+export async function expireQuoteByTokenIfNeeded(token: string) {
+  const result = await prisma.quote.updateMany({
+    where: {
+      publicToken: token,
+      status: { in: ["SENT", "VIEWED"] },
+      deletedAt: null,
+      expiryDate: { lt: new Date() },
+    },
+    data: { status: "EXPIRED" },
   });
   return result.count > 0;
 }

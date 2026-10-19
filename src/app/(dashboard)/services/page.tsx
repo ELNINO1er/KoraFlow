@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Download } from "lucide-react";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
 import { listServices } from "@/server/services/catalog-service";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ListSearch } from "@/components/app/list-search";
+import { ImportServicesDialog } from "@/features/services/import-dialog";
 
 export const metadata: Metadata = { title: "Catalogue de services" };
 
@@ -26,6 +27,8 @@ export default async function ServicesPage({
   const { items, total, pageSize } = await listServices(ctx, { search: q, page });
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const canCreate = can(ctx.role, "services.create");
+  const canView = can(ctx.role, "services.view");
+  const exportHref = `/api/services/export${q ? `?q=${encodeURIComponent(q)}` : ""}`;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -38,14 +41,22 @@ export default async function ServicesPage({
             {total} service{total > 1 ? "s" : ""} · offres facturables
           </p>
         </div>
-        {canCreate ? (
-          <Button asChild>
-            <Link href="/services/nouveau">
-              <Plus className="size-4" />
-              Nouveau service
-            </Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {canView ? (
+            <Button asChild variant="outline">
+              <a href={exportHref}><Download className="size-4" />Exporter Excel</a>
+            </Button>
+          ) : null}
+          {canCreate ? <ImportServicesDialog /> : null}
+          {canCreate ? (
+            <Button asChild>
+              <Link href="/services/nouveau">
+                <Plus className="size-4" />
+                Nouveau service
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <ListSearch placeholder="Rechercher un service…" />

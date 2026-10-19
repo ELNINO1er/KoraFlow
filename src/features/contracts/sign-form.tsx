@@ -8,8 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-/** Formulaire de signature côté client (consentement explicite + nom). */
-export function SignForm({ token }: { token: string }) {
+/**
+ * Formulaire de signature côté client (consentement explicite + nom).
+ * `contentHash` est l'empreinte de la version EXACTE affichée au client ; elle
+ * est renvoyée au serveur qui la revérifie et refuse la signature si le
+ * document a changé entre-temps.
+ */
+export function SignForm({ token, contentHash }: { token: string; contentHash: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
@@ -24,7 +29,7 @@ export function SignForm({ token }: { token: string }) {
       return;
     }
     startTransition(async () => {
-      const result = await signContractAction(token, name.trim());
+      const result = await signContractAction(token, name.trim(), consent, contentHash);
       if (!result.ok) {
         setError(result.error ?? "Signature impossible.");
         return;

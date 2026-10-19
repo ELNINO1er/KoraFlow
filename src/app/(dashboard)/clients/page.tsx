@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Download } from "lucide-react";
 import type { ContactStage } from "@prisma/client";
 import { requireAuthContext } from "@/server/auth/context";
 import { can } from "@/server/permissions/permissions";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { ListSearch } from "@/components/app/list-search";
+import { ImportContactsDialog } from "@/features/contacts/import-dialog";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Clients" };
@@ -48,6 +49,8 @@ export default async function ClientsPage({
   });
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const canCreate = can(ctx.role, "contacts.create");
+  const canView = can(ctx.role, "contacts.view");
+  const exportHref = `/api/clients/export${buildQuery({ q, stage })}`;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -58,14 +61,22 @@ export default async function ClientsPage({
             {total} contact{total > 1 ? "s" : ""} · prospects et clients
           </p>
         </div>
-        {canCreate ? (
-          <Button asChild>
-            <Link href="/clients/nouveau">
-              <Plus className="size-4" />
-              Nouveau contact
-            </Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {canView ? (
+            <Button asChild variant="outline">
+              <a href={exportHref}><Download className="size-4" />Exporter Excel</a>
+            </Button>
+          ) : null}
+          {canCreate ? <ImportContactsDialog /> : null}
+          {canCreate ? (
+            <Button asChild>
+              <Link href="/clients/nouveau">
+                <Plus className="size-4" />
+                Nouveau contact
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {/* Recherche + filtre pipeline */}

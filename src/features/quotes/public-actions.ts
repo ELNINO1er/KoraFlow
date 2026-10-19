@@ -6,10 +6,13 @@ import { z } from "zod";
 import { prisma } from "@/server/database/client";
 import { guardPublicMutation } from "@/lib/security/public-mutation";
 import {
+  expireQuoteByTokenIfNeeded,
   getQuoteByPublicToken,
   respondToQuoteByToken,
 } from "@/server/repositories/quote-repository";
 import { notifyOrg } from "@/server/services/notification-service";
+import { generateQuotePdfByToken } from "@/server/services/quote-pdf";
+import { archiveDocument, snapshotFingerprint } from "@/server/services/document-archive-service";
 
 /**
  * Réponse du client à un devis via son jeton public (aucune authentification).
@@ -34,6 +37,21 @@ export async function respondToQuoteAction(
 
   const quote = await getQuoteByPublicToken(parsed.data.token);
   if (!quote) return { ok: false, error: "Devis introuvable ou expiré." };
+
+  // Vérification serveur de la validité à l'acceptation : un devis dont la date
+  // de validité est passée ne peut plus être accepté.
+  if (
+    parsed.data.decision === "ACCEPTED" &&
+    quote.expiryDate &&
+    quote.expiryDate.getTime() < Date.now()
+  ) {
+    await expireQuoteByTokenIfNeeded(parsed.data.token);
+    revalidatePath(`/q/${parsed.data.token}`);
+    return {
+      ok: false,
+      error: "Ce devis a expiré et ne peut plus être accepté. Contactez l’émetteur pour le renouveler.",
+    };
+  }
 
   const changed = await respondToQuoteByToken(parsed.data.token, parsed.data.decision);
   if (!changed) {
@@ -62,6 +80,38 @@ export async function respondToQuoteAction(
     },
     { email: true },
   );
+
+  // Conservation : à l'ACCEPTATION, on archive le PDF du devis (version de
+  // référence figée). Non bloquant ; un échec laisse l'archive en FAILED.
+  if (parsed.data.decision === "ACCEPTED") {
+    try {
+      const pdf = await generateQuotePdfByToken(parsed.data.token);
+      if (pdf) {
+        const snapshot = {
+          number: quote.number,
+          clientName: quote.contact.companyName || `${quote.contact.firstName} ${quote.contact.lastName ?? ""}`.trim(),
+          currency: quote.currency,
+          subtotalMinor: quote.subtotalMinor,
+          discountMinor: quote.discountMinor,
+          taxMinor: quote.taxMinor,
+          totalMinor: quote.totalMinor,
+          depositMinor: quote.depositMinor,
+          terms: quote.terms ?? null,
+        };
+        await archiveDocument({
+          organizationId: quote.organizationId,
+          documentType: "QUOTE",
+          documentId: quote.id,
+          reason: "ACCEPTED",
+          contentHash: snapshotFingerprint(snapshot),
+          snapshot,
+          pdf: pdf.buffer,
+        });
+      }
+    } catch (error) {
+      console.warn("quote.archive_failed", { error: error instanceof Error ? error.message : "unknown" });
+    }
+  }
 
   revalidatePath(`/q/${parsed.data.token}`);
   return { ok: true };
