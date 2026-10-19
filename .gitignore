@@ -47,3 +47,6 @@ next-env.d.ts
 /.playwright-mcp/
 *.tmp
 /*.png
+
+# Projet vidéo Remotion autonome (dépendances + build) — hors dépôt applicatif.
+/video/
