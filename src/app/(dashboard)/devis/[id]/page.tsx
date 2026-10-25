@@ -106,7 +106,7 @@ export default async function QuoteDetailPage({
                 <tbody>
                   {quote.items.map((it) => (
                     <tr key={it.id} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-2 text-foreground">{it.description}</td>
+                      <td className="whitespace-pre-line py-2 pr-2 text-foreground">{it.description}</td>
                       <td className="px-2 py-2 text-right text-muted-foreground">{it.quantity}</td>
                       <td className="px-2 py-2 text-right text-muted-foreground">{money(it.unitPriceMinor)}</td>
                       <td className="px-2 py-2 text-right text-muted-foreground">{it.taxRate} %</td>

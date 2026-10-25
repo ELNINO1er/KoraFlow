@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument } from "pdf-lib";
 import { renderQuotePdf, type QuotePdfData } from "./render-quote";
+import { QUOTE_TEMPLATE_VALUES } from "@/lib/quotes/design";
 
 const sample: QuotePdfData = {
   org: { name: "Agence Démo", email: "contact@demo.test", city: "Abidjan", country: "CI" },
@@ -22,6 +23,18 @@ const sample: QuotePdfData = {
 };
 
 describe("génération du PDF avec pdf-lib", () => {
+  it.each(QUOTE_TEMPLATE_VALUES)("rend le modèle de studio « %s » (logo, serif, détail de ligne)", async (template) => {
+    const logo = await readFile(path.join(process.cwd(), "public", "brand", "alymero-mark.png"));
+    const buffer = await renderQuotePdf({
+      ...sample,
+      org: { ...sample.org, logoDataUri: `data:image/png;base64,${logo.toString("base64")}` },
+      expiryDate: new Date("2026-10-22T00:00:00Z"),
+      items: [{ description: "Site vitrine 5 pages\nDesign sur mesure, responsive", quantity: 1, unitPriceMinor: 850000, taxRate: 18 }],
+      design: { template, accent: "#2F855A", secondary: "#0B2545", font: template === "minimal" || template === "elegant" ? "serif" : "inter" },
+    });
+    expect((await PDFDocument.load(buffer)).getPageCount()).toBe(1);
+  });
+
   it("produit un document PDF lisible", async () => {
     const buffer = await renderQuotePdf(sample);
     expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");

@@ -8,6 +8,9 @@ import { parseSections } from "@/lib/documents/sections";
 import type { QuotePdfData } from "../pdf/render-quote";
 import { getPrivateFile } from "../storage/private-storage";
 import { organizationLogoContentType } from "@/lib/organizations/logo-validation";
+import { formatCurrency } from "@/lib/formatting/currency";
+import { parseQuoteDesign } from "@/lib/quotes/design";
+import { quoteVariableValues, resolveQuoteVariables } from "@/lib/quotes/variables";
 
 export interface GeneratedQuotePdf {
   buffer: Buffer;
@@ -18,6 +21,42 @@ export interface GeneratedQuotePdf {
   organizationName: string;
   organizationEmail: string | null;
   organizationLogoUrl: string | null;
+}
+
+/**
+ * Applique la mise en page du studio et remplace les variables ({client.prenom}…)
+ * dans les textes rédactionnels du devis.
+ */
+function finalizeQuotePdfData(
+  data: QuotePdfData,
+  quote: {
+    design: unknown;
+    number: string;
+    totalMinor: number;
+    currency: string;
+    expiryDate: Date | null;
+    contact: { firstName: string; lastName: string | null; companyName: string | null };
+  },
+  organizationName: string,
+): QuotePdfData {
+  const values = quoteVariableValues({
+    contact: quote.contact,
+    number: quote.number,
+    totalLabel: formatCurrency(quote.totalMinor, quote.currency, data.locale),
+    expiryDate: quote.expiryDate,
+    organizationName,
+    locale: data.locale,
+  });
+  const resolve = (text: string | null | undefined) => resolveQuoteVariables(text, values);
+  return {
+    ...data,
+    design: parseQuoteDesign(quote.design),
+    docSubject: resolve(data.docSubject),
+    introduction: resolve(data.introduction),
+    notes: resolve(data.notes),
+    terms: resolve(data.terms),
+    sections: data.sections?.map((sec) => ({ heading: resolve(sec.heading) ?? sec.heading, body: resolve(sec.body) ?? sec.body })) ?? null,
+  };
 }
 
 async function logoDataUri(storageKey: string | null | undefined) {
@@ -88,7 +127,7 @@ export async function generateQuotePdf(
     sections: parseSections(quote.sections),
   };
 
-  const buffer = await renderQuotePdfWithLogoFallback(data, quote.id);
+  const buffer = await renderQuotePdfWithLogoFallback(finalizeQuotePdfData(data, quote, org?.name ?? ctx.organization.name), quote.id);
   return {
     buffer,
     filename: `${quote.number}.pdf`,
@@ -150,7 +189,7 @@ export async function generateQuotePdfByToken(
     sections: parseSections(quote.sections),
   };
 
-  const buffer = await renderQuotePdfWithLogoFallback(data, `public:${token.slice(0, 8)}`);
+  const buffer = await renderQuotePdfWithLogoFallback(finalizeQuotePdfData(data, quote, org.name), `public:${token.slice(0, 8)}`);
   return {
     buffer,
     filename: `${quote.number}.pdf`,

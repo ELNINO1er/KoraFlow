@@ -481,6 +481,8 @@ model Quote {
   introduction String? // texte d'introduction / contexte
   /// Sections rédactionnelles libres : [{ heading, body }] (livrables, périmètre, exclusions, délais…).
   sections     Json?
+  /// Mise en page choisie dans le studio : { template, accent, font } (cf. src/lib/quotes/design.ts).
+  design       Json?
 
   // Remise globale
   discountType  AmountKind?

@@ -6,6 +6,7 @@ import {
   markQuoteViewedByToken,
 } from "@/server/repositories/quote-repository";
 import { formatCurrency } from "@/lib/formatting/currency";
+import { quoteVariableValues, resolveQuoteVariables } from "@/lib/quotes/variables";
 import { quoteStatusLabel, quoteStatusVariant } from "@/lib/constants/quotes";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,10 @@ export default async function PublicQuotePage({
     ? quote.contact.companyName
     : `${quote.contact.firstName} ${quote.contact.lastName ?? ""}`.trim();
   const remaining = quote.totalMinor - quote.depositMinor;
+  const notes = resolveQuoteVariables(
+    quote.notes,
+    quoteVariableValues({ contact: quote.contact, number: quote.number, totalLabel: money(quote.totalMinor), expiryDate: quote.expiryDate, organizationName: quote.organization.name, locale: localeTag }),
+  );
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -83,7 +88,7 @@ export default async function PublicQuotePage({
               <tbody>
                 {quote.items.map((it) => (
                   <tr key={it.id} className="border-b border-border last:border-0">
-                    <td className="py-2 pr-2 text-foreground">{it.description}</td>
+                    <td className="whitespace-pre-line py-2 pr-2 text-foreground">{it.description}</td>
                     <td className="px-2 py-2 text-right text-muted-foreground">{it.quantity}</td>
                     <td className="px-2 py-2 text-right text-muted-foreground">{money(it.unitPriceMinor)}</td>
                     <td className="px-2 py-2 text-right text-muted-foreground">{it.taxRate} %</td>
@@ -110,7 +115,7 @@ export default async function PublicQuotePage({
             ) : null}
           </div>
 
-          {quote.notes ? <p className="mt-4 text-sm text-muted-foreground">{quote.notes}</p> : null}
+          {notes ? <p className="mt-4 whitespace-pre-line text-sm text-muted-foreground">{notes}</p> : null}
         </CardContent>
       </Card>
 

@@ -14,6 +14,7 @@ export interface CreateQuoteServiceInput {
   title?: string | null;
   introduction?: string | null;
   sections?: unknown;
+  design?: unknown;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -82,6 +83,7 @@ export async function createQuote(
     title: input.title ?? null,
     introduction: input.introduction ?? null,
     sections: (input.sections as never) ?? undefined,
+    design: (input.design as never) ?? undefined,
     discountType: input.discountType ?? null,
     discountValue: input.discountValue ?? 0,
     depositType: input.depositType ?? null,
@@ -130,6 +132,7 @@ export async function updateDraftQuote(
     title: input.title ?? null,
     introduction: input.introduction ?? null,
     sections: (input.sections as never) ?? undefined,
+    design: (input.design as never) ?? undefined,
     discountType: input.discountType ?? null,
     discountValue: input.discountValue ?? 0,
     depositType: input.depositType ?? null,

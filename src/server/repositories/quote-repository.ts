@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { Prisma, QuoteStatus, AmountKind } from "@prisma/client";
+import { Prisma, type QuoteStatus, type AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
 import { computeQuoteTotals, MoneyBoundsError, totalsWithinColumnBounds } from "@/lib/quotes/totals";
 import { nextDocumentSequence } from "./document-sequence-repository";
@@ -27,6 +27,7 @@ export interface QuoteCreateInput {
   title?: string | null;
   introduction?: string | null;
   sections?: Prisma.InputJsonValue;
+  design?: Prisma.InputJsonValue | null;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -41,6 +42,7 @@ export interface QuoteUpdateInput {
   title?: string | null;
   introduction?: string | null;
   sections?: Prisma.InputJsonValue;
+  design?: Prisma.InputJsonValue | null;
   discountType?: AmountKind | null;
   discountValue?: number;
   depositType?: AmountKind | null;
@@ -100,6 +102,7 @@ export async function createQuote(
         title: input.title ?? null,
         introduction: input.introduction ?? null,
         sections: input.sections ?? undefined,
+        design: input.design ?? undefined,
         discountType: input.discountType ?? null,
         discountValue: input.discountValue ?? 0,
         depositType: input.depositType ?? null,
@@ -209,7 +212,8 @@ export async function updateDraftQuote(
         terms: input.terms ?? null,
         title: input.title ?? null,
         introduction: input.introduction ?? null,
-        sections: input.sections ?? undefined,
+        sections: input.sections ?? Prisma.JsonNull,
+        design: input.design ?? Prisma.JsonNull,
         discountType: input.discountType ?? null,
         discountValue: input.discountValue ?? 0,
         depositType: input.depositType ?? null,

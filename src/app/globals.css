@@ -330,3 +330,22 @@ body {
 @supports not selector(::-webkit-scrollbar) {
   .kf-sidebar-scroll { scrollbar-color: rgba(255, 255, 255, 0.28) transparent; }
 }
+
+/* ==========================================================================
+   Studio de document : champs « invisibles » posés sur la page A4, révélés
+   au survol et à la saisie (la page reste lisible comme un vrai document).
+   ========================================================================== */
+.doc-field {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  outline: none;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+.doc-field:hover { border-color: #dce5e0; background: #fafcfb; }
+.doc-field:focus { border-color: #2f855a; background: #ffffff; box-shadow: 0 0 0 3px rgba(47, 133, 90, 0.15); }
+.doc-field[type="number"] { -moz-appearance: textfield; }
+.doc-field[type="number"]::-webkit-inner-spin-button,
+.doc-field[type="number"]::-webkit-outer-spin-button { opacity: 0; }
+.doc-field[type="number"]:hover::-webkit-inner-spin-button,
+.doc-field[type="number"]:focus::-webkit-inner-spin-button { opacity: 1; }

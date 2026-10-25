@@ -13,6 +13,7 @@ import { assertCan, PermissionError } from "@/server/permissions/permissions";
 import { brandedEmail } from "@/server/integrations/email/template";
 import { MoneyBoundsError } from "@/lib/quotes/totals";
 import { collectUnsupportedCharacters, unsupportedCharactersMessage } from "@/lib/pdf/winansi";
+import { quoteDesignSchema } from "@/lib/quotes/design";
 
 async function getContext(): Promise<AuthContext> {
   const session = await resolveSession();
@@ -39,6 +40,7 @@ const createQuotePayloadSchema = z.object({
   title: z.string().max(160).optional(),
   introduction: z.string().max(5000).optional(),
   sections: sectionsSchema,
+  design: quoteDesignSchema.optional(),
   discountType: amountKind,
   discountValue: z.number().int().min(0).max(100_000_000).optional(),
   depositType: amountKind,
@@ -62,6 +64,7 @@ export type CreateQuotePayload = z.infer<typeof createQuotePayloadSchema>;
 export interface CreateQuoteResult {
   ok: boolean;
   quoteId?: string;
+  quoteNumber?: string;
   error?: string;
 }
 
@@ -90,6 +93,7 @@ export async function createQuoteAction(
       title: data.title,
       introduction: data.introduction,
       sections: data.sections,
+      design: data.design,
       discountType: data.discountType ?? null,
       discountValue: data.discountValue ?? 0,
       depositType: data.depositType ?? null,
@@ -103,7 +107,7 @@ export async function createQuoteAction(
       })),
     });
     revalidatePath("/devis");
-    return { ok: true, quoteId: quote.id };
+    return { ok: true, quoteId: quote.id, quoteNumber: quote.number };
   } catch (e) {
     if (e instanceof MoneyBoundsError) {
       return { ok: false, error: "Les montants du devis sont trop élevés pour être enregistrés." };
@@ -134,6 +138,7 @@ export async function updateQuoteAction(
       title: data.title,
       introduction: data.introduction,
       sections: data.sections,
+      design: data.design,
       discountType: data.discountType ?? null,
       discountValue: data.discountValue ?? 0,
       depositType: data.depositType ?? null,
