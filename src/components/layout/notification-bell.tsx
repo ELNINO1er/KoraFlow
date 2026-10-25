@@ -48,11 +48,11 @@ export function NotificationBell({
     <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         aria-label="Notifications"
-        className="relative inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative inline-flex size-11 items-center justify-center rounded-xl border border-border bg-surface text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Bell className="size-5" />
         {unread > 0 ? (
-          <span className="absolute right-1.5 top-1.5 flex min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-foreground">
+          <span className="absolute right-1.5 top-1.5 flex min-w-4 items-center justify-center rounded-full bg-warm-strong px-1 text-[10px] font-semibold text-warm-foreground ring-2 ring-surface">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}

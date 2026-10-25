@@ -21,10 +21,9 @@ export function Topbar({
   isPlatformAdmin?: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
-      <GlobalSearch />
-
-      <div className="ml-auto flex items-center gap-2">
+    <header className="sticky top-0 z-30 flex h-20 items-center gap-3 bg-background/90 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75 lg:px-8">
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        <GlobalSearch />
         <NotificationBell notifications={notifications} unread={unread} localeTag={localeTag} />
 
         {/* Bloc unique « compte + organisation », poussé tout à droite. */}

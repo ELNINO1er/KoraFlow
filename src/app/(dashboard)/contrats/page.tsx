@@ -51,7 +51,7 @@ export default async function ContractsPage({
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Contrats</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Contrats</h1>
         <p className="text-sm text-muted-foreground">
           {total} contrat{total > 1 ? "s" : ""} · générés depuis les devis acceptés
         </p>
@@ -59,12 +59,12 @@ export default async function ContractsPage({
 
       <div className="flex flex-col gap-3">
         <ListSearch placeholder="Rechercher un contrat (n°)…" />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-surface p-1 shadow-e1 ring-1 ring-border/60">
           <Link
             href={`/contrats${query({ q })}`}
             className={cn(
-              "rounded-md border px-3 py-1 text-xs font-medium",
-              !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
+              "rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
+              !status ? "bg-primary font-semibold text-primary-foreground shadow-e1" : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             Tous
@@ -74,8 +74,8 @@ export default async function ContractsPage({
               key={s.value}
               href={`/contrats${query({ q, status: s.value })}`}
               className={cn(
-                "rounded-md border px-3 py-1 text-xs font-medium",
-                status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted",
+                "rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
+                status === s.value ? "bg-primary font-semibold text-primary-foreground shadow-e1" : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               {s.label}
@@ -99,8 +99,8 @@ export default async function ContractsPage({
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto p-2">
+            <table className="kf-table text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Numéro</th>

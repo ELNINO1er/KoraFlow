@@ -21,7 +21,7 @@ export default async function AppointmentsPage() {
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Rendez-vous</h1>
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Rendez-vous</h1>
           <p className="text-sm text-muted-foreground">Types de rendez-vous et réservations à venir</p>
         </div>
         {canCreate ? (

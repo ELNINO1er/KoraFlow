@@ -21,7 +21,7 @@ export default async function TeamPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Équipe</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Équipe</h1>
         <p className="text-sm text-muted-foreground">
           Membres de {ctx.organization.name} et invitations en attente
         </p>

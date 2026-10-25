@@ -19,7 +19,7 @@ export default async function NewContractTemplatePage() {
           <ArrowLeft className="size-4" />
           Retour aux modèles
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">Nouveau modèle</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Nouveau modèle</h1>
       </div>
       <TemplateForm />
     </div>

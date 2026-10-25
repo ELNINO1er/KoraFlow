@@ -36,7 +36,7 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
           <ArrowLeft className="size-4" />
           Retour au devis
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">Modifier le devis {quote.number}</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Modifier le devis {quote.number}</h1>
       </div>
       <QuoteForm
         contacts={[]}

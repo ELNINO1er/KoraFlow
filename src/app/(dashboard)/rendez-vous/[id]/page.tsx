@@ -36,7 +36,7 @@ export default async function AppointmentTypePage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-2xl font-bold text-foreground">{type.name}</h1>
+            <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">{type.name}</h1>
             <Badge variant="outline">{type.durationMinutes} min</Badge>
           </div>
           <div className="flex items-center gap-2">

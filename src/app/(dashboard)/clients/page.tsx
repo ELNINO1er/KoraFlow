@@ -56,7 +56,7 @@ export default async function ClientsPage({
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Clients</h1>
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground">
             {total} contact{total > 1 ? "s" : ""} · prospects et clients
           </p>
@@ -83,14 +83,14 @@ export default async function ClientsPage({
       <div className="flex flex-col gap-3">
         <ListSearch placeholder="Rechercher un contact…" />
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-surface p-1 shadow-e1 ring-1 ring-border/60">
           <Link
             href={`/clients${buildQuery({ q })}`}
             className={cn(
-              "rounded-md border px-3 py-1 text-xs font-medium",
+              "rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
               !stage
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-muted-foreground hover:bg-muted",
+                ? "bg-primary font-semibold text-primary-foreground shadow-e1"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             Tous
@@ -100,10 +100,10 @@ export default async function ClientsPage({
               key={s.value}
               href={`/clients${buildQuery({ q, stage: s.value })}`}
               className={cn(
-                "rounded-md border px-3 py-1 text-xs font-medium",
+                "rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
                 stage === s.value
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border text-muted-foreground hover:bg-muted",
+                  ? "bg-primary font-semibold text-primary-foreground shadow-e1"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               {s.label}
@@ -135,8 +135,8 @@ export default async function ClientsPage({
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto p-2">
+            <table className="kf-table text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Nom</th>

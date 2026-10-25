@@ -40,7 +40,7 @@ export default async function EditServicePage({
             <ArrowLeft className="size-4" />
             Retour au catalogue
           </Link>
-          <h1 className="font-display text-2xl font-bold text-foreground">
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
             {service.name}
           </h1>
         </div>

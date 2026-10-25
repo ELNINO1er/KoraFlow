@@ -49,7 +49,7 @@ export default async function NewQuotePage() {
           <ArrowLeft className="size-4" />
           Retour aux devis
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
           Nouveau devis
         </h1>
       </div>

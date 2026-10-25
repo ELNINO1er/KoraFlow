@@ -5,7 +5,7 @@ import { requireAuthContext } from "@/server/auth/context";
 import { getDashboardData } from "@/server/services/dashboard-service";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { StatBand, StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { MobileMoneyStatus } from "@/components/dashboard/mobile-money-status";
@@ -25,10 +25,10 @@ export default async function DashboardPage() {
   const nowMs = data.nowMs;
 
   const kpis = [
-    { label: "Prospects", value: data.prospects.toLocaleString(localeTag), sub: "contacts à convertir", icon: Users, tint: "bg-primary/10 text-primary" },
-    { label: "Devis en attente", value: data.quotesAwaiting.toLocaleString(localeTag), sub: "envoyés ou consultés", icon: FileText, tint: "bg-accent/15 text-accent" },
-    { label: "Paiements reçus", value: formatCurrency(data.receivedMinor, currency, localeTag), sub: "encaissé (confirmé)", icon: Wallet, tint: "bg-success/15 text-success" },
-    { label: "Factures impayées", value: data.unpaidInvoices.toLocaleString(localeTag), sub: data.overdueInvoices > 0 ? `à recouvrer · ${data.overdueInvoices} en retard` : "à recouvrer", icon: ReceiptText, tint: data.overdueInvoices > 0 ? "bg-danger/15 text-danger" : "bg-warning/15 text-warning" },
+    { label: "Prospects", value: data.prospects.toLocaleString(localeTag), sub: "contacts à convertir", icon: Users, tint: "bg-primary/10 text-primary", trend: data.trends.prospects },
+    { label: "Devis en attente", value: data.quotesAwaiting.toLocaleString(localeTag), sub: "envoyés ou consultés", icon: FileText, tint: "bg-secondary text-foreground", trend: data.trends.quotes },
+    { label: "Paiements reçus", value: formatCurrency(data.receivedMinor, currency, localeTag), sub: "encaissé (confirmé)", icon: Wallet, tint: "bg-success/15 text-success", trend: data.trends.revenue },
+    { label: "Factures impayées", value: data.unpaidInvoices.toLocaleString(localeTag), sub: data.overdueInvoices > 0 ? `à recouvrer · ${data.overdueInvoices} en retard` : "à recouvrer", icon: ReceiptText, tint: data.overdueInvoices > 0 ? "bg-warm/15 text-warm-strong" : "bg-secondary text-foreground", trend: data.trends.invoices },
   ];
 
   return (
@@ -45,23 +45,17 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((k, i) => (
-          <div key={k.label} className="app-enter" style={{ animationDelay: `${60 + i * 60}ms` }}>
-            <StatCard label={k.label} value={k.value} sub={k.sub} icon={k.icon} tint={k.tint} />
-          </div>
-        ))}
+      <div className="app-enter" style={{ animationDelay: "60ms" }}>
+        <StatBand>
+          {kpis.map((k) => (
+            <StatCard key={k.label} label={k.label} value={k.value} sub={k.sub} icon={k.icon} tint={k.tint} trend={k.trend} />
+          ))}
+        </StatBand>
       </div>
 
       <div className="app-enter grid gap-6 lg:grid-cols-3" style={{ animationDelay: "300ms" }}>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Chiffre d&apos;affaires encaissé</CardTitle>
-            <CardDescription>Paiements confirmés par mois</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RevenueChart data={data.revenueByMonth} currency={currency} />
-          </CardContent>
+        <Card className="p-6 lg:col-span-2">
+          <RevenueChart data={data.revenueByMonth} currency={currency} />
         </Card>
 
         <Card>

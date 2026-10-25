@@ -30,7 +30,7 @@ export default async function EditContactPage({
           <ArrowLeft className="size-4" />
           Retour à la fiche
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">Modifier le contact</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Modifier le contact</h1>
       </div>
       <ContactForm
         action={updateContactAction.bind(null, id)}

@@ -19,7 +19,7 @@ export default async function NewFormPage() {
           <ArrowLeft className="size-4" />
           Retour aux formulaires
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">Nouveau formulaire</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Nouveau formulaire</h1>
         <p className="text-sm text-muted-foreground">Vous ajouterez les champs à l’étape suivante.</p>
       </div>
       <CreateFormForm />

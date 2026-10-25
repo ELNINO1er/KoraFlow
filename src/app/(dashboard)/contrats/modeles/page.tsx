@@ -23,7 +23,7 @@ export default async function ContractTemplatesPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Modèles de contrat</h1>
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Modèles de contrat</h1>
           <p className="text-sm text-muted-foreground">
             Aides à la rédaction réutilisables. À adapter au contexte — ne garantissent pas la validité juridique.
           </p>

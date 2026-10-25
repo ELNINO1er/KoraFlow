@@ -40,7 +40,7 @@ export default async function ProjectsPage({
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Projets</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Projets</h1>
         <p className="text-sm text-muted-foreground">
           {total} projet{total > 1 ? "s" : ""} · créés automatiquement au paiement des factures
         </p>
@@ -48,12 +48,12 @@ export default async function ProjectsPage({
 
       <div className="flex flex-col gap-3">
         <ListSearch placeholder="Rechercher un projet…" />
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/projets${query({ q })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", !status ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-surface p-1 shadow-e1 ring-1 ring-border/60">
+          <Link href={`/projets${query({ q })}`} className={cn("rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors", !status ? "bg-primary font-semibold text-primary-foreground shadow-e1" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
             Tous
           </Link>
           {PROJECT_STATUSES.map((s) => (
-            <Link key={s.value} href={`/projets${query({ q, status: s.value })}`} className={cn("rounded-md border px-3 py-1 text-xs font-medium", status === s.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted")}>
+            <Link key={s.value} href={`/projets${query({ q, status: s.value })}`} className={cn("rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors", status === s.value ? "bg-primary font-semibold text-primary-foreground shadow-e1" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
               {s.label}
             </Link>
           ))}

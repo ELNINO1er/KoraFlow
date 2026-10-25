@@ -69,7 +69,7 @@ export function UserMenu({
       <DropdownMenuTrigger
         aria-label="Compte et organisation"
         disabled={pending}
-        className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+        className="flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-2.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
       >
         <Avatar className="size-7">
           {image ? <AvatarImage src={image} alt={name ?? email} /> : null}

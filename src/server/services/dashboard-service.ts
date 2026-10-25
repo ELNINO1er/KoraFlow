@@ -9,7 +9,10 @@ export interface DashboardData {
   unpaidInvoices: number;
   /** Factures en retard (dérivé : échéance passée + solde dû). */
   overdueInvoices: number;
-  revenueByMonth: { month: string; value: number }[];
+  /** Par mois (12 derniers) : encaissé, facturé (factures émises) et nombre de paiements. */
+  revenueByMonth: { month: string; value: number; billed: number; count: number }[];
+  /** Tendances mensuelles (7 derniers mois) pour les mini-graphiques des indicateurs. */
+  trends: { prospects: number[]; quotes: number[]; revenue: number[]; invoices: number[] };
   recentActivity: { id: string; action: string; createdAt: Date }[];
   mobileMoney: { method: string; amountMinor: number; count: number }[];
   /** Instant de génération (ms) — évite d'appeler Date.now() dans le rendu. */
@@ -24,6 +27,8 @@ const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "
  */
 export async function getDashboardData(ctx: AuthContext): Promise<DashboardData> {
   const organizationId = ctx.organizationId;
+  const now = new Date();
+  const yearAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   const [
     prospects,
@@ -34,6 +39,9 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
     confirmedPayments,
     recentActivity,
     mobileMoneyRows,
+    issuedInvoices,
+    newContacts,
+    newQuotes,
   ] = await Promise.all([
     prisma.contact.count({ where: { organizationId, type: "PROSPECT", deletedAt: null } }),
     prisma.quote.count({ where: { organizationId, status: { in: ["SENT", "VIEWED"] }, deletedAt: null } }),
@@ -57,25 +65,60 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
       _sum: { amountMinor: true },
       _count: { _all: true },
     }),
+    prisma.invoice.findMany({
+      where: { organizationId, status: { notIn: ["DRAFT", "CANCELED"] }, issueDate: { gte: yearAgo }, deletedAt: null },
+      select: { totalMinor: true, issueDate: true },
+    }),
+    prisma.contact.findMany({
+      where: { organizationId, createdAt: { gte: yearAgo }, deletedAt: null },
+      select: { createdAt: true },
+    }),
+    prisma.quote.findMany({
+      where: { organizationId, status: { not: "DRAFT" }, issueDate: { gte: yearAgo }, deletedAt: null },
+      select: { issueDate: true },
+    }),
   ]);
 
-  // Chiffre d'affaires encaissé par mois, sur les 12 derniers mois.
-  const now = new Date();
-  const buckets: { key: string; month: string; value: number }[] = [];
+  // Encaissé / facturé / paiements par mois, sur les 12 derniers mois.
+  const buckets: { key: string; month: string; value: number; billed: number; count: number; contacts: number; quotes: number; invoices: number }[] = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     buckets.push({
       key: `${d.getFullYear()}-${d.getMonth()}`,
       month: MONTHS_FR[d.getMonth()] ?? "",
       value: 0,
+      billed: 0,
+      count: 0,
+      contacts: 0,
+      quotes: 0,
+      invoices: 0,
     });
   }
   const bucketByKey = new Map(buckets.map((b) => [b.key, b]));
+  const bucketOf = (d: Date) => bucketByKey.get(`${d.getFullYear()}-${d.getMonth()}`);
   for (const p of confirmedPayments) {
-    const key = `${p.createdAt.getFullYear()}-${p.createdAt.getMonth()}`;
-    const b = bucketByKey.get(key);
-    if (b) b.value += p.amountMinor;
+    const b = bucketOf(p.createdAt);
+    if (b) {
+      b.value += p.amountMinor;
+      b.count += 1;
+    }
   }
+  for (const inv of issuedInvoices) {
+    const b = bucketOf(inv.issueDate);
+    if (b) {
+      b.billed += inv.totalMinor;
+      b.invoices += 1;
+    }
+  }
+  for (const c of newContacts) {
+    const b = bucketOf(c.createdAt);
+    if (b) b.contacts += 1;
+  }
+  for (const q of newQuotes) {
+    const b = bucketOf(q.issueDate);
+    if (b) b.quotes += 1;
+  }
+  const last7 = buckets.slice(-7);
 
   const wantedMethods = ["WAVE", "ORANGE_MONEY", "MTN"] as const;
   const mmByMethod = new Map(
@@ -93,7 +136,13 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
     receivedMinor: receivedAgg._sum.amountMinor ?? 0,
     unpaidInvoices,
     overdueInvoices,
-    revenueByMonth: buckets.map((b) => ({ month: b.month, value: b.value })),
+    revenueByMonth: buckets.map((b) => ({ month: b.month, value: b.value, billed: b.billed, count: b.count })),
+    trends: {
+      prospects: last7.map((b) => b.contacts),
+      quotes: last7.map((b) => b.quotes),
+      revenue: last7.map((b) => b.value),
+      invoices: last7.map((b) => b.invoices),
+    },
     recentActivity,
     mobileMoney,
     nowMs: now.getTime(),

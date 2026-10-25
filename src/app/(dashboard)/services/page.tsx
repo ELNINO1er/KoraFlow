@@ -34,7 +34,7 @@ export default async function ServicesPage({
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
             Catalogue de services
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -83,8 +83,8 @@ export default async function ServicesPage({
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto p-2">
+            <table className="kf-table text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Nom</th>

@@ -25,7 +25,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 pb-8">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Paramètres de l’organisation</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Paramètres de l’organisation</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gérez l’identité, la facturation et les préférences de {ctx.organization.name}.
         </p>

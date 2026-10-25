@@ -28,7 +28,7 @@ function getServerSnapshot() {
   return false;
 }
 
-/** Sidebar claire et repliable (desktop). Le profil vit dans le header. */
+/** Sidebar vert foncé (couleur du logo) et repliable (desktop). Le profil vit dans le header. */
 export function Sidebar({ organization }: { organization: ActiveOrganization }) {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -49,11 +49,11 @@ export function Sidebar({ organization }: { organization: ActiveOrganization }) 
         title={collapsed ? item.label : undefined}
         aria-label={item.label}
         className={cn(
-          "flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors",
+          "flex min-h-11 items-center gap-3 rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
           collapsed ? "justify-center px-2" : "px-3",
           active
-            ? "bg-accent text-accent-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            ? "bg-sidebar-active font-semibold text-white"
+            : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-white",
         )}
       >
         <Icon className="size-5 shrink-0" />
@@ -65,41 +65,43 @@ export function Sidebar({ organization }: { organization: ActiveOrganization }) 
   return (
     <aside
       className={cn(
-        "hidden h-dvh shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 lg:flex",
-        collapsed ? "w-16" : "w-64",
+        "hidden h-dvh shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
+        collapsed ? "w-[4.5rem]" : "w-64",
       )}
     >
-      <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-2" : "px-5")}>
+      <div className={cn("flex h-20 items-center", collapsed ? "justify-center px-2" : "px-5")}>
         {collapsed ? (
           <Link href="/dashboard" aria-label={`${organization.name} — tableau de bord`}>
-            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} showName={false} priority />
+            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} showName={false} priority imageClassName="bg-white text-sidebar" />
           </Link>
         ) : (
           <Link href="/dashboard" aria-label={`${organization.name} — tableau de bord`}>
-            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} priority className="max-w-full text-lg text-foreground" />
+            <OrganizationBrand id={organization.id} name={organization.name} hasLogo={Boolean(organization.logoUrl)} priority className="max-w-full text-lg text-white" imageClassName="bg-white text-sidebar" />
           </Link>
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
+      <nav className="kf-sidebar-scroll flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
+        {collapsed ? null : (
+          <p className="px-3 pb-1 text-xs font-medium tracking-wide text-sidebar-muted">Commercial</p>
+        )}
         {NAV_ITEMS.map(renderItem)}
 
-        <div className="my-3 border-t border-border" />
-        {collapsed ? null : (
-          <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Configuration
-          </p>
+        {collapsed ? (
+          <div className="mx-2 my-3 border-t border-sidebar-border" />
+        ) : (
+          <p className="px-3 pb-1 pt-5 text-xs font-medium tracking-wide text-sidebar-muted">Configuration</p>
         )}
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </nav>
 
-      <div className="border-t border-border p-2">
+      <div className="border-t border-sidebar-border p-3">
         <button
           type="button"
           onClick={toggle}
           aria-label={collapsed ? "Déployer le menu" : "Réduire le menu"}
           className={cn(
-            "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-xs font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
             collapsed ? "justify-center" : "",
           )}
         >

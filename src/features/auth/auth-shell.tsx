@@ -24,18 +24,18 @@ export function AuthShell({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="relative hidden overflow-hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-sidebar p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl"
+          className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-warm/20 blur-3xl"
         />
         <Link href="/" className="relative" aria-label="Alymero — accueil">
-          <BrandLogo priority className="text-2xl text-primary-foreground" iconClassName="size-11" />
+          <BrandLogo priority className="text-2xl text-white" iconClassName="size-11" />
         </Link>
 
         <AuthVisualStory tone={tone} phrases={phrases} />
 
-        <p className="relative text-sm text-primary-foreground/60">
+        <p className="relative text-sm text-white/60">
           Votre entreprise, parfaitement orchestrée.
         </p>
       </aside>
@@ -91,7 +91,7 @@ function AuthVisualStory({ tone, phrases }: { tone: "default" | "calm"; phrases?
     <div className="relative max-w-sm">
       <p
         className={`font-display text-2xl font-bold leading-snug ${
-          tone === "calm" ? "text-primary-foreground/90" : ""
+          tone === "calm" ? "text-white/90" : ""
         }`}
         aria-live="off"
       >
@@ -110,11 +110,11 @@ function AuthVisualStory({ tone, phrases }: { tone: "default" | "calm"; phrases?
       <div className="relative mt-8">
         <span
           aria-hidden
-          className="absolute bottom-3 left-[11px] top-3 w-px bg-primary-foreground/15"
+          className="absolute bottom-3 left-[11px] top-3 w-px bg-white/15"
         />
         <motion.span
           aria-hidden
-          className="absolute left-[11px] top-3 w-px origin-top bg-accent"
+          className="absolute left-[11px] top-3 w-px origin-top bg-warm"
           style={{ bottom: 12 }}
           animate={{ scaleY: reduced ? 1 : Math.min(1, active / Math.max(1, EVENTS.length - 1)) }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -130,10 +130,10 @@ function AuthVisualStory({ tone, phrases }: { tone: "default" | "calm"; phrases?
                 <span
                   className={`z-10 flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-500 ${
                     done
-                      ? "border-accent bg-accent text-accent-foreground"
+                      ? "border-warm bg-warm text-warm-foreground"
                       : current
-                        ? "border-accent bg-primary text-accent"
-                        : "border-primary-foreground/20 bg-primary text-primary-foreground/40"
+                        ? "border-warm bg-sidebar text-warm"
+                        : "border-white/20 bg-sidebar text-white/40"
                   }`}
                 >
                   {done ? <Check className="size-3.5" /> : <Icon className="size-3.5" />}
@@ -142,10 +142,10 @@ function AuthVisualStory({ tone, phrases }: { tone: "default" | "calm"; phrases?
                   initial={false}
                   animate={{ opacity: done || current ? 1 : 0.45 }}
                   transition={{ duration: 0.4 }}
-                  className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 px-3 py-2"
+                  className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                 >
-                  <span className="text-sm font-medium text-primary-foreground">{e.label}</span>
-                  <span className="text-[11px] text-primary-foreground/50">{e.meta}</span>
+                  <span className="text-sm font-medium text-white">{e.label}</span>
+                  <span className="text-[11px] text-white/50">{e.meta}</span>
                 </motion.div>
               </li>
             );

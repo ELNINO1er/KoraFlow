@@ -46,7 +46,7 @@ export default async function InvoiceDetailPage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-2xl font-bold text-foreground">{invoice.number}</h1>
+            <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">{invoice.number}</h1>
             <Badge variant={invoiceStatusVariant(invoice.status)}>{invoiceStatusLabel(invoice.status)}</Badge>
             {isInvoiceOverdue(invoice) ? <Badge variant="danger">En retard</Badge> : null}
           </div>

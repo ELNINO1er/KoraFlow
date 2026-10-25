@@ -19,7 +19,7 @@ export default async function NewAppointmentTypePage() {
           <ArrowLeft className="size-4" />
           Retour aux rendez-vous
         </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">Nouveau type de rendez-vous</h1>
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Nouveau type de rendez-vous</h1>
         <p className="text-sm text-muted-foreground">Vous définirez les disponibilités à l’étape suivante.</p>
       </div>
       <CreateTypeForm />
