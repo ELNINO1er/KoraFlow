@@ -18,8 +18,8 @@ export const dynamic = "force-dynamic";
  * Shell de la console d'administration de PLATEFORME.
  * Garde d'accès stricte : seul un admin plateforme (non suspendu) entre ici ;
  * tout autre visiteur reçoit un 404 (l'existence de la console n'est pas révélée).
- * Habillage volontairement distinct (bandeau sombre) pour signaler que l'on
- * opère AU-DESSUS des organisations.
+ * Habillage volontairement distinct (bandeau vert foncé de la marque souligné
+ * de terracotta) pour signaler que l'on opère AU-DESSUS des organisations.
  */
 export default async function AdminLayout({
   children,
@@ -30,7 +30,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-slate-900 text-white">
+      <header className="border-b-[3px] border-warm bg-sidebar text-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">

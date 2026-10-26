@@ -25,7 +25,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">
+          <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
             Utilisateurs ({result.total})
           </h1>
           <p className="text-sm text-muted-foreground">

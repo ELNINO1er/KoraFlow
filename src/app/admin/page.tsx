@@ -5,6 +5,7 @@ import { Money } from "@/components/ui/money";
 import { DateText } from "@/components/ui/date-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatBand, StatCard } from "@/components/dashboard/stat-card";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 
 export default async function AdminOverviewPage() {
@@ -14,17 +15,17 @@ export default async function AdminOverviewPage() {
   const revenueEntries = Object.entries(o.revenueByCurrency);
 
   const stats = [
-    { label: "Organisations", value: o.orgCount, icon: Building2, sub: o.orgSuspended > 0 ? `${o.orgSuspended} suspendue(s)` : "toutes actives" },
-    { label: "Utilisateurs", value: o.userCount, icon: Users, sub: o.userSuspended > 0 ? `${o.userSuspended} suspendu(s)` : "tous actifs" },
-    { label: "Admins plateforme", value: o.adminCount, icon: ShieldCheck, sub: "accès transverse" },
-    { label: "Contacts (toutes orgs)", value: o.contactCount, icon: Contact2, sub: "prospects + clients" },
-    { label: "Factures (toutes orgs)", value: o.invoiceCount, icon: FileText, sub: "tous statuts" },
+    { label: "Organisations", value: o.orgCount, icon: Building2, sub: o.orgSuspended > 0 ? `${o.orgSuspended} suspendue(s)` : "toutes actives", tint: o.orgSuspended > 0 ? "bg-warm/15 text-warm-strong" : "bg-primary/10 text-primary" },
+    { label: "Utilisateurs", value: o.userCount, icon: Users, sub: o.userSuspended > 0 ? `${o.userSuspended} suspendu(s)` : "tous actifs", tint: o.userSuspended > 0 ? "bg-warm/15 text-warm-strong" : "bg-primary/10 text-primary" },
+    { label: "Admins plateforme", value: o.adminCount, icon: ShieldCheck, sub: "accès transverse", tint: "bg-secondary text-foreground" },
+    { label: "Contacts (toutes orgs)", value: o.contactCount, icon: Contact2, sub: "prospects + clients", tint: "bg-success/15 text-success" },
+    { label: "Factures (toutes orgs)", value: o.invoiceCount, icon: FileText, sub: "tous statuts", tint: "bg-secondary text-foreground" },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
           Vue d&apos;ensemble de la plateforme
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -32,23 +33,11 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {stats.map((s) => {
-          const Icon = s.icon;
-          return (
-            <Card key={s.label}>
-              <CardContent className="flex flex-col gap-1 pt-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-                  <Icon className="size-4 text-muted-foreground" />
-                </div>
-                <span className="font-display text-2xl font-bold text-foreground">{s.value}</span>
-                <span className="text-xs text-muted-foreground">{s.sub}</span>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <StatBand className="lg:grid-cols-3 xl:grid-cols-5">
+        {stats.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value.toLocaleString("fr-FR")} sub={s.sub} icon={s.icon} tint={s.tint} />
+        ))}
+      </StatBand>
 
       <Card>
         <CardHeader>

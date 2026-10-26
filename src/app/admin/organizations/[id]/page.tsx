@@ -50,7 +50,7 @@ export default async function AdminOrganizationDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl font-bold text-foreground">{org.name}</h1>
+            <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">{org.name}</h1>
             {deleted ? (
               <Badge variant="danger">supprimée</Badge>
             ) : org.suspendedAt ? (

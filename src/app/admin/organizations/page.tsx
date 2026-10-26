@@ -23,7 +23,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
           {result.query.status === "deleted" ? "Corbeille" : "Organisations"} ({result.total})
         </h1>
         <p className="text-sm text-muted-foreground">

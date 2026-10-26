@@ -33,7 +33,7 @@ export default async function AdminOrgDataPage({
       </Link>
 
       <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">
+        <h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
           Données — {org.name}
         </h1>
         <p className="text-sm text-muted-foreground">
