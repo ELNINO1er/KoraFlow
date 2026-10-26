@@ -16,7 +16,7 @@ export default async function AdminsPage({ searchParams }: { searchParams: Promi
   const result = await listUsers({ ...params, status: "admin" });
   return <div className="flex flex-col gap-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <div><h1 className="font-display text-2xl font-bold">Administrateurs plateforme ({result.total})</h1>
+      <div><h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Administrateurs plateforme ({result.total})</h1>
         <p className="mt-1 text-sm text-muted-foreground">Ces comptes ont accès à toutes les organisations. Chaque attribution et retrait d’accès est journalisé.</p></div>
       <AddAdminForm />
     </div>

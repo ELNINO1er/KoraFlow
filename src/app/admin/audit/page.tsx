@@ -3,7 +3,6 @@ import Link from "next/link";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 import { listAuditLog } from "@/server/services/platform-admin";
 import { DateText } from "@/components/ui/date-text";
-import { Input } from "@/components/ui/input";
 import { AdminFilters, AdminPagination } from "@/features/admin/list-tools";
 import { PLATFORM_AUDIT_LABELS, auditTargetHref } from "@/lib/admin/audit";
 import type { AdminSearchParams } from "@/lib/admin/query";
@@ -16,20 +15,27 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
   const result = await listAuditLog(params);
   const { query, items } = result;
   return <div className="flex flex-col gap-6">
-    <div><h1 className="font-display text-2xl font-bold">Journal d’audit</h1>
+    <div><h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">Journal d’audit</h1>
       <p className="mt-1 text-sm text-muted-foreground">Retrouvez les interventions, leurs auteurs et le détail des modifications. Les dates sont filtrées en UTC.</p></div>
-    <AdminFilters path="/admin/audit" {...query} placeholder="Opération, type ou identifiant de cible…">
-      <label className="flex flex-col gap-1.5 text-xs font-medium">Acteur (e-mail)<Input name="actor" defaultValue={query.actor} maxLength={200} className="h-11 sm:w-48" /></label>
-      <label className="flex flex-col gap-1.5 text-xs font-medium">Organisation (nom ou ID)<Input name="organization" defaultValue={query.organization} maxLength={200} className="h-11 sm:w-48" /></label>
-      <label className="flex max-w-full flex-col gap-1.5 text-xs font-medium">Opération
-        <select name="action" defaultValue={query.action} className="h-11 max-w-full rounded-lg border border-input bg-background px-3 text-sm sm:w-56">
-          <option value="">Toutes les opérations</option>
-          {Object.entries(PLATFORM_AUDIT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1.5 text-xs font-medium">Du<Input type="date" name="from" defaultValue={query.from} className="h-11 w-40" /></label>
-      <label className="flex flex-col gap-1.5 text-xs font-medium">Au<Input type="date" name="to" defaultValue={query.to} className="h-11 w-40" /></label>
-    </AdminFilters>
+    <AdminFilters
+      path="/admin/audit"
+      {...query}
+      placeholder="Opération, type ou identifiant de cible…"
+      extras={[
+        { kind: "text", name: "actor", label: "Acteur (e-mail)", value: query.actor, className: "sm:w-48" },
+        { kind: "text", name: "organization", label: "Organisation (nom ou ID)", value: query.organization, className: "sm:w-48" },
+        {
+          kind: "select",
+          name: "action",
+          label: "Opération",
+          value: query.action,
+          options: [{ value: "", label: "Toutes les opérations" }, ...Object.entries(PLATFORM_AUDIT_LABELS).map(([value, label]) => ({ value, label }))],
+          className: "sm:w-56",
+        },
+        { kind: "date", name: "from", label: "Du", value: query.from },
+        { kind: "date", name: "to", label: "Au", value: query.to },
+      ]}
+    />
     <div className="overflow-x-auto rounded-xl border border-border bg-surface p-4">
       <table className="w-full min-w-[760px] text-left text-sm">
         <thead><tr className="border-b border-border text-xs text-muted-foreground">

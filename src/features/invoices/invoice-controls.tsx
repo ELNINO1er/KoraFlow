@@ -13,6 +13,7 @@ import {
 } from "@/features/invoices/actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { FormSelect } from "@/components/ui/form-select";
 import { SensitiveActionDialog } from "@/components/ui/sensitive-action-dialog";
 
 export function SendInvoiceButton({ id, hasEmail }: { id: string; hasEmail: boolean }) {
@@ -60,11 +61,14 @@ export function InvoiceStatusControl({ id, current }: { id: string; current: Inv
   const statuses = manualInvoiceStatusesFor(current);
   return (
     <div className="flex flex-col items-end gap-1">
-      <select
+      <FormSelect
         value={current}
         disabled={pending || statuses.length <= 1}
-        onChange={(e) => {
-          const next = e.target.value as InvoiceStatus;
+        aria-label="Statut de la facture"
+        options={statuses}
+        className="h-9 w-auto min-w-40"
+        onValueChange={(value) => {
+          const next = value as InvoiceStatus;
           if (next === current) return;
           setError(null);
           startTransition(async () => {
@@ -78,14 +82,7 @@ export function InvoiceStatusControl({ id, current }: { id: string; current: Inv
             router.refresh();
           });
         }}
-        className="h-9 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-      >
-        {statuses.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
+      />
       {error ? <span className="max-w-64 text-right text-xs text-danger">{error}</span> : null}
     </div>
   );

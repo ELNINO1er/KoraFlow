@@ -15,7 +15,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   return <div className="flex flex-col gap-6">
     <Link href="/admin/users" className="text-sm text-muted-foreground hover:underline">← Tous les utilisateurs</Link>
     <div className="flex items-start justify-between gap-3">
-      <div><h1 className="font-display text-2xl font-bold">{user.name ?? user.email}</h1>
+      <div><h1 className="font-display text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">{user.name ?? user.email}</h1>
         <p className="break-all text-sm text-muted-foreground">{user.email}</p>
         <p className="mt-1 text-xs text-muted-foreground">Inscrit le <DateText value={user.createdAt} /> · {user.id}</p>
         <div className="mt-3 flex flex-wrap gap-2"><Badge variant={user.suspendedAt ? "danger" : "success"}>{user.suspendedAt ? "Suspendu" : "Actif"}</Badge>

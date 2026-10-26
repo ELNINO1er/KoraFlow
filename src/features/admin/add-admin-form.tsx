@@ -6,6 +6,7 @@ import { ShieldPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { FormSelect } from "@/components/ui/form-select";
 import { Button } from "@/components/ui/button";
 import { createPlatformAdminAction, promoteAdminByEmailAction } from "./actions";
 
@@ -54,9 +55,12 @@ function AdminFormContent({ onDone }: { onDone: (message: string) => void }) {
       <fieldset disabled={pending} className="flex flex-col gap-4">
         <legend className="sr-only">Informations de l’administrateur</legend>
         <Field id="admin-mode" label="Type d’ajout">
-          <select className="h-11 rounded-lg border border-input bg-background px-3 text-sm" value={mode} onChange={(e) => { setMode(e.target.value); setError(null); setInitialPassword(""); }}>
-            <option value="existing">Compte existant</option><option value="new">Nouveau compte</option>
-          </select>
+          <FormSelect
+            value={mode}
+            onValueChange={(v) => { setMode(v); setError(null); setInitialPassword(""); }}
+            options={[{ value: "existing", label: "Compte existant" }, { value: "new", label: "Nouveau compte" }]}
+            className="h-11"
+          />
         </Field>
         <Field id="new-admin-email" label="E-mail du nouvel administrateur" required>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} required />

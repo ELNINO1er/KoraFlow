@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileSignature, Loader2 } from "lucide-react";
 import { generateContractAction } from "@/features/contracts/actions";
 import { Button } from "@/components/ui/button";
+import { FormSelect } from "@/components/ui/form-select";
 
 export function GenerateContractButton({
   quoteId,
@@ -35,17 +36,13 @@ export function GenerateContractButton({
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2">
         {templates.length > 0 ? (
-          <select
+          <FormSelect
             value={templateId}
-            onChange={(e) => setTemplateId(e.target.value)}
-            className="rounded-md border border-input bg-surface px-2 py-1.5 text-sm text-foreground"
+            onValueChange={setTemplateId}
             aria-label="Modèle de contrat"
-          >
-            <option value="">Modèle par défaut</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+            options={[{ value: "", label: "Modèle par défaut" }, ...templates.map((t) => ({ value: t.id, label: t.name }))]}
+            className="h-9 w-auto min-w-48"
+          />
         ) : null}
         <Button type="button" size="sm" variant="outline" onClick={generate} disabled={pending}>
           {pending ? <Loader2 className="size-4 animate-spin" /> : <FileSignature className="size-4" />}

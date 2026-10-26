@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Loader2 } from "lucide-react";
 import type { ProjectStatus } from "@prisma/client";
 import { PROJECT_STATUSES } from "@/lib/constants/projects";
+import { FormSelect } from "@/components/ui/form-select";
 import { changeProjectStatusAction, deleteProjectAction } from "@/features/projects/actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -14,11 +15,14 @@ export function ProjectStatusControl({ id, current }: { id: string; current: Pro
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
   return (
-    <select
+    <FormSelect
       value={current}
       disabled={pending}
-      onChange={(e) => {
-        const next = e.target.value as ProjectStatus;
+      aria-label="Statut du projet"
+      options={PROJECT_STATUSES}
+      className="h-9 w-auto min-w-40"
+      onValueChange={(value) => {
+        const next = value as ProjectStatus;
         if (next === current) return;
         startTransition(async () => {
           const result = await changeProjectStatusAction(id, next);
@@ -30,14 +34,7 @@ export function ProjectStatusControl({ id, current }: { id: string; current: Pro
           router.refresh();
         });
       }}
-      className="h-9 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-    >
-      {PROJECT_STATUSES.map((s) => (
-        <option key={s.value} value={s.value}>
-          {s.label}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
 

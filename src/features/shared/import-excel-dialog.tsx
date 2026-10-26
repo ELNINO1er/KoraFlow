@@ -7,6 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { FormSelect } from "@/components/ui/form-select";
 
 export interface RowPreview {
   excelRow: number;
@@ -142,9 +143,13 @@ export function ImportExcelDialog({
                 {preview.sheetNames.length > 1 ? (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">Feuille :</span>
-                    <select value={preview.sheetName} onChange={(e) => file && runPreview(file, preview.mapping, e.target.value)} className="rounded-md border border-input bg-surface px-2 py-1">
-                      {preview.sheetNames.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <FormSelect
+                      value={preview.sheetName}
+                      onValueChange={(v) => file && runPreview(file, preview.mapping, v)}
+                      aria-label="Feuille du classeur"
+                      options={preview.sheetNames.map((s) => ({ value: s, label: s }))}
+                      className="h-9 w-auto min-w-40"
+                    />
                   </div>
                 ) : null}
 
@@ -154,10 +159,13 @@ export function ImportExcelDialog({
                     {Object.entries(fieldLabels).map(([key, label]) => (
                       <label key={key} className="flex items-center justify-between gap-2 text-sm">
                         <span className="text-muted-foreground">{label}</span>
-                        <select value={preview.mapping[key] ?? ""} onChange={(e) => remap(key, e.target.value)} className="min-w-32 rounded-md border border-input bg-surface px-2 py-1">
-                          <option value="">— (ignorer)</option>
-                          {preview.header.map((h, i) => <option key={i} value={i}>{h || `Colonne ${i + 1}`}</option>)}
-                        </select>
+                        <FormSelect
+                          value={preview.mapping[key] == null ? "" : String(preview.mapping[key])}
+                          onValueChange={(v) => remap(key, v)}
+                          aria-label={`Colonne pour ${label}`}
+                          options={[{ value: "", label: "— (ignorer)" }, ...preview.header.map((h, i) => ({ value: String(i), label: h || `Colonne ${i + 1}` }))]}
+                          className="h-9 w-auto min-w-40"
+                        />
                       </label>
                     ))}
                   </div>

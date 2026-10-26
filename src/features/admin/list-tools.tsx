@@ -1,36 +1,118 @@
+"use client";
+
+import { useRef, useTransition } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { FormSelect } from "@/components/ui/form-select";
+import { cn } from "@/lib/utils";
 import { adminPageHref, type AdminSearchParams } from "@/lib/admin/query";
 
-const selectClass = "h-11 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** Filtre supplémentaire propre à une page (journal d'audit : acteur, opération, dates…). */
+export type AdminExtraFilter =
+  | { kind: "text"; name: string; label: string; value: string; className?: string }
+  | { kind: "date"; name: string; label: string; value: string }
+  | { kind: "select"; name: string; label: string; value: string; options: { value: string; label: string }[]; className?: string };
 
-export function AdminFilters({ path, q, status, sort, statuses, children, placeholder = "Nom, e-mail ou identifiant…" }: {
-  path: string; q: string; status: string; sort: string;
-  statuses?: { value: string; label: string }[]; children?: React.ReactNode; placeholder?: string;
+const TEXT_DELAY_MS = 350;
+
+/**
+ * Filtres des listes de la console, appliqués automatiquement : la recherche
+ * texte après une courte pause de frappe, les listes et dates immédiatement.
+ * Les paramètres vides sont retirés de l'URL et la pagination repart de 1.
+ */
+export function AdminFilters({
+  path,
+  q,
+  status,
+  sort,
+  statuses,
+  extras,
+  placeholder = "Nom, e-mail ou identifiant…",
+}: {
+  path: string;
+  q: string;
+  status: string;
+  sort: string;
+  statuses?: { value: string; label: string }[];
+  extras?: AdminExtraFilter[];
+  placeholder?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const formRef = useRef<HTMLFormElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function apply() {
+    if (timer.current) clearTimeout(timer.current);
+    const form = formRef.current;
+    if (!form) return;
+    const sp = new URLSearchParams();
+    for (const [key, value] of new FormData(form)) {
+      const v = String(value).trim();
+      if (v && !(key === "sort" && v === "newest")) sp.set(key, v);
+    }
+    const qs = sp.toString();
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+  }
+
+  function applySoon() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(apply, TEXT_DELAY_MS);
+  }
+
+  // Les listes stylées mettent à jour un champ masqué : on attend le rendu avant de relire le formulaire.
+  const applyAfterRender = () => requestAnimationFrame(apply);
+
   return (
-    <form action={path} method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
+    <form
+      ref={formRef}
+      action={path}
+      method="get"
+      onSubmit={(e) => { e.preventDefault(); apply(); }}
+      className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4"
+    >
       <label className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5 text-xs font-medium">
         Rechercher
-        <Input name="q" defaultValue={q} placeholder={placeholder} maxLength={200} className="h-11" />
+        <span className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input name="q" type="search" defaultValue={q} placeholder={placeholder} maxLength={200} onChange={applySoon} className="h-11 pl-9" />
+        </span>
       </label>
-      {statuses ? <label className="flex flex-col gap-1.5 text-xs font-medium">
-        Statut
-        <select name="status" defaultValue={status} className={selectClass}>
-          {statuses.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-      </label> : null}
-      {children}
+      {statuses ? (
+        <label className="flex flex-col gap-1.5 text-xs font-medium">
+          Statut
+          <FormSelect name="status" defaultValue={status} options={statuses} onValueChange={applyAfterRender} className="h-11 min-w-48" />
+        </label>
+      ) : null}
+      {extras?.map((f) => (
+        <label key={f.name} className="flex max-w-full flex-col gap-1.5 text-xs font-medium">
+          {f.label}
+          {f.kind === "select" ? (
+            <FormSelect name={f.name} defaultValue={f.value} options={f.options} onValueChange={applyAfterRender} className={cn("h-11 max-w-full", f.className)} />
+          ) : f.kind === "date" ? (
+            <Input type="date" name={f.name} defaultValue={f.value} onChange={apply} className="h-11 w-40" />
+          ) : (
+            <Input name={f.name} defaultValue={f.value} maxLength={200} onChange={applySoon} className={cn("h-11", f.className)} />
+          )}
+        </label>
+      ))}
       <label className="flex flex-col gap-1.5 text-xs font-medium">
         Tri
-        <select name="sort" defaultValue={sort === "asc" ? "oldest" : "newest"} className={selectClass}>
-          <option value="newest">Plus récents</option><option value="oldest">Plus anciens</option>
-        </select>
+        <FormSelect
+          name="sort"
+          defaultValue={sort === "asc" ? "oldest" : "newest"}
+          options={[{ value: "newest", label: "Plus récents" }, { value: "oldest", label: "Plus anciens" }]}
+          onValueChange={applyAfterRender}
+          className="h-11 min-w-36"
+        />
       </label>
-      <Button type="submit" className="h-11"><Search className="size-4" /> Filtrer</Button>
-      <Link href={path} className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground hover:underline">Réinitialiser</Link>
+      <div className="flex min-h-11 items-center gap-2">
+        {pending ? <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Filtrage…" /> : null}
+        <Link href={path} className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground hover:underline">Réinitialiser</Link>
+      </div>
     </form>
   );
 }

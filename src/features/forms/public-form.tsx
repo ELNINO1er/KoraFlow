@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FormSelect } from "@/components/ui/form-select";
 
 export interface PublicField {
   id: string;
@@ -77,20 +78,14 @@ export function PublicForm({ slug, fields }: { slug: string; fields: PublicField
           {f.type === "TEXTAREA" ? (
             <Textarea id={f.id} required={f.required} placeholder={f.placeholder ?? undefined} value={values[f.id] ?? ""} onChange={(e) => set(f.id, e.target.value)} />
           ) : f.type === "SELECT" ? (
-            <select
+            <FormSelect
               id={f.id}
               required={f.required}
-              value={values[f.id] ?? ""}
-              onChange={(e) => set(f.id, e.target.value)}
-              className="h-10 rounded-lg border border-input bg-surface px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">— Sélectionner —</option>
-              {f.options.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
+              value={values[f.id] || undefined}
+              onValueChange={(v) => set(f.id, v)}
+              placeholder="Sélectionner…"
+              options={f.options.map((o) => ({ value: o, label: o }))}
+            />
           ) : f.type === "CONSENT" ? (
             <label className="flex items-start gap-2 text-sm text-foreground">
               <input
