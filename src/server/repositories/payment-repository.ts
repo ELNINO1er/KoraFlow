@@ -1,6 +1,7 @@
 import { Prisma, type PaymentMethod, type PaymentStatus } from "@prisma/client";
 import { prisma } from "../database/client";
 import { serializableTransaction } from "../database/transaction";
+import { syncInvoicePayment } from "./invoice-repository";
 
 /**
  * Couche d'accès aux paiements — enforcement multi-tenant (organizationId
@@ -40,6 +41,8 @@ export class PaymentCreateError extends Error {
  */
 export function createPayment(organizationId: string, data: PaymentCreateData) {
   return serializableTransaction(async (tx) => {
+      // Verrou sur la facture : déclarations et saisies d'une même facture se suivent.
+      await tx.$queryRaw`SELECT id FROM invoice WHERE id = ${data.invoiceId} AND organizationId = ${organizationId} FOR UPDATE`;
       const invoice = await tx.invoice.findFirst({
         where: { id: data.invoiceId, organizationId, deletedAt: null },
         select: { id: true, totalMinor: true, status: true },
@@ -76,7 +79,7 @@ export function createPayment(organizationId: string, data: PaymentCreateData) {
         throw new PaymentCreateError("AMOUNT_EXCEEDS_BALANCE");
       }
 
-      return tx.payment.create({
+      const payment = await tx.payment.create({
         data: {
           organizationId,
           invoiceId: invoice.id,
@@ -90,6 +93,9 @@ export function createPayment(organizationId: string, data: PaymentCreateData) {
           confirmedAt: data.confirmedAt ?? null,
         },
       });
+      // Encaissement saisi directement comme confirmé : le solde suit dans la même transaction.
+      if (payment.status === "CONFIRMED") await syncInvoicePayment(tx, organizationId, invoice.id);
+      return payment;
   });
 }
 
@@ -99,7 +105,11 @@ export function getPaymentById(organizationId: string, id: string) {
   });
 }
 
-/** Confirme un paiement EN ATTENTE (scopé). Renvoie true si appliqué. */
+/**
+ * Confirme un paiement EN ATTENTE (scopé) ET met à jour le solde de la facture
+ * dans la même transaction : une interruption ne peut plus laisser un paiement
+ * confirmé que la facture ignore. Renvoie le nouveau statut, ou null.
+ */
 export async function confirmPayment(
   organizationId: string,
   id: string,
@@ -110,26 +120,30 @@ export async function confirmPayment(
         where: { id, organizationId, status: "PENDING" },
         select: { id: true, invoiceId: true, amountMinor: true },
       });
-      if (!payment) return false;
+      if (!payment) return null;
+      // Verrou sur la facture : les confirmations d'une même facture se suivent.
+      await tx.$queryRaw`SELECT id FROM invoice WHERE id = ${payment.invoiceId} AND organizationId = ${organizationId} FOR UPDATE`;
 
       const invoice = await tx.invoice.findFirst({
         where: { id: payment.invoiceId, organizationId, deletedAt: null },
         select: { totalMinor: true, status: true },
       });
-      if (!invoice || ["DRAFT", "CANCELED", "PAID"].includes(invoice.status)) return false;
+      if (!invoice || ["DRAFT", "CANCELED", "PAID"].includes(invoice.status)) return null;
 
       const confirmed = await tx.payment.aggregate({
         where: { organizationId, invoiceId: payment.invoiceId, status: "CONFIRMED" },
         _sum: { amountMinor: true },
       });
       const paidMinor = confirmed._sum.amountMinor ?? 0;
-      if (payment.amountMinor > invoice.totalMinor - paidMinor) return false;
+      if (payment.amountMinor > invoice.totalMinor - paidMinor) return null;
 
       const result = await tx.payment.updateMany({
         where: { id, organizationId, status: "PENDING" },
         data: { status: "CONFIRMED", confirmedById, confirmedAt: new Date() },
       });
-      return result.count > 0;
+      if (result.count === 0) return null;
+      const updated = await syncInvoicePayment(tx, organizationId, payment.invoiceId);
+      return { invoiceId: payment.invoiceId, invoiceStatus: updated?.status ?? null };
   });
 }
 

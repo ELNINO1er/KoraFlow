@@ -64,20 +64,21 @@ export async function ensurePortalToken(organizationId: string, contactId: strin
 export function getContactByPortalToken(token: string) {
   return prisma.contact.findFirst({
     where: { portalToken: token, deletedAt: null },
+    // Le portail ne montre que des documents émis : jamais de brouillon.
     include: {
       organization: { select: { id: true, name: true, logoUrl: true, locale: true, currency: true } },
       quotes: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, status: { not: "DRAFT" } },
         orderBy: { createdAt: "desc" },
         select: { id: true, number: true, status: true, totalMinor: true, currency: true, publicToken: true },
       },
       contracts: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, status: { not: "DRAFT" } },
         orderBy: { createdAt: "desc" },
         select: { id: true, number: true, title: true, status: true, publicToken: true },
       },
       invoices: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, status: { not: "DRAFT" } },
         orderBy: { createdAt: "desc" },
         select: { id: true, number: true, status: true, totalMinor: true, paidMinor: true, currency: true, publicToken: true },
       },

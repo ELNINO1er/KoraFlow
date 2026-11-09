@@ -45,12 +45,12 @@ export async function getDashboardData(ctx: AuthContext): Promise<DashboardData>
   ] = await Promise.all([
     prisma.contact.count({ where: { organizationId, type: "PROSPECT", deletedAt: null } }),
     prisma.quote.count({ where: { organizationId, status: { in: ["SENT", "VIEWED"] }, deletedAt: null } }),
-    prisma.payment.aggregate({ where: { organizationId, status: "CONFIRMED" }, _sum: { amountMinor: true } }),
+    prisma.payment.aggregate({ where: { organizationId, status: "CONFIRMED", invoice: { deletedAt: null } }, _sum: { amountMinor: true } }),
     prisma.invoice.count({ where: { organizationId, status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] }, deletedAt: null } }),
     // Retard dérivé : SENT/PARTIALLY_PAID (solde dû) dont l'échéance est passée.
     prisma.invoice.count({ where: { organizationId, status: { in: ["SENT", "PARTIALLY_PAID"] }, dueDate: { lt: new Date() }, deletedAt: null } }),
     prisma.payment.findMany({
-      where: { organizationId, status: "CONFIRMED" },
+      where: { organizationId, status: "CONFIRMED", invoice: { deletedAt: null } },
       select: { amountMinor: true, createdAt: true },
     }),
     prisma.auditLog.findMany({

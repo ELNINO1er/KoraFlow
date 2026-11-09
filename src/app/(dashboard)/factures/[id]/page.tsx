@@ -61,7 +61,7 @@ export default async function InvoiceDetailPage({
             </Button>
             {canUpdate ? <SendInvoiceButton id={invoice.id} hasEmail={Boolean(invoice.contact.email)} /> : null}
             {canUpdate ? <InvoiceStatusControl id={invoice.id} current={invoice.status} /> : null}
-            {canDelete ? <DeleteInvoiceButton id={invoice.id} /> : null}
+            {canDelete && invoice.status === "DRAFT" && invoice.paidMinor === 0 ? <DeleteInvoiceButton id={invoice.id} /> : null}
           </div>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -157,5 +157,12 @@ export async function changeInvoiceStatus(ctx: AuthContext, id: string, status: 
 
 export async function deleteInvoice(ctx: AuthContext, id: string) {
   assertCan(ctx.role, "invoices.delete");
-  return invoices.softDeleteInvoice(ctx.organizationId, id);
+  const deleted = await invoices.softDeleteInvoice(ctx.organizationId, id);
+  if (!deleted) {
+    throw new InvoiceError("Seul un brouillon sans paiement peut être supprimé. Annulez la facture pour la retirer du suivi.");
+  }
+  await prisma.auditLog.create({
+    data: { organizationId: ctx.organizationId, actorUserId: ctx.user.id, action: "invoice.deleted", targetType: "Invoice", targetId: id },
+  });
+  return true;
 }

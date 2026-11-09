@@ -90,6 +90,7 @@ export function InvoiceStatusControl({ id, current }: { id: string; current: Inv
 
 export function DeleteInvoiceButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
   return (
     <Button
       type="button"
@@ -100,7 +101,8 @@ export function DeleteInvoiceButton({ id }: { id: string }) {
       onClick={() => {
         if (!window.confirm("Supprimer cette facture ?")) return;
         startTransition(async () => {
-          await deleteInvoiceAction(id);
+          const result = await deleteInvoiceAction(id);
+          if (result && !result.ok) toast({ title: "Suppression impossible", description: result.error, variant: "danger" });
         });
       }}
     >

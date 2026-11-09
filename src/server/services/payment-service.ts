@@ -6,7 +6,6 @@ import { prisma } from "../database/client";
 import * as payments from "../repositories/payment-repository";
 import {
   getInvoiceByToken,
-  recomputeInvoicePayment,
 } from "../repositories/invoice-repository";
 import { ensureProjectForInvoice } from "./project-service";
 import { notifyOrg } from "./notification-service";
@@ -33,6 +32,7 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
   const payment = await payments.getPaymentById(ctx.organizationId, paymentId);
   if (!payment) return { ok: false as const, error: "Paiement introuvable." };
 
+  // Confirmation et nouveau solde de la facture : une seule transaction.
   const done = await payments.confirmPayment(ctx.organizationId, paymentId, ctx.user.id);
   if (!done) {
     return {
@@ -41,7 +41,6 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
     };
   }
 
-  const invoice = await recomputeInvoicePayment(ctx.organizationId, payment.invoiceId);
   await prisma.auditLog.create({
     data: {
       organizationId: ctx.organizationId,
@@ -54,7 +53,7 @@ export async function confirmPayment(ctx: AuthContext, paymentId: string) {
   });
 
   // Facture soldée -> création automatique du projet (idempotente).
-  if (invoice?.status === "PAID") {
+  if (done.invoiceStatus === "PAID") {
     await ensureProjectForInvoice(ctx.organizationId, payment.invoiceId, ctx.user.id);
   }
   return { ok: true as const };
@@ -107,7 +106,8 @@ export async function recordPayment(
     if (message) return { ok: false as const, error: message };
     throw error;
   }
-  const invoice = await recomputeInvoicePayment(ctx.organizationId, invoiceId);
+  // Le solde a été mis à jour dans la transaction de création.
+  const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, organizationId: ctx.organizationId }, select: { status: true } });
   await prisma.auditLog.create({
     data: {
       organizationId: ctx.organizationId,

@@ -152,9 +152,10 @@ export async function updateDraftContract(
   return getContractById(organizationId, id);
 }
 
+/** Retire un contrat en brouillon ou annulé ; un contrat envoyé ou signé est conservé. */
 export async function softDeleteContract(organizationId: string, id: string) {
   const result = await prisma.contract.updateMany({
-    where: { id, organizationId, deletedAt: null },
+    where: { id, organizationId, deletedAt: null, status: { in: ["DRAFT", "CANCELED"] } },
     data: { deletedAt: new Date() },
   });
   return result.count > 0;
@@ -164,7 +165,7 @@ export async function softDeleteContract(organizationId: string, id: string) {
 
 export function getContractByToken(token: string) {
   return prisma.contract.findFirst({
-    where: { publicToken: token, deletedAt: null },
+    where: { publicToken: token, deletedAt: null, status: { not: "DRAFT" } },
     include: {
       contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },
       organization: { select: { id: true, name: true, logoUrl: true, locale: true } },

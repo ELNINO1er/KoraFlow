@@ -64,7 +64,7 @@ export default async function ContractDetailPage({
             {canUpdate && (contract.status === "DRAFT" || contract.status === "SENT") ? (
               <SendForSignatureButton id={contract.id} resend={contract.status === "SENT"} />
             ) : null}
-            {canDelete && contract.status !== "SIGNED" ? <DeleteContractButton id={contract.id} /> : null}
+            {canDelete && (contract.status === "DRAFT" || contract.status === "CANCELED") ? <DeleteContractButton id={contract.id} /> : null}
           </div>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{contract.title}</p>

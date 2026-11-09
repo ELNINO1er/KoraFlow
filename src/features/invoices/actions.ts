@@ -10,10 +10,11 @@ import { InvoiceError } from "@/server/services/invoice-service";
 import { generateInvoicePdf } from "@/server/services/invoice-pdf";
 import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
-import { PermissionError } from "@/server/permissions/permissions";
+import { PermissionError, can } from "@/server/permissions/permissions";
 import { MoneyBoundsError } from "@/lib/quotes/totals";
 import { collectUnsupportedCharacters, unsupportedCharactersMessage } from "@/lib/pdf/winansi";
-import { archiveDocument, snapshotFingerprint } from "@/server/services/document-archive-service";
+import { archiveDocument, getStoredVersionPdf } from "@/server/services/document-archive-service";
+import { invoiceVersion } from "@/server/services/document-download";
 
 const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
 const updateInvoiceSchema = z.object({
@@ -111,12 +112,18 @@ export async function sendInvoiceAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
+  // Envoyer engage le document : le droit de le modifier est exigé AVANT toute
+  // génération ou tout e-mail, quel que soit son statut.
+  if (!can(ctx.role, "invoices.update")) return { ok: false, error: "Permission insuffisante." };
   const invoice = await invoiceService.getInvoice(ctx, id);
   if (!invoice) return { ok: false, error: "Facture introuvable." };
   if (invoice.status === "CANCELED") {
     return { ok: false, error: "Une facture annulée ne peut pas être envoyée." };
   }
   const unsupported = collectUnsupportedCharacters([
+    invoice.title,
+    invoice.introduction,
+    invoice.terms,
     invoice.notes,
     invoice.footerText,
     ...invoice.items.map((it) => it.description),
@@ -127,10 +134,25 @@ export async function sendInvoiceAction(
   const pdf = await generateInvoicePdf(ctx, id);
   if (!pdf) return { ok: false, error: "Facture introuvable." };
   if (!pdf.contactEmail) return { ok: false, error: "Le client n'a pas d'adresse e-mail." };
-  // Pièce jointe = fichier conservé si une archive existe déjà (renvoi), sinon
-  // le PDF fraîchement généré (identique à ce qui sera archivé juste après).
-  const { getStoredArchivePdf } = await import("@/server/services/document-archive-service");
-  const attachmentBytes = (await getStoredArchivePdf(ctx.organizationId, "INVOICE", id)) ?? pdf.buffer;
+  // Pièce jointe = la version COURANTE : son archive si elle existe (renvoi),
+  // sinon le PDF généré, archivé AVANT l'envoi pour que l'e-mail et la
+  // référence conservée soient les mêmes octets. Une facture corrigée a une
+  // autre empreinte : elle n'est jamais envoyée avec l'ancien PDF.
+  const version = invoiceVersion(invoice);
+  let attachmentBytes = await getStoredVersionPdf(ctx.organizationId, "INVOICE", id, version.contentHash);
+  if (!attachmentBytes) {
+    attachmentBytes = pdf.buffer;
+    const archived = await archiveDocument({
+      organizationId: ctx.organizationId,
+      documentType: "INVOICE",
+      documentId: invoice.id,
+      reason: "SENT",
+      contentHash: version.contentHash,
+      snapshot: version.snapshot,
+      pdf: pdf.buffer,
+    }).catch((error: unknown) => ({ ok: false as const, error: error instanceof Error ? error.message : "unknown" }));
+    if (!archived.ok) console.warn("invoice.archive_failed", { invoiceId: id, error: archived.error });
+  }
 
   const appUrl = process.env.APP_URL ?? "";
   if (pdf.publicToken && !appUrl) {
@@ -155,34 +177,6 @@ export async function sendInvoiceAction(
     });
     if (invoice.status === "DRAFT") {
       await invoiceService.changeInvoiceStatus(ctx, id, "SENT");
-    }
-    // Conservation : à l'ÉMISSION, archive le PDF de la facture (version figée).
-    // Non bloquant. Une facture corrigée puis renvoyée produit une nouvelle
-    // version (empreinte différente) sans écraser la précédente.
-    try {
-      const snapshot = {
-        number: invoice.number,
-        clientName: invoice.contact.companyName || `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
-        currency: invoice.currency,
-        subtotalMinor: invoice.subtotalMinor,
-        discountMinor: invoice.discountMinor,
-        taxMinor: invoice.taxMinor,
-        totalMinor: invoice.totalMinor,
-        depositMinor: invoice.depositMinor,
-        dueDate: invoice.dueDate?.toISOString() ?? null,
-        notes: invoice.notes ?? null,
-      };
-      await archiveDocument({
-        organizationId: ctx.organizationId,
-        documentType: "INVOICE",
-        documentId: invoice.id,
-        reason: "SENT",
-        contentHash: snapshotFingerprint(snapshot),
-        snapshot,
-        pdf: pdf.buffer,
-      });
-    } catch (error) {
-      console.warn("invoice.archive_failed", { invoiceId: id, error: error instanceof Error ? error.message : "unknown" });
     }
   } catch (e) {
     if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
@@ -211,12 +205,13 @@ export async function changeInvoiceStatusAction(id: string, status: InvoiceStatu
   return { ok: true };
 }
 
-export async function deleteInvoiceAction(id: string) {
+export async function deleteInvoiceAction(id: string): Promise<{ ok: false; error: string } | void> {
   const ctx = await getContext();
   try {
     await invoiceService.deleteInvoice(ctx, id);
   } catch (e) {
-    if (e instanceof PermissionError) return;
+    if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (e instanceof InvoiceError) return { ok: false, error: e.message };
     throw e;
   }
   revalidatePath("/factures");

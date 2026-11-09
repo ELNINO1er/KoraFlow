@@ -104,6 +104,14 @@ export function getArchiveByToken(token: string) {
   return prisma.documentArchive.findFirst({ where: { publicToken: token, status: "STORED" } });
 }
 
+/** Archive STORED d'une version précise (empreinte de contenu) d'un document. */
+export function findStoredArchiveByHash(sel: ArchiveSelector, contentHash: string) {
+  return prisma.documentArchive.findFirst({
+    where: { ...sel, contentHash, status: "STORED" },
+    orderBy: { version: "desc" },
+  });
+}
+
 /** Dernière archive STORED d'un document (version de référence à servir). */
 export function getLatestStoredArchive(sel: ArchiveSelector) {
   return prisma.documentArchive.findFirst({

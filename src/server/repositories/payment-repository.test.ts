@@ -83,7 +83,7 @@ describe("isolation multi-tenant des paiements", () => {
   });
 
   it("confirmPayment(A, paiementDeB) n'affecte rien", async () => {
-    expect(await repo.confirmPayment(orgAId, paymentBId, userBId)).toBe(false);
+    expect(await repo.confirmPayment(orgAId, paymentBId, userBId)).toBeNull();
     expect((await repo.getPaymentById(orgBId, paymentBId))?.status).toBe("PENDING");
   });
 
@@ -92,7 +92,7 @@ describe("isolation multi-tenant des paiements", () => {
   });
 
   it("confirmPayment(B, paiementDeB) réussit", async () => {
-    expect(await repo.confirmPayment(orgBId, paymentBId, userBId)).toBe(true);
+    expect(await repo.confirmPayment(orgBId, paymentBId, userBId)).toMatchObject({ invoiceId: expect.any(String) });
     expect((await repo.getPaymentById(orgBId, paymentBId))?.status).toBe("CONFIRMED");
   });
 });

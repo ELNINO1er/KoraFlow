@@ -259,7 +259,8 @@ export async function updateQuoteStatus(
 
 export function getQuoteByPublicToken(token: string) {
   return prisma.quote.findFirst({
-    where: { publicToken: token, deletedAt: null },
+    // Un brouillon n'est jamais exposé par son lien (page, PDF, réponse).
+    where: { publicToken: token, deletedAt: null, status: { not: "DRAFT" } },
     include: {
       items: { orderBy: { position: "asc" } },
       contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },

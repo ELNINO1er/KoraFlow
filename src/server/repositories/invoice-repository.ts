@@ -211,7 +211,8 @@ export function getInvoiceById(organizationId: string, id: string) {
 
 export function getInvoiceByToken(token: string) {
   return prisma.invoice.findFirst({
-    where: { publicToken: token, deletedAt: null },
+    // Un brouillon n'est jamais exposé par son lien (page, PDF, déclaration).
+    where: { publicToken: token, deletedAt: null, status: { not: "DRAFT" } },
     include: {
       items: { orderBy: { position: "asc" } },
       contact: { select: { firstName: true, lastName: true, companyName: true, email: true } },
@@ -294,47 +295,55 @@ export async function updateInvoiceStatus(
   return getInvoiceById(organizationId, id);
 }
 
+/**
+ * Retire un BROUILLON sans aucun paiement. Une facture émise ou réglée ne se
+ * supprime pas (elle s'annule) : la condition est vérifiée dans l'écriture même.
+ */
 export async function softDeleteInvoice(organizationId: string, id: string) {
   const result = await prisma.invoice.updateMany({
-    where: { id, organizationId, deletedAt: null },
+    where: { id, organizationId, deletedAt: null, status: "DRAFT", paidMinor: 0, payments: { none: {} } },
     data: { deletedAt: new Date() },
   });
   return result.count > 0;
 }
 
 /**
- * Recalcule le montant payé (somme des paiements CONFIRMÉS) et met à jour le
- * statut de la facture (PAID / PARTIALLY_PAID). Ne rétrograde pas une facture
- * annulée ou brouillon.
+ * Recalcule, DANS la transaction appelante, le montant payé (somme des paiements
+ * CONFIRMÉS) et le statut de la facture (PAID / PARTIALLY_PAID / SENT). La ligne
+ * de facture est verrouillée : deux confirmations simultanées s'exécutent l'une
+ * après l'autre et la dernière voit toujours tous les paiements. Ne rétrograde
+ * pas une facture annulée ou brouillon.
  */
-export async function recomputeInvoicePayment(organizationId: string, invoiceId: string) {
-  return prisma.$transaction(async (tx) => {
-    const invoice = await tx.invoice.findFirst({
-      where: { id: invoiceId, organizationId },
-      select: { totalMinor: true, status: true, dueDate: true },
-    });
-    if (!invoice) return null;
-
-    const agg = await tx.payment.aggregate({
-      where: { organizationId, invoiceId, status: "CONFIRMED" },
-      _sum: { amountMinor: true },
-    });
-    const paidMinor = agg._sum.amountMinor ?? 0;
-
-    let status = invoice.status;
-    if (invoice.status !== "CANCELED" && invoice.status !== "DRAFT") {
-      // Le statut reflète UNIQUEMENT le paiement ; le retard est un indicateur
-      // dérivé (isInvoiceOverdue) calculé à l'affichage depuis dueDate. On ne
-      // stocke donc jamais OVERDUE : une facture partiellement payée reste
-      // PARTIALLY_PAID même échue, sans perdre le signal de retard (dérivé).
-      if (paidMinor >= invoice.totalMinor && invoice.totalMinor > 0) status = "PAID";
-      else if (paidMinor > 0) status = "PARTIALLY_PAID";
-      else status = "SENT";
-    }
-
-    return tx.invoice.update({
-      where: { id: invoiceId },
-      data: { paidMinor, status },
-    });
+export async function syncInvoicePayment(tx: Prisma.TransactionClient, organizationId: string, invoiceId: string) {
+  await tx.$queryRaw`SELECT id FROM invoice WHERE id = ${invoiceId} AND organizationId = ${organizationId} FOR UPDATE`;
+  const invoice = await tx.invoice.findFirst({
+    where: { id: invoiceId, organizationId },
+    select: { totalMinor: true, status: true },
   });
+  if (!invoice) return null;
+
+  const agg = await tx.payment.aggregate({
+    where: { organizationId, invoiceId, status: "CONFIRMED" },
+    _sum: { amountMinor: true },
+  });
+  const paidMinor = agg._sum.amountMinor ?? 0;
+
+  let status = invoice.status;
+  if (invoice.status !== "CANCELED" && invoice.status !== "DRAFT") {
+    // Le statut reflète UNIQUEMENT le paiement ; le retard est un indicateur
+    // dérivé (isInvoiceOverdue) calculé à l'affichage depuis dueDate.
+    if (paidMinor >= invoice.totalMinor && invoice.totalMinor > 0) status = "PAID";
+    else if (paidMinor > 0) status = "PARTIALLY_PAID";
+    else status = "SENT";
+  }
+
+  return tx.invoice.update({
+    where: { id: invoiceId },
+    data: { paidMinor, status },
+  });
+}
+
+/** Recalcule le solde d'une facture dans sa propre transaction. */
+export function recomputeInvoicePayment(organizationId: string, invoiceId: string) {
+  return prisma.$transaction((tx) => syncInvoicePayment(tx, organizationId, invoiceId));
 }

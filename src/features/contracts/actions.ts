@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { resolveSession, type AuthContext } from "@/server/auth/context";
 import * as contractService from "@/server/services/contract-service";
 import { ContractError } from "@/server/services/contract-service";
-import { PermissionError } from "@/server/permissions/permissions";
+import { PermissionError, can } from "@/server/permissions/permissions";
 import { generateContractPdf } from "@/server/services/contract-pdf";
 import { sendEmail, emailDeliveryErrorMessage } from "@/server/integrations/email/mailer";
 import { brandedEmail } from "@/server/integrations/email/template";
@@ -86,6 +86,8 @@ export async function sendContractAction(
   id: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getContext();
+  // Le droit d'envoi (modification) est exigé AVANT toute génération ou tout e-mail.
+  if (!can(ctx.role, "contracts.update")) return { ok: false, error: "Permission insuffisante." };
   const contract = await contractService.getContract(ctx, id);
   if (!contract) return { ok: false, error: "Contrat introuvable." };
   if (contract.status !== "DRAFT" && contract.status !== "SENT") {
@@ -181,12 +183,13 @@ export async function retryContractArchiveAction(
   }
 }
 
-export async function deleteContractAction(id: string) {
+export async function deleteContractAction(id: string): Promise<{ ok: false; error: string } | void> {
   const ctx = await getContext();
   try {
     await contractService.deleteContract(ctx, id);
   } catch (e) {
-    if (e instanceof PermissionError) return;
+    if (e instanceof PermissionError) return { ok: false, error: "Permission insuffisante." };
+    if (e instanceof ContractError) return { ok: false, error: e.message };
     throw e;
   }
   revalidatePath("/contrats");

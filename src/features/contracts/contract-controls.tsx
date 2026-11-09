@@ -37,6 +37,7 @@ export function SendForSignatureButton({ id, resend = false }: { id: string; res
 
 export function DeleteContractButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
   return (
     <Button
       type="button"
@@ -47,7 +48,8 @@ export function DeleteContractButton({ id }: { id: string }) {
       onClick={() => {
         if (!window.confirm("Supprimer ce contrat ?")) return;
         startTransition(async () => {
-          await deleteContractAction(id);
+          const result = await deleteContractAction(id);
+          if (result && !result.ok) toast({ title: "Suppression impossible", description: result.error, variant: "danger" });
         });
       }}
     >

@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { DocumentArchiveType, Prisma } from "@prisma/client";
 import * as archives from "../repositories/document-archive-repository";
-import { getLatestStoredArchive } from "../repositories/document-archive-repository";
+import { findStoredArchiveByHash, getLatestStoredArchive } from "../repositories/document-archive-repository";
 import { putPrivateFile, getPrivateFile } from "../storage/private-storage";
 
 function sha256(bytes: Uint8Array): string {
@@ -26,6 +26,25 @@ export async function getStoredArchivePdf(
   documentId: string,
 ): Promise<Buffer | null> {
   const archive = await getLatestStoredArchive({ organizationId, documentType, documentId });
+  if (!archive?.pdfStorageKey) return null;
+  try {
+    return await getPrivateFile(archive.pdfStorageKey);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Octets du PDF archivé pour UNE version précise du document (empreinte de
+ * contenu), ou null : une version corrigée n'est jamais servie avec l'ancien PDF.
+ */
+export async function getStoredVersionPdf(
+  organizationId: string,
+  documentType: DocumentArchiveType,
+  documentId: string,
+  contentHash: string,
+): Promise<Buffer | null> {
+  const archive = await findStoredArchiveByHash({ organizationId, documentType, documentId }, contentHash);
   if (!archive?.pdfStorageKey) return null;
   try {
     return await getPrivateFile(archive.pdfStorageKey);

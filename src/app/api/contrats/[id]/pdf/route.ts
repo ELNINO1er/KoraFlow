@@ -1,38 +1,26 @@
 import { requireAuthContext } from "@/server/auth/context";
-import { generateContractPdf } from "@/server/services/contract-pdf";
-import { getContractById } from "@/server/repositories/contract-repository";
-import { getLatestStoredArchive } from "@/server/repositories/document-archive-repository";
-import { getPrivateFile } from "@/server/storage/private-storage";
+import { PermissionError } from "@/server/permissions/permissions";
+import { getContractPdfForDownload } from "@/server/services/document-download";
 import { pdfResponse } from "@/lib/http/pdf-response";
 
+/** Téléchargement du PDF d'un contrat : droit de lecture vérifié avant tout accès à l'archive. */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ctx = await requireAuthContext();
   const { id } = await params;
-
-  // Document finalisé & archivé : servir le FICHIER CONSERVÉ (version de
-  // référence figée), pas une régénération. Sinon, régénérer (brouillon, etc.).
-  const contract = await getContractById(ctx.organizationId, id);
-  if (!contract) return Response.json({ error: "Contrat introuvable." }, { status: 404 });
-  if (contract.status === "SIGNED") {
-    const archive = await getLatestStoredArchive({
+  try {
+    const pdf = await getContractPdfForDownload(ctx, id);
+    if (!pdf) return Response.json({ error: "Contrat introuvable." }, { status: 404 });
+    return pdfResponse(pdf.buffer, pdf.filename, "attachment");
+  } catch (error) {
+    if (error instanceof PermissionError) return Response.json({ error: "Accès refusé." }, { status: 403 });
+    console.error("contract.pdf_download_failed", {
+      id,
       organizationId: ctx.organizationId,
-      documentType: "CONTRACT",
-      documentId: id,
+      error: error instanceof Error ? error.message : "unknown",
     });
-    if (archive?.pdfStorageKey) {
-      try {
-        const bytes = await getPrivateFile(archive.pdfStorageKey);
-        return pdfResponse(bytes, `${contract.number}-signe.pdf`, "attachment");
-      } catch {
-        // Fichier archivé illisible : repli sur la régénération ci-dessous.
-      }
-    }
+    return Response.json({ error: "Le PDF n’a pas pu être généré." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
-
-  const pdf = await generateContractPdf(ctx, id);
-  if (!pdf) return Response.json({ error: "Contrat introuvable." }, { status: 404 });
-  return pdfResponse(pdf.buffer, pdf.filename, "attachment");
 }

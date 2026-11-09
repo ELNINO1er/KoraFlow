@@ -221,7 +221,14 @@ export async function changeContractStatus(
 
 export async function deleteContract(ctx: AuthContext, id: string) {
   assertCan(ctx.role, "contracts.delete");
-  return contracts.softDeleteContract(ctx.organizationId, id);
+  const deleted = await contracts.softDeleteContract(ctx.organizationId, id);
+  if (!deleted) {
+    throw new ContractError("Un contrat envoyé ou signé ne peut pas être supprimé. Annulez-le d'abord s'il n'est pas signé.");
+  }
+  await prisma.auditLog.create({
+    data: { organizationId: ctx.organizationId, actorUserId: ctx.user.id, action: "contract.deleted", targetType: "Contract", targetId: id },
+  });
+  return true;
 }
 
 // --- Modèles de contrat réutilisables ---------------------------------------
