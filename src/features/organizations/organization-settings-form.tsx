@@ -36,6 +36,7 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
   });
   const [result, setResult] = useState<OrganizationSettingsActionResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const [logoPending, setLogoPending] = useState(false);
 
   function set<K extends keyof FormData>(key: K, next: FormData[K]) {
     setResult(null);
@@ -44,11 +45,17 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
 
   return (
     <div className="flex flex-col gap-6">
-      <form id="organization-logo-form" action="/api/organization/logo" method="post" encType="multipart/form-data">
+      <form
+        id="organization-logo-form"
+        action="/api/organization/logo"
+        method="post"
+        encType="multipart/form-data"
+        onSubmit={() => setLogoPending(true)}
+      >
         <Card>
           <CardHeader>
             <CardTitle>Logo de l’entreprise</CardTitle>
-            <CardDescription>PNG ou JPEG, 2 Mo maximum. Il personnalise votre espace, vos pages publiques, vos devis et vos e-mails.</CardDescription>
+            <CardDescription>PNG ou JPEG, 2 Mo maximum. Le logo est enregistré dès que vous choisissez le fichier. Il personnalise votre espace, vos pages publiques, vos devis et vos e-mails.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {initial.logoUrl ? (
@@ -58,8 +65,22 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
               <div className="flex size-20 items-center justify-center rounded-xl bg-muted text-xl font-bold text-muted-foreground">{initial.name.slice(0, 2).toUpperCase()}</div>
             )}
             <div className="flex flex-1 flex-col gap-3 sm:items-end">
-              <input id="organization-logo" name="logo" type="file" accept="image/png,image/jpeg" required className="block max-w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-medium file:text-primary-foreground" />
-              <Button type="submit" variant="outline"><ImageUp className="size-4" />Téléverser le logo</Button>
+              <input
+                id="organization-logo"
+                name="logo"
+                type="file"
+                accept="image/png,image/jpeg"
+                required
+                disabled={logoPending}
+                // Le logo part dès qu'il est choisi : « Enregistrer les paramètres » ne l'envoie pas.
+                onChange={(e) => {
+                  if (e.currentTarget.files?.length) e.currentTarget.form?.requestSubmit();
+                }}
+                className="block max-w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-medium file:text-primary-foreground" />
+              <Button type="submit" variant="outline" disabled={logoPending}>
+                {logoPending ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" />}
+                {logoPending ? "Envoi du logo…" : "Téléverser le logo"}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -107,7 +128,16 @@ export function OrganizationSettingsForm({ initial }: { initial: OrganizationSet
           <Field id="org-invoice-prefix" label="Préfixe des factures" required hint="Lettres, chiffres et tirets uniquement."><Input required maxLength={10} value={form.invoicePrefix} onChange={(e) => set("invoicePrefix", e.target.value)} /></Field>
           <Field id="org-quote-prefix" label="Préfixe des devis" required><Input required maxLength={10} value={form.quotePrefix} onChange={(e) => set("quotePrefix", e.target.value)} /></Field>
           <Field id="org-currency" label="Devise (code ISO à 3 lettres)" hint="Exemple : XOF"><Input required minLength={3} maxLength={3} value={form.currency} onChange={(e) => set("currency", e.target.value)} /></Field>
-          <Field id="org-brand-color" label="Couleur de marque" hint="Format hexadécimal, par exemple #C8553D"><Input type="text" pattern="#[0-9A-Fa-f]{6}" placeholder="#C8553D" value={form.brandColor} onChange={(e) => set("brandColor", e.target.value)} /></Field>
+          <div className="flex items-start gap-2">
+            <Field id="org-brand-color" className="flex-1" label="Couleur de marque" hint="Utilisée pour l’en-tête et le pied de vos factures, et proposée par défaut à vos nouveaux devis. Les documents déjà créés gardent leur couleur."><Input type="text" pattern="#[0-9A-Fa-f]{6}" placeholder="#C8553D" value={form.brandColor} onChange={(e) => set("brandColor", e.target.value)} /></Field>
+            <input
+              type="color"
+              aria-label="Choisir la couleur de marque"
+              value={/^#[0-9A-Fa-f]{6}$/.test(form.brandColor) ? form.brandColor : "#1F6B4F"}
+              onChange={(e) => set("brandColor", e.target.value.toUpperCase())}
+              className="mt-[1.625rem] h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent p-1"
+            />
+          </div>
         </CardContent>
       </Card>
 

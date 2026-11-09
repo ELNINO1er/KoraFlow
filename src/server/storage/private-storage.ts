@@ -8,10 +8,23 @@ import {
 } from "@aws-sdk/client-s3";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../database/client";
 
 export class StorageConfigurationError extends Error {}
 
 let s3Client: S3Client | null = null;
+
+/**
+ * Pilote « database » : les fichiers vivent dans la table private_file de la
+ * base MySQL. Aucun service externe ; sauvegardés et restaurés avec la base.
+ */
+const isDatabaseDriver = () => process.env.STORAGE_DRIVER === "database";
+
+/** Même contrat que le pilote local : une clé existante n'est jamais réécrite. */
+function alreadyExists(): Error {
+  return Object.assign(new Error("Le fichier existe déjà dans le stockage privé."), { code: "EEXIST" });
+}
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
@@ -76,6 +89,16 @@ function validateStorageKey(key: string): void {
 }
 
 export async function putPrivateFile(key: string, bytes: Uint8Array): Promise<void> {
+  if (isDatabaseDriver()) {
+    validateStorageKey(key);
+    try {
+      await prisma.privateFile.create({ data: { key, bytes: Buffer.from(bytes), size: bytes.byteLength } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw alreadyExists();
+      throw error;
+    }
+    return;
+  }
   if (process.env.STORAGE_DRIVER === "s3") {
     validateStorageKey(key);
     const { client, bucket } = getS3Client();
@@ -90,6 +113,12 @@ export async function putPrivateFile(key: string, bytes: Uint8Array): Promise<vo
 }
 
 export async function getPrivateFile(key: string): Promise<Buffer> {
+  if (isDatabaseDriver()) {
+    validateStorageKey(key);
+    const file = await prisma.privateFile.findUnique({ where: { key }, select: { bytes: true } });
+    if (!file) throw new Error("Document introuvable dans le stockage privé.");
+    return Buffer.from(file.bytes);
+  }
   if (process.env.STORAGE_DRIVER === "s3") {
     validateStorageKey(key);
     const { client, bucket } = getS3Client();
@@ -107,6 +136,10 @@ export async function getPrivateFile(key: string): Promise<Buffer> {
 export async function listPrivateFiles(prefix: string): Promise<string[]> {
   if (!/^[a-zA-Z0-9/_-]+$/.test(prefix) || prefix.includes("..")) {
     throw new Error("Préfixe de stockage invalide.");
+  }
+  if (isDatabaseDriver()) {
+    const files = await prisma.privateFile.findMany({ where: { key: { startsWith: prefix } }, select: { key: true } });
+    return files.map((file) => file.key);
   }
   if (process.env.STORAGE_DRIVER === "s3") {
     const { client, bucket } = getS3Client();
@@ -148,6 +181,11 @@ export async function listPrivateFiles(prefix: string): Promise<string[]> {
 }
 
 export async function deletePrivateFile(key: string): Promise<void> {
+  if (isDatabaseDriver()) {
+    validateStorageKey(key);
+    await prisma.privateFile.deleteMany({ where: { key } });
+    return;
+  }
   if (process.env.STORAGE_DRIVER === "s3") {
     validateStorageKey(key);
     const { client, bucket } = getS3Client();

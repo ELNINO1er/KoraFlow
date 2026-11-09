@@ -43,10 +43,14 @@ SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_SECURE=false
 EMAIL_FROM=Alymero <no-reply@alymero.com>
-STORAGE_DRIVER=s3
-PRIVATE_UPLOAD_DIR=/tmp/alymero-unused
-S3_BUCKET=alymero-private
+STORAGE_DRIVER=database
 ```
+
+Avec `STORAGE_DRIVER=database`, les fichiers privés (logos, PDF archivés,
+imports) sont rangés dans la table `private_file` de la base MySQL : aucun
+service externe, et ils sont sauvegardés et restaurés avec la base. Les
+variables `PRIVATE_UPLOAD_DIR` et `S3_*` deviennent inutiles et peuvent être
+supprimées. Le pilote `s3` reste disponible pour un stockage objet externe.
 
 Les valeurs suivantes sont des secrets à saisir uniquement dans Hostinger :
 
@@ -54,10 +58,8 @@ Les valeurs suivantes sont des secrets à saisir uniquement dans Hostinger :
 - `BETTER_AUTH_SECRET` (au moins 32 octets aléatoires)
 - `SMTP_USER`
 - `SMTP_PASSWORD`
-- `S3_ENDPOINT`
-- `S3_REGION`
-- `S3_ACCESS_KEY_ID`
-- `S3_SECRET_ACCESS_KEY`
+- `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
+  (uniquement avec `STORAGE_DRIVER=s3`)
 
 ## Contrôles après déploiement
 

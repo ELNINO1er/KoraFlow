@@ -1200,3 +1200,17 @@ model WaitlistEntry {
 
   @@map("waitlist_entry")
 }
+
+// ---------------------------------------------------------------------------
+// PrivateFile — stockage privé dans la base (STORAGE_DRIVER=database) : logos,
+// PDF archivés, imports. Sauvegardé avec la base, sans service externe.
+// ---------------------------------------------------------------------------
+
+model PrivateFile {
+  key       String   @id @db.VarChar(255)
+  bytes     Bytes    @db.LongBlob
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@map("private_file")
+}
