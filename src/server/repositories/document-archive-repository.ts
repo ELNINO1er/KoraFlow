@@ -1,28 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma, type DocumentArchiveType } from "@prisma/client";
 import { prisma } from "../database/client";
-
-/**
- * Couche d'accès aux archives de documents finalisés — enforcement multi-tenant.
- * Les fonctions « par jeton » (téléchargement public) ne sont pas scopées : le
- * jeton est le secret d'accès.
- */
-
-async function serializableTransaction<T>(
-  operation: (tx: Prisma.TransactionClient) => Promise<T>,
-): Promise<T> {
-  const maxAttempts = 5;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await prisma.$transaction(operation, { isolationLevel: "Serializable" });
-    } catch (error) {
-      const retryable =
-        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
-      if (!retryable || attempt === maxAttempts) throw error;
-    }
-  }
-  throw new Error("Transaction d'archivage impossible.");
-}
+import { serializableTransaction } from "../database/transaction";
 
 export interface ArchiveSelector {
   organizationId: string;

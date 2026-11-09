@@ -41,7 +41,7 @@ export default async function PublicFormPage({
                 type: f.type,
                 required: f.required,
                 placeholder: f.placeholder,
-                options: f.options,
+                options: Array.isArray(f.options) ? f.options.filter((o) => typeof o === "string") : [],
               }))}
             />
           )}

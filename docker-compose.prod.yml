@@ -1,15 +1,17 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mariadb:
+    image: mariadb:11.4
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requis}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requis}
+      MARIADB_USER: ${MARIADB_USER:?MARIADB_USER requis}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?MARIADB_PASSWORD requis}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:?MARIADB_DATABASE requis}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
-      - alymero_prod_db:/var/lib/postgresql/data
+      - alymero_prod_db:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -22,7 +24,7 @@ services:
     restart: "no"
     env_file: ${ALYMERO_ENV_FILE:-.env.production}
     depends_on:
-      postgres:
+      mariadb:
         condition: service_healthy
     networks: [backend]
 

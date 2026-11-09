@@ -2,14 +2,14 @@
 
 ## Contexte
 La suite comprend des **tests d'intégration** qui frappent une vraie base
-PostgreSQL. Chaque fichier de test s'exécute dans son propre worker (processus),
+MariaDB. Chaque fichier de test s'exécute dans son propre worker (processus),
 mais **tous partagent la même base**. Les données sont isolées par organisation
 (chaque test crée son org + un suffixe unique), il n'y a donc pas de collision de
 données entre fichiers.
 
 ## Symptôme observé
 Sous **très forte parallélisation de fichiers** (~45 workers simultanés sur une
-seule instance Postgres), un test lourd (`e2e-flow`) pouvait échouer de façon
+seule instance MariaDB), un test lourd (`e2e-flow`) pouvait échouer de façon
 **intermittente**. Reproduit : échec aléatoire en parallèle total, **toujours
 vert** en exécution sérialisée.
 
@@ -17,7 +17,7 @@ vert** en exécution sérialisée.
 Ce n'est **pas une course applicative sur les données** : les orgs/suffixes sont
 uniques, et le même test passe systématiquement seul ou en sérialisé. Il s'agit
 d'une **contention de ressources** sur la base partagée — pression sur les
-connexions et échecs de sérialisation PostgreSQL transitoires (`40001`/P2034)
+connexions et échecs de sérialisation MySQL transitoires (interblocage 1213, P2034)
 quand des dizaines de transactions `Serializable` concurrentes se chevauchent.
 
 ## Corrections
@@ -30,7 +30,7 @@ quand des dizaines de transactions `Serializable` concurrentes se chevauchent.
    se lance avec :
 
    ```sh
-   DATABASE_URL="postgres://…/koraflow_test" npx vitest run --no-file-parallelism
+   DATABASE_URL="mysql://…/koraflow_test" npx vitest run --no-file-parallelism
    ```
 
    > La version de vitest du dépôt (5.0.1) n'expose pas `poolOptions`
@@ -43,7 +43,7 @@ ressource partagée (la base) explicitement et de façon documentée, en complé
 du durcissement applicatif ci-dessus.
 
 ## Amélioration future (facultative)
-Isolation totale par un **schéma PostgreSQL dédié par worker** (migrations
+Isolation totale par un **base dédiée par worker** (migrations
 appliquées par schéma au démarrage), ce qui permettrait la parallélisation
 complète. Non retenu ici pour le coût (20+ migrations × N workers).
 

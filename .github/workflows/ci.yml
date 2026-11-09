@@ -12,26 +12,27 @@ jobs:
     # Version figée pour éviter les migrations silencieuses de l'image latest.
     runs-on: ubuntu-24.04
 
-    # PostgreSQL de service : nécessaire aux tests d'intégration (isolation
+    # MariaDB de service : nécessaire aux tests d'intégration (isolation
     # multi-tenant) qui touchent la vraie base.
     services:
-      postgres:
-        image: postgres:16-alpine
+      mariadb:
+        image: mariadb:11.4
         env:
-          POSTGRES_USER: alymero
-          POSTGRES_PASSWORD: alymero_ci_password
-          POSTGRES_DB: alymero
+          MARIADB_USER: alymero
+          MARIADB_PASSWORD: alymero_ci_password
+          MARIADB_DATABASE: alymero
+          MARIADB_ROOT_PASSWORD: alymero_ci_root
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd "pg_isready -U alymero -d alymero"
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      # Connexion à la base de service (port CI = 5432).
-      DATABASE_URL: postgresql://alymero:alymero_ci_password@localhost:5432/alymero?schema=public
+      # Connexion à la base de service (port CI = 3306).
+      DATABASE_URL: mysql://alymero:alymero_ci_password@127.0.0.1:3306/alymero
       # Valeurs factices, exclusivement pour la CI (aucun secret réel).
       BETTER_AUTH_SECRET: ci-only-secret-not-for-production-0000000000
       BETTER_AUTH_URL: http://localhost:3000

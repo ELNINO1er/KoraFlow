@@ -26,7 +26,7 @@ export async function searchAllAction(query: string): Promise<SearchResults> {
   if (q.length < 2) return EMPTY;
 
   const organizationId = session.context.organizationId;
-  const insensitive = { contains: q, mode: "insensitive" as const };
+  const insensitive = { contains: q };
 
   const [contacts, quotes, invoices] = await Promise.all([
     prisma.contact.findMany({

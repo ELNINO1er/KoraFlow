@@ -246,8 +246,8 @@ export async function exportServicesWorkbook(
   const where: Record<string, unknown> = { organizationId: ctx.organizationId, deletedAt: null };
   if (filters.activeOnly) where.active = true;
   if (filters.search) where.OR = [
-    { name: { contains: filters.search, mode: "insensitive" } },
-    { category: { contains: filters.search, mode: "insensitive" } },
+    { name: { contains: filters.search } },
+    { category: { contains: filters.search } },
   ];
   const services = await prisma.service.findMany({
     where, orderBy: { createdAt: "desc" },

@@ -50,8 +50,8 @@ export async function listServices(
   if (params.search && params.search.trim() !== "") {
     const q = params.search.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { category: { contains: q, mode: "insensitive" } },
+      { name: { contains: q } },
+      { category: { contains: q } },
     ];
   }
 

@@ -3,28 +3,27 @@
 # NB : ne contient AUCUN secret de production. Les identifiants ci-dessous
 # sont réservés au développement local.
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: koraflow_postgres
+  mariadb:
+    image: mariadb:11.4
+    container_name: koraflow_mariadb
     restart: unless-stopped
     environment:
-      POSTGRES_USER: koraflow
-      POSTGRES_PASSWORD: koraflow_dev_password
-      POSTGRES_DB: koraflow
+      MARIADB_USER: koraflow
+      MARIADB_PASSWORD: koraflow_dev_password
+      MARIADB_DATABASE: koraflow
+      MARIADB_ROOT_PASSWORD: koraflow_dev_root
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     ports:
-      # Hôte 5433 -> conteneur 5432, pour éviter tout conflit avec un
-      # PostgreSQL déjà installé localement. Ajuster côté hôte si besoin.
-      - "5433:5432"
+      # Hôte 3307 -> conteneur 3306, pour éviter tout conflit avec le MySQL de WAMP.
+      - "3307:3306"
     volumes:
-      - koraflow_pgdata:/var/lib/postgresql/data
+      - koraflow_mariadb:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U koraflow -d koraflow"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # Serveur SMTP de développement : capture les e-mails sans rien envoyer.
-  # Interface web : http://localhost:8025  ·  SMTP : localhost:1025
   mailpit:
     image: axllent/mailpit:latest
     container_name: koraflow_mailpit
@@ -36,5 +35,5 @@ services:
       MP_MAX_MESSAGES: 500
 
 volumes:
-  koraflow_pgdata:
+  koraflow_mariadb:
     name: koraflow_pgdata

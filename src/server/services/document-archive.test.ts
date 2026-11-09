@@ -1,3 +1,4 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, readFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -44,7 +45,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.documentArchive.deleteMany({ where: { organizationId: orgId } });
-  if (orgId) await prisma.organization.deleteMany({ where: { id: orgId } });
+  if (orgId) await deleteOrganizations({ id: orgId });
   if (userId) await prisma.user.deleteMany({ where: { id: userId } });
   await prisma.$disconnect();
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });

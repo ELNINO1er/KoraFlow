@@ -30,14 +30,14 @@ Alymero centralise le parcours commercial complet, **de la première demande du 
 | Framework | **Next.js 16** (App Router, Server Components, Server Actions) + **React 19** |
 | Langage | **TypeScript strict** |
 | Style / UI | **Tailwind CSS v4** (tokens en CSS via `@theme`), composants type shadcn/ui, Lucide, Recharts |
-| Base de données | **PostgreSQL 16** |
+| Base de données | **MySQL / MariaDB** |
 | ORM | **Prisma 7.10** (figé volontairement — voir ci-dessous) via **driver adapter `@prisma/adapter-pg`** |
 | Authentification | **Better Auth** (e-mail/mot de passe, vérification, MFA TOTP) |
 | PDF | `@react-pdf/renderer` (runtime Node) |
 | E-mail | `nodemailer` → **Mailpit** en développement |
 | Tests | **Vitest** (unitaires + intégration multi-tenant sur base réelle) |
-| CI/CD | **GitHub Actions** (PostgreSQL de service) |
-| Conteneurs | **Docker Compose** (PostgreSQL + Mailpit) |
+| CI/CD | **GitHub Actions** (MariaDB de service) |
+| Conteneurs | **Docker Compose** (MariaDB + Mailpit) |
 
 ### Décisions structurantes
 
@@ -51,7 +51,7 @@ Alymero centralise le parcours commercial complet, **de la première demande du 
 ## Prérequis
 
 - **Node.js** ≥ 22 (développé sous Node 24)
-- **Docker** + Docker Compose (PostgreSQL & Mailpit)
+- **Docker** + Docker Compose (MariaDB & Mailpit)
 - **npm**
 
 ---
@@ -59,7 +59,7 @@ Alymero centralise le parcours commercial complet, **de la première demande du 
 ## Démarrage rapide
 
 ```bash
-# 1. Services locaux (PostgreSQL sur le port hôte 5433, Mailpit sur 8025)
+# 1. Services locaux (MariaDB sur le port hôte 3307, Mailpit sur 8025)
 docker compose up -d
 
 # 2. Variables d'environnement
@@ -114,7 +114,7 @@ UI (Server/Client Components)  →  Server Actions / Route Handlers
         ↓
    Repositories (accès données, TOUJOURS filtrés par organizationId)
         ↓
-   Prisma  →  PostgreSQL      Intégrations isolées : PDF, e-mail, paiement
+   Prisma  →  MySQL           Intégrations isolées : PDF, e-mail, paiement
 ```
 
 Structure du dépôt :
@@ -180,10 +180,10 @@ Compte de démonstration (après `db:seed` puis inscription/vérification) : voi
 
 ```bash
 npm test          # Vitest : logique pure (totaux devis, créneaux RDV, mapping…)
-                  #          + intégration multi-tenant sur PostgreSQL réel
+                  #          + intégration multi-tenant sur MariaDB réel
 ```
 
-La **CI GitHub Actions** (`.github/workflows/ci.yml`) démarre un PostgreSQL de service puis enchaîne :
+La **CI GitHub Actions** (`.github/workflows/ci.yml`) démarre un MariaDB de service puis enchaîne :
 `npm ci → prisma migrate deploy → generate → lint → typecheck → test → build`.
 
 ---
@@ -192,7 +192,7 @@ La **CI GitHub Actions** (`.github/workflows/ci.yml`) démarre un PostgreSQL de 
 
 Le dépôt fournit une image Next.js `standalone` exécutée sans privilèges, une
 cible de migration séparée et un fichier Compose de production. Ce mode est le
-seul déploiement actuellement supporté : PostgreSQL et les documents privés
+seul déploiement actuellement supporté : MariaDB et les documents privés
 utilisent des volumes persistants sur un serveur unique.
 
 ```bash
@@ -224,7 +224,6 @@ Next.js et des clés Server Actions.
 - **Notifications** : in-app uniquement (e-mails aux membres à ajouter).
 - **Déploiement** : mono-instance Docker uniquement ; reverse proxy HTTPS à configurer sur le serveur.
 - **Documents** : volume local persistant, sans analyse antivirus ; stockage objet partagé à ajouter avant toute montée en charge.
-- **RLS PostgreSQL** (défense en profondeur) : prévu en complément de l'enforcement applicatif.
 - **Intégrations externes** à brancher : agrégateur de paiement (CinetPay/Wave/Orange Money), SMS/WhatsApp, connecteur **FNE** (facture normalisée DGI).
 - **Vulnérabilités npm** : 4 « high » transitives via le **CLI Prisma** (dev-dependency, `mysql2`/`deepmerge-ts`) — non exploitables (PostgreSQL via `pg`, CLI hors runtime) ; ne pas `npm audit fix --force` (rétrograderait Prisma).
 

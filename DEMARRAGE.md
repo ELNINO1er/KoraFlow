@@ -14,7 +14,7 @@ Vérifier : `node -v` et `docker -v` répondent.
 Dans un terminal, à la racine du projet :
 
 ```bash
-docker compose up -d      # PostgreSQL (port 5433) + Mailpit (port 8025)
+docker compose up -d      # MariaDB (port 3307) + Mailpit (port 8025)
 npm run dev               # http://localhost:3000
 ```
 

@@ -1,3 +1,4 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "../database/client";
 import type { PlatformAdmin } from "../auth/platform";
@@ -54,7 +55,7 @@ afterAll(async () => {
     where: { actorUserId: { in: [adminUserId] } },
   });
   await prisma.session.deleteMany({ where: { userId: { in: [targetUserId] } } });
-  await prisma.organization.deleteMany({ where: { id: orgId } });
+  await deleteOrganizations({ id: orgId });
   await prisma.user.deleteMany({ where: { id: { in: [adminUserId, targetUserId] } } });
   await prisma.$disconnect();
 });

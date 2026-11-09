@@ -280,10 +280,10 @@ async function allContacts(ctx: AuthContext, filters: { search?: string; stage?:
   const where: Record<string, unknown> = { organizationId: ctx.organizationId, deletedAt: null };
   if (filters.search) {
     where.OR = [
-      { firstName: { contains: filters.search, mode: "insensitive" } },
-      { lastName: { contains: filters.search, mode: "insensitive" } },
-      { email: { contains: filters.search, mode: "insensitive" } },
-      { companyName: { contains: filters.search, mode: "insensitive" } },
+      { firstName: { contains: filters.search } },
+      { lastName: { contains: filters.search } },
+      { email: { contains: filters.search } },
+      { companyName: { contains: filters.search } },
     ];
   }
   if (filters.stage) where.stage = filters.stage;

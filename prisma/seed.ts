@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createDatabaseAdapter } from "../src/server/database/adapter";
 
 /**
  * Seed de démonstration — données FICTIVES uniquement.
@@ -14,7 +14,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL manquant (voir .env).");
 }
 
-const adapter = new PrismaPg({ connectionString });
+const adapter = createDatabaseAdapter(connectionString);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

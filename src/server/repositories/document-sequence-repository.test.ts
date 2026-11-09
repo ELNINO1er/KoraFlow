@@ -1,3 +1,4 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../database/client";
 import { nextDocumentSequence } from "./document-sequence-repository";
@@ -6,7 +7,7 @@ const SLUG = "sequence-concurrency-test";
 let organizationId = "";
 
 beforeAll(async () => {
-  await prisma.organization.deleteMany({ where: { slug: SLUG } });
+  await deleteOrganizations({ slug: SLUG });
   const organization = await prisma.organization.create({
     data: { name: "Organisation séquences", slug: SLUG },
   });
@@ -15,7 +16,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (organizationId) {
-    await prisma.organization.deleteMany({ where: { id: organizationId } });
+    await deleteOrganizations({ id: organizationId });
   }
   await prisma.$disconnect();
 });

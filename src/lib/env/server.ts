@@ -2,8 +2,8 @@ import { z } from "zod";
 
 const serverEnvironmentSchema = z.object({
   DATABASE_URL: z.string().min(1).refine(
-    (value) => value.startsWith("postgresql://") || value.startsWith("postgres://"),
-    "DATABASE_URL doit être une URL PostgreSQL.",
+    (value) => value.startsWith("mysql://") || value.startsWith("mariadb://"),
+    "DATABASE_URL doit être une URL MySQL.",
   ),
   APP_URL: z.url(),
   BETTER_AUTH_URL: z.url(),

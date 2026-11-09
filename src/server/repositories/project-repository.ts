@@ -83,7 +83,7 @@ export async function listProjects(
   const where: Prisma.ProjectWhereInput = { organizationId, deletedAt: null };
   if (params.status) where.status = params.status;
   if (params.search && params.search.trim() !== "") {
-    where.title = { contains: params.search.trim(), mode: "insensitive" };
+    where.title = { contains: params.search.trim() };
   }
 
   const [items, total] = await Promise.all([

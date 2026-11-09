@@ -12,7 +12,7 @@ FROM dependencies AS builder
 COPY . .
 # Valeurs factices utilisées uniquement pour générer Prisma et compiler. Les
 # secrets réels sont injectés au démarrage du conteneur final.
-ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV DATABASE_URL="mysql://build:build@localhost:3306/build"
 ENV APP_URL="https://build.invalid"
 ENV BETTER_AUTH_URL="https://build.invalid"
 ENV BETTER_AUTH_SECRET="build-only-secret-with-at-least-32-characters"

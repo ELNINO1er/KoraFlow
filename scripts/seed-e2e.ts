@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createDatabaseAdapter } from "../src/server/database/adapter";
 import { hashPassword } from "better-auth/crypto";
 
 /**
@@ -12,7 +12,7 @@ import { hashPassword } from "better-auth/crypto";
  */
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL manquant.");
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+const prisma = new PrismaClient({ adapter: createDatabaseAdapter(connectionString) });
 
 const EMAIL = "owner.e2e@koraflow.test";
 const PASSWORD = "MotDePasse123!";

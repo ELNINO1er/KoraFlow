@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createDatabaseAdapter } from "./adapter";
 
 /**
- * Client Prisma en singleton, connecté via le driver adapter PostgreSQL
+ * Client Prisma en singleton, connecté via le driver adapter MySQL
  * (Prisma 7 — moteur sans Rust). En développement, le hot-reload de Next.js
  * réévalue les modules ; sans ce cache global, chaque rechargement créerait un
  * nouveau client et saturerait le pool de connexions.
@@ -25,9 +25,8 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({
-    adapter,
+    adapter: createDatabaseAdapter(connectionString as string),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 }

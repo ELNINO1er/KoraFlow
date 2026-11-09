@@ -1,7 +1,7 @@
 # Déploiement Alymero — to-do list
 
 Socle déjà prêt dans le dépôt : `Dockerfile` (multi-stage, non-root, healthcheck,
-cible `migrator`), `docker-compose.prod.yml` (postgres + migrate + app), `.env.production.example`,
+cible `migrator`), `docker-compose.prod.yml` (mariadb + migrate + app), `.env.production.example`,
 CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un reverse proxy HTTPS**.
 
 > L'app écoute sur `127.0.0.1:3000` (volontairement non exposée) → un **reverse proxy** (Caddy/Nginx) gère le HTTPS devant.
@@ -19,14 +19,14 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
 
 ## 2. Préparer le serveur
 - [ ] Créer un utilisateur non-root + clés SSH ; désactiver le login par mot de passe.
-- [ ] **Pare-feu** : ouvrir uniquement **22 (SSH)**, **80**, **443**. Ne PAS exposer PostgreSQL.
+- [ ] **Pare-feu** : ouvrir uniquement **22 (SSH)**, **80**, **443**. Ne PAS exposer MariaDB.
 - [ ] Installer Docker + Docker Compose.
 - [ ] Récupérer le code sur le serveur (`git clone` du dépôt).
 
 ## 3. Configurer les secrets (`.env.production`)
 - [ ] `cp .env.production.example .env.production`
 - [ ] Générer et renseigner :
-  - [ ] `POSTGRES_PASSWORD` = mot de passe long aléatoire **et** reporter la même valeur dans `DATABASE_URL`.
+  - [ ] `MARIADB_PASSWORD` = mot de passe long aléatoire **et** reporter la même valeur dans `DATABASE_URL`.
   - [ ] `BETTER_AUTH_SECRET` = secret aléatoire ≥ 32 octets.
   - [ ] `APP_URL` **et** `BETTER_AUTH_URL` = `https://votre-domaine`.
   - [ ] `SMTP_HOST/PORT/SECURE/USER/PASSWORD` + `EMAIL_FROM` (du fournisseur choisi).
@@ -40,7 +40,7 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
       ```
       (le service `migrate` applique automatiquement les migrations avant que `app` démarre.)
 - [ ] Vérifier la santé : `curl -s http://127.0.0.1:3000/api/health` → `{"status":"ok","db":"up"}`.
-- [ ] `docker compose -f docker-compose.prod.yml ps` → `postgres` et `app` « healthy », `migrate` « exited (0) ».
+- [ ] `docker compose -f docker-compose.prod.yml ps` → `mariadb` et `app` « healthy », `migrate` « exited (0) ».
 
 ## 5. HTTPS (reverse proxy)
 - [ ] Installer un reverse proxy. **Caddy** = le plus simple (HTTPS auto via Let's Encrypt) :
@@ -62,7 +62,7 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
       (ou via la console `/admin` si un autre admin existe déjà.)
 
 ## 7. Exploitation (avant une vraie mise en service)
-- [ ] **Sauvegardes automatiques** PostgreSQL (`pg_dump` en cron → stockage externe) **et tester une restauration**.
+- [ ] **Sauvegardes automatiques** MariaDB (`mariadb-dump` en cron → stockage externe) **et tester une restauration**.
 - [ ] **Sauvegarde du volume `uploads`** (documents privés de projet + avatars).
 - [ ] **Supervision** : uptime (ex. UptimeRobot sur `/api/health`), logs, éventuellement **Sentry** pour les erreurs.
 - [ ] Mettre à jour régulièrement l'hôte + les images Docker.

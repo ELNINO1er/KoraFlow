@@ -1,7 +1,7 @@
 # Déploiement Alymero sur Hostinger
 
-Cette cible utilise l'hébergement Node.js managé de Hostinger, une base PostgreSQL
-Supabase et un stockage privé Supabase compatible S3. Aucun VPS n'est requis.
+Cette cible utilise l'hébergement Node.js managé de Hostinger, une base MySQL
+Hostinger et un stockage privé compatible S3 (Supabase à ce jour). Aucun VPS n'est requis.
 
 ## Paramètres de compilation
 
@@ -17,8 +17,10 @@ migrations doivent donc rester rétrocompatibles avec la version encore en ligne
 
 ## Services externes requis
 
-1. Créer un projet Supabase dans une région raisonnablement proche des utilisateurs.
-2. Utiliser l'URL PostgreSQL avec pool de connexions pour `DATABASE_URL`.
+1. Créer une base MySQL dans hPanel (Sites web → Bases de données), puis renseigner
+   `DATABASE_URL="mysql://utilisateur:mot-de-passe@hôte:3306/base"` (mot de passe encodé
+   pour URL). Choisir la collation `utf8mb4_unicode_ci`.
+2. Créer un projet Supabase pour le stockage uniquement, dans une région proche des utilisateurs.
 3. Créer un bucket privé `alymero-private`.
 4. Activer le protocole S3 Supabase et générer une paire de clés réservée au serveur.
 5. Authentifier `alymero.com` dans Brevo, puis créer une clé SMTP.
@@ -65,3 +67,17 @@ Les valeurs suivantes sont des secrets à saisir uniquement dans Hostinger :
 4. Envoyer puis télécharger un document privé autorisé.
 5. Vérifier qu'un utilisateur d'une autre organisation reçoit un refus.
 6. Contrôler les journaux Hostinger sans y faire apparaître de secret.
+
+## Reprise des données depuis PostgreSQL (une seule fois)
+
+L'ancienne base doit être active (projet Supabase repris). La base MySQL doit être
+vide et avoir reçu les migrations. Autoriser votre adresse IP dans « MySQL distant »
+de hPanel le temps de la copie, puis retirer cet accès.
+
+```bash
+DATABASE_URL="mysql://…" npx prisma migrate deploy
+SOURCE_DATABASE_URL="postgresql://…" TARGET_DATABASE_URL="mysql://…" npx tsx scripts/copy-postgres-to-mysql.ts
+```
+
+La source n'est que lue, et la copie s'annule entièrement à la moindre erreur.
+Les anciennes migrations PostgreSQL restent dans `prisma/migrations-postgres-archive/`.

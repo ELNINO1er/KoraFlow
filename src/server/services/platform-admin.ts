@@ -19,7 +19,8 @@ export class PlatformAdminError extends Error { }
 /** Serializes console mutations so concurrent changes cannot remove every owner/admin. */
 export async function adminMutation<T>(admin: PlatformAdmin, run: (tx: Prisma.TransactionClient) => Promise<T>) {
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(41726001)`;
+    // Verrou de ligne sur les comptes admin, levé avec la transaction.
+    await tx.$queryRaw`SELECT id FROM user WHERE isPlatformAdmin = TRUE ORDER BY id FOR UPDATE`;
     const actor = await tx.user.findUnique({ where: { id: admin.id }, select: { isPlatformAdmin: true, suspendedAt: true } });
     if (!actor?.isPlatformAdmin || actor.suspendedAt) throw new PlatformAdminError("Accès administrateur requis.");
     return run(tx);
@@ -138,7 +139,7 @@ export async function listOrganizations(params: AdminSearchParams = {}) {
     deletedAt: query.status === "deleted" ? { not: null } : null,
     ...(query.status === "active" ? { suspendedAt: null } : {}),
     ...(query.status === "suspended" ? { suspendedAt: { not: null } } : {}),
-    ...(query.q ? { OR: ["name", "slug", "id", "email"].map((field) => ({ [field]: { contains: query.q, mode: "insensitive" } })) } : {}),
+    ...(query.q ? { OR: ["name", "slug", "id", "email"].map((field) => ({ [field]: { contains: query.q } })) } : {}),
   };
   const paging = pagination(await prisma.organization.count({ where }), query.page);
   const orgs = await prisma.organization.findMany({
@@ -228,8 +229,8 @@ export async function listUsers(params: AdminSearchParams = {}) {
     ...(query.status === "no-organization" ? { memberships: { none: {} } } : {}),
     ...(query.q ? {
       OR: [
-        ...["name", "email", "id"].map((field) => ({ [field]: { contains: query.q, mode: "insensitive" } })),
-        { memberships: { some: { organization: { name: { contains: query.q, mode: "insensitive" } } } } },
+        ...["name", "email", "id"].map((field) => ({ [field]: { contains: query.q } })),
+        { memberships: { some: { organization: { name: { contains: query.q } } } } },
       ]
     } : {}),
   };
@@ -259,15 +260,15 @@ export async function listUsers(params: AdminSearchParams = {}) {
 function auditWhere(query: ReturnType<typeof parseAdminQuery>): Prisma.AuditLogWhereInput {
   return {
     AND: [
-      ...(query.q ? [{ OR: ["action", "targetId", "targetType"].map((field) => ({ [field]: { contains: query.q, mode: "insensitive" } })) }] : []),
+      ...(query.q ? [{ OR: ["action", "targetId", "targetType"].map((field) => ({ [field]: { contains: query.q } })) }] : []),
       ...(query.organization ? [{
         OR: [
           { organizationId: query.organization },
-          { organization: { name: { contains: query.organization, mode: "insensitive" as const } } },
+          { organization: { name: { contains: query.organization } } },
         ]
       }] : []),
     ],
-    ...(query.actor ? { actor: { email: { contains: query.actor, mode: "insensitive" } } } : {}),
+    ...(query.actor ? { actor: { email: { contains: query.actor } } } : {}),
     ...(query.action ? { action: query.action } : {}),
     ...((query.from || query.to) ? {
       createdAt: {

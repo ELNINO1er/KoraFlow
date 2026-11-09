@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Prisma, ContractStatus, SignatureEventType } from "@prisma/client";
 import { prisma } from "../database/client";
+import { transaction } from "../database/transaction";
 import { nextDocumentSequence } from "./document-sequence-repository";
 
 /**
@@ -32,7 +33,7 @@ export async function createContract(
   organizationId: string,
   data: ContractCreateData,
 ) {
-  return prisma.$transaction(async (tx) => {
+  return transaction(async (tx) => {
     const year = new Date().getFullYear();
     const sequence = await nextDocumentSequence(tx, organizationId, "CONTRACT", year);
     const number = `CTR-${year}-${String(sequence).padStart(4, "0")}`;
@@ -67,7 +68,7 @@ export async function listContracts(
   const where: Prisma.ContractWhereInput = { organizationId, deletedAt: null };
   if (params.status) where.status = params.status;
   if (params.search && params.search.trim() !== "") {
-    where.number = { contains: params.search.trim(), mode: "insensitive" };
+    where.number = { contains: params.search.trim() };
   }
 
   const [items, total] = await Promise.all([

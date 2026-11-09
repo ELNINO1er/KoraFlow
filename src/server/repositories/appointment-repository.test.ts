@@ -1,6 +1,8 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "../database/client";
 import * as repo from "./appointment-repository";
+import { bookAppointment } from "../services/appointment-service";
 
 const SUFFIX = "iso-test-appt";
 let orgAId = "";
@@ -21,7 +23,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.organization.deleteMany({ where: { id: { in: [orgAId, orgBId] } } });
+  await deleteOrganizations({ id: { in: [orgAId, orgBId] } });
   await prisma.$disconnect();
 });
 
@@ -52,32 +54,18 @@ describe("isolation multi-tenant des rendez-vous", () => {
     expect(type?.availabilities.length).toBe(1);
   });
 
-  it("la base refuse deux rendez-vous confirmés qui se chevauchent", async () => {
-    const startAt = new Date("2030-01-07T10:00:00.000Z");
-    const endAt = new Date("2030-01-07T10:30:00.000Z");
-
-    await prisma.appointment.create({
-      data: {
-        organizationId: orgBId,
-        appointmentTypeId: typeBId,
-        name: "Premier client",
-        email: "premier@example.test",
-        startAt,
-        endAt,
-      },
+  it("deux réservations simultanées du même créneau : une seule réussit", async () => {
+    const day = new Date(Date.now() + 8 * 86_400_000);
+    await prisma.availability.create({
+      data: { organizationId: orgBId, appointmentTypeId: typeBId, dayOfWeek: day.getUTCDay(), startMinutes: 540, endMinutes: 720 },
     });
+    const dateISO = day.toISOString().slice(0, 10);
+    const book = (name: string) => bookAppointment(typeBSlug, { dateISO, startMinutes: 540, name, email: `${name}@example.test` });
 
-    await expect(
-      prisma.appointment.create({
-        data: {
-          organizationId: orgBId,
-          appointmentTypeId: typeBId,
-          name: "Second client",
-          email: "second@example.test",
-          startAt: new Date("2030-01-07T10:15:00.000Z"),
-          endAt: new Date("2030-01-07T10:45:00.000Z"),
-        },
-      }),
-    ).rejects.toThrow();
+    const results = await Promise.all([book("premier"), book("second"), book("troisieme")]);
+
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    const startAt = new Date(`${dateISO}T09:00:00.000Z`);
+    await expect(prisma.appointment.count({ where: { appointmentTypeId: typeBId, startAt } })).resolves.toBe(1);
   });
 });

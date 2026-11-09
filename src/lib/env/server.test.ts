@@ -3,7 +3,7 @@ import { validateServerEnvironment } from "./server";
 
 const valid = {
   NODE_ENV: "production",
-  DATABASE_URL: "postgresql://user:password@db:5432/alymero",
+  DATABASE_URL: "mysql://user:password@db:3306/alymero",
   APP_URL: "https://app.example.com",
   BETTER_AUTH_URL: "https://app.example.com",
   BETTER_AUTH_SECRET: "a-secure-secret-with-more-than-32-characters",

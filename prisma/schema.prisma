@@ -14,7 +14,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   // En Prisma 7, l'URL de connexion vit dans prisma.config.ts (Migrate/CLI) et
   // le PrismaClient runtime utilise un driver adapter (voir src/server/database/client.ts).
 }
@@ -53,9 +53,9 @@ enum InvitationStatus {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
-  name          String?
+  name          String? @db.Text
   emailVerified Boolean  @default(false)
-  image         String?
+  image         String? @db.MediumText
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -71,9 +71,9 @@ model User {
   // endpoints admin (impersonation, création/suppression de compte, etc.).
   // Les champs de bannissement Better Auth ne sont PAS utilisés (on gère la
   // suspension via `suspendedAt`), mais la colonne doit exister pour le plugin.
-  role       String?
+  role       String? @db.Text
   banned     Boolean?  @default(false)
-  banReason  String?
+  banReason  String? @db.Text
   banExpires DateTime?
 
   memberships             Membership[]
@@ -107,17 +107,17 @@ model User {
 
 model Organization {
   id        String  @id @default(cuid())
-  name      String
+  name      String @db.Text
   slug      String  @unique
-  legalName String?
-  logoUrl   String?
+  legalName String? @db.Text
+  logoUrl   String? @db.Text
 
   // Coordonnées
-  email        String?
-  phone        String?
-  addressLine1 String?
-  addressLine2 String?
-  city         String?
+  email        String? @db.Text
+  phone        String? @db.Text
+  addressLine1 String? @db.Text
+  addressLine2 String? @db.Text
+  city         String? @db.Text
   country      String  @default("CI") // ISO 3166-1 alpha-2
 
   // Préférences internationalisation / facturation
@@ -127,12 +127,12 @@ model Organization {
 
   // Informations fiscales / facturation
   taxId         String? // identifiant fiscal (ex. NCC en CI)
-  taxRegime     String?
+  taxRegime     String? @db.Text
   invoicePrefix String  @default("FAC")
   quotePrefix   String  @default("DEV")
 
   // Personnalisation simple de la marque
-  brandColor String?
+  brandColor String? @db.Text
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -230,11 +230,11 @@ model AuditLog {
   organizationId String?
   actorUserId    String?
   action         String // ex. "invitation.created", "membership.role_changed"
-  targetType     String? // ex. "Membership", "Organization"
+  targetType     String? @db.Text // ex. "Membership", "Organization"
   targetId       String?
   metadata       Json? // contexte non sensible uniquement
-  ipAddress      String?
-  userAgent      String?
+  ipAddress      String? @db.Text
+  userAgent      String? @db.Text
 
   createdAt DateTime @default(now())
 
@@ -252,13 +252,13 @@ model Session {
   token     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
+  ipAddress String? @db.Text
+  userAgent String? @db.Text
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Renseigné par le plugin admin pendant une impersonation (id de l'admin).
-  impersonatedBy String?
+  impersonatedBy String? @db.Text
 
   @@unique([token])
   @@index([userId])
@@ -271,13 +271,13 @@ model Account {
   providerId            String
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
+  accessToken           String? @db.Text
+  refreshToken          String? @db.Text
+  idToken               String? @db.Text
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
+  scope                 String? @db.Text
+  password              String? @db.Text
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -288,7 +288,7 @@ model Account {
 model Verification {
   id         String   @id
   identifier String
-  value      String
+  value      String @db.Text
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -300,7 +300,7 @@ model Verification {
 model TwoFactor {
   id                      String    @id
   secret                  String
-  backupCodes             String
+  backupCodes             String @db.Text
   userId                  String
   user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   verified                Boolean?  @default(true)
@@ -350,13 +350,13 @@ model Contact {
   type           ContactType  @default(PROSPECT)
   stage          ContactStage @default(NEW_REQUEST)
 
-  firstName   String
-  lastName    String?
-  email       String?
-  phone       String?
-  companyName String?
-  source      String? // origine du prospect (formulaire, référence, etc.)
-  notes       String? // note interne rapide
+  firstName   String @db.Text
+  lastName    String? @db.Text
+  email       String? @db.Text
+  phone       String? @db.Text
+  companyName String? @db.Text
+  source      String? @db.Text // origine du prospect (formulaire, référence, etc.)
+  notes       String? @db.Text // note interne rapide
   portalToken String? @unique // jeton d'accès au portail client unifié
   /// Référence externe facultative (identifiant stable pour l'import/réimport Excel).
   externalRef String?
@@ -390,7 +390,7 @@ model ContactActivity {
   organizationId String
   contactId      String
   type           ContactActivityType
-  content        String?
+  content        String? @db.Text
   metadata       Json?
   actorUserId    String?
 
@@ -411,8 +411,8 @@ model ContactActivity {
 model Service {
   id             String  @id @default(cuid())
   organizationId String
-  name           String
-  description    String?
+  name           String @db.Text
+  description    String? @db.Text
   /// Référence/code catalogue facultatif (identifiant stable pour l'import/réimport Excel).
   reference      String?
 
@@ -468,17 +468,17 @@ model Quote {
   contactId      String
   number         String // ex. DEV-2026-0001 (unique par organisation)
   status         QuoteStatus @default(DRAFT)
-  currency       String // devise figée à la création
+  currency       String @db.Text // devise figée à la création
   publicToken    String?     @unique // jeton secret pour la consultation publique
 
   issueDate  DateTime  @default(now())
   expiryDate DateTime?
-  notes      String?
-  terms      String?
+  notes      String? @db.Text
+  terms      String? @db.Text
 
   // Rédaction
-  title        String? // objet / titre du devis
-  introduction String? // texte d'introduction / contexte
+  title        String? @db.Text // objet / titre du devis
+  introduction String? @db.Text // texte d'introduction / contexte
   /// Sections rédactionnelles libres : [{ heading, body }] (livrables, périmètre, exclusions, délais…).
   sections     Json?
   /// Mise en page choisie dans le studio : { template, accent, font } (cf. src/lib/quotes/design.ts).
@@ -526,7 +526,7 @@ model QuoteItem {
   quoteId        String
   serviceId      String? // lien optionnel vers le catalogue (snapshot des valeurs ci-dessous)
 
-  description    String
+  description    String @db.Text
   unitPriceMinor Int    @default(0) // prix unitaire HT
   quantity       Int    @default(1)
   taxRate        Int    @default(0) // %
@@ -560,9 +560,9 @@ enum SignatureEventType {
 model ContractTemplate {
   id             String @id @default(cuid())
   organizationId String
-  name           String
+  name           String @db.Text
   /// Corps du modèle, avec variables {{client_name}}, {{quote_number}}, etc.
-  body           String
+  body           String @db.MediumText
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -582,20 +582,20 @@ model Contract {
   quoteId        String?
   templateId     String?
   number         String // ex. CTR-2026-0001 (unique par organisation)
-  title          String
+  title          String @db.Text
   status         ContractStatus @default(DRAFT)
 
   /// Contenu figé du contrat (variables déjà substituées) — c'est ce qui est signé.
-  content     String
+  content     String @db.MediumText
   publicToken String? @unique // jeton pour la signature côté client
 
   // Preuves de signature (renseignées à la signature)
   signedAt    DateTime?
-  signerName  String?
-  signerEmail String?
-  signerIp    String?
+  signerName  String? @db.Text
+  signerEmail String? @db.Text
+  signerIp    String? @db.Text
   /// Empreinte SHA-256 du contenu exact signé.
-  contentHash String?
+  contentHash String? @db.Text
 
   createdById String?
 
@@ -621,9 +621,9 @@ model SignatureEvent {
   organizationId String
   contractId     String
   type           SignatureEventType
-  actorName      String?
-  ipAddress      String?
-  userAgent      String?
+  actorName      String? @db.Text
+  ipAddress      String? @db.Text
+  userAgent      String? @db.Text
   metadata       Json?
 
   createdAt DateTime @default(now())
@@ -664,15 +664,15 @@ model DocumentArchive {
   documentId     String
   version        Int
   /// Événement déclencheur : SENT | ACCEPTED | SIGNED.
-  reason         String
+  reason         String @db.Text
   /// Instantané JSON complet pour restitution (voir archive-service).
   snapshot       Json
   /// Empreinte du contenu signé/figé associé (ex. contentHash du contrat).
-  contentHash    String?
+  contentHash    String? @db.Text
   /// Clé immuable du PDF dans le stockage privé.
-  pdfStorageKey  String?
+  pdfStorageKey  String? @db.Text
   /// Empreinte SHA-256 du PDF conservé.
-  pdfSha256      String?
+  pdfSha256      String? @db.Text
   status         DocumentArchiveStatus @default(PENDING)
   /// Jeton de téléchargement public de l'archive (facultatif).
   publicToken    String?               @unique
@@ -762,23 +762,23 @@ model Invoice {
   quoteId        String?
   number         String // ex. FAC-2026-0001 (unique par organisation)
   status         InvoiceStatus @default(DRAFT)
-  currency       String
+  currency       String @db.Text
 
   issueDate DateTime  @default(now())
   dueDate   DateTime?
-  notes     String?
+  notes     String? @db.Text
 
   // Rédaction (figée à la génération depuis le devis le cas échéant)
-  title        String? // objet / titre de la facture
-  introduction String?
-  terms        String? // conditions de règlement / commerciales
+  title        String? @db.Text // objet / titre de la facture
+  introduction String? @db.Text
+  terms        String? @db.Text // conditions de règlement / commerciales
   /// Sections rédactionnelles libres : [{ heading, body }].
   sections     Json?
 
   // Habillage figé du document. Le logo reste celui de l'organisation.
-  headerColor String?
-  footerColor String?
-  footerText  String?
+  headerColor String? @db.Text
+  footerColor String? @db.Text
+  footerText  String? @db.Text
 
   discountType  AmountKind?
   discountValue Int         @default(0)
@@ -820,7 +820,7 @@ model InvoiceItem {
   organizationId String
   invoiceId      String
   serviceId      String?
-  description    String
+  description    String @db.Text
   unitPriceMinor Int     @default(0)
   quantity       Int     @default(1)
   taxRate        Int     @default(0)
@@ -839,11 +839,11 @@ model Payment {
   invoiceId        String
   amountMinor      Int
   method           PaymentMethod @default(OTHER)
-  reference        String? // référence de transaction (déclarée par le client)
+  reference        String? @db.Text // référence de transaction (déclarée par le client)
   status           PaymentStatus @default(PENDING)
   /// Vrai si déclaré par le client depuis le portail (vs saisi en interne).
   declaredByClient Boolean       @default(false)
-  note             String?
+  note             String? @db.Text
 
   confirmedById String?
   confirmedAt   DateTime?
@@ -891,8 +891,8 @@ model Project {
   contactId      String
   quoteId        String?
   invoiceId      String?       @unique // 1 projet max par facture (auto-création idempotente)
-  title          String
-  description    String?
+  title          String @db.Text
+  description    String? @db.Text
   status         ProjectStatus @default(PLANNED)
   progress       Int           @default(0) // 0-100, recalculé depuis les tâches
 
@@ -923,7 +923,7 @@ model ProjectStage {
   id             String @id @default(cuid())
   organizationId String
   projectId      String
-  name           String
+  name           String @db.Text
   position       Int    @default(0)
 
   createdAt DateTime @default(now())
@@ -941,8 +941,8 @@ model Task {
   organizationId String
   projectId      String
   stageId        String?
-  title          String
-  description    String?
+  title          String @db.Text
+  description    String? @db.Text
   status         TaskStatus   @default(TODO)
   priority       TaskPriority @default(MEDIUM)
   dueDate        DateTime?
@@ -971,10 +971,10 @@ model Document {
   projectId      String
   uploadedById   String?
   storageKey     String
-  originalName   String
-  mimeType       String
+  originalName   String @db.Text
+  mimeType       String @db.Text
   sizeBytes      Int
-  sha256         String
+  sha256         String @db.Text
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -1006,9 +1006,9 @@ enum FormFieldType {
 model Form {
   id             String  @id @default(cuid())
   organizationId String
-  name           String
+  name           String @db.Text
   slug           String  @unique // URL publique /f/[slug]
-  description    String?
+  description    String? @db.Text
   active         Boolean @default(true)
   createdById    String?
 
@@ -1029,11 +1029,11 @@ model FormField {
   id             String        @id @default(cuid())
   organizationId String
   formId         String
-  label          String
+  label          String @db.Text
   type           FormFieldType @default(TEXT)
-  placeholder    String?
+  placeholder    String? @db.Text
   required       Boolean       @default(false)
-  options        String[] // pour les listes déroulantes (SELECT)
+  options        Json? // tableau de chaînes, pour les listes déroulantes (SELECT)
   position       Int           @default(0)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1049,7 +1049,7 @@ model FormSubmission {
   formId         String
   contactId      String? // prospect créé automatiquement
   data           Json // réponses brutes {label: valeur}
-  ipAddress      String?
+  ipAddress      String? @db.Text
 
   createdAt DateTime @default(now())
 
@@ -1096,9 +1096,9 @@ model DocumentSequence {
 model AppointmentType {
   id                 String  @id @default(cuid())
   organizationId     String
-  name               String
+  name               String @db.Text
   slug               String  @unique // URL publique /rdv/[slug]
-  description        String?
+  description        String? @db.Text
   durationMinutes    Int     @default(30)
   bufferAfterMinutes Int     @default(0)
   minNoticeHours     Int     @default(1)
@@ -1140,13 +1140,13 @@ model Appointment {
   organizationId    String
   appointmentTypeId String
   contactId         String?
-  name              String
-  email             String
-  phone             String?
+  name              String @db.Text
+  email             String @db.Text
+  phone             String? @db.Text
   startAt           DateTime
   endAt             DateTime
   status            AppointmentStatus @default(CONFIRMED)
-  notes             String?
+  notes             String? @db.Text
 
   createdAt DateTime @default(now())
 
@@ -1169,10 +1169,10 @@ model Notification {
   id             String    @id @default(cuid())
   organizationId String
   userId         String
-  type           String // ex. "payment.declared", "quote.accepted"
-  title          String
-  body           String?
-  link           String?
+  type           String @db.Text // ex. "payment.declared", "quote.accepted"
+  title          String @db.Text
+  body           String? @db.Text
+  link           String? @db.Text
   readAt         DateTime?
 
   createdAt DateTime @default(now())
@@ -1192,10 +1192,10 @@ model Notification {
 
 model WaitlistEntry {
   id        String   @id @default(cuid())
-  firstName String
+  firstName String @db.Text
   email     String   @unique
-  activity  String?
-  country   String?
+  activity  String? @db.Text
+  country   String? @db.Text
   createdAt DateTime @default(now())
 
   @@map("waitlist_entry")

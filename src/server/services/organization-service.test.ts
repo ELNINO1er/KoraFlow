@@ -1,3 +1,4 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { MembershipRole } from "@prisma/client";
 import type { AuthContext } from "../auth/context";
@@ -52,7 +53,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.organization.deleteMany({ where: { id: { in: [orgAId, orgBId] } } });
+  await deleteOrganizations({ id: { in: [orgAId, orgBId] } });
   await prisma.user.delete({ where: { id: userId } });
   await prisma.$disconnect();
 });

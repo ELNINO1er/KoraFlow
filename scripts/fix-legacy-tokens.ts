@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createDatabaseAdapter } from "../src/server/database/adapter";
 
 /**
  * Régénère les jetons publics hérités d'un ancien schéma (longueur ≠ 48 car.)
@@ -10,7 +10,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
  */
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL manquant (voir .env).");
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+const prisma = new PrismaClient({ adapter: createDatabaseAdapter(connectionString) });
 
 const token = () => randomBytes(24).toString("hex"); // 48 car. hex
 const isLegacy = (t: string | null) => !!t && !/^[a-f0-9]{48}$/.test(t);

@@ -112,10 +112,10 @@ export async function listContacts(
   if (params.search && params.search.trim() !== "") {
     const q = params.search.trim();
     where.OR = [
-      { firstName: { contains: q, mode: "insensitive" } },
-      { lastName: { contains: q, mode: "insensitive" } },
-      { email: { contains: q, mode: "insensitive" } },
-      { companyName: { contains: q, mode: "insensitive" } },
+      { firstName: { contains: q } },
+      { lastName: { contains: q } },
+      { email: { contains: q } },
+      { companyName: { contains: q } },
     ];
   }
 

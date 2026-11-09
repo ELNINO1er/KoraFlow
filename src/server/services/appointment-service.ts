@@ -174,10 +174,11 @@ export async function bookAppointment(
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Sérialise les réservations d'un même type. Cette vérification couvre
-      // aussi le temps tampon, que la contrainte d'exclusion ne peut pas lire
-      // depuis la table appointment_type.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${type.id}, 0))`;
+      // Sérialise les réservations d'un même type par un verrou de ligne : c'est
+      // la seule garantie contre les chevauchements (MySQL n'a pas de contrainte
+      // d'exclusion). Ce verrou doit rester la première requête de la transaction,
+      // pour que la lecture suivante voie les réservations déjà validées.
+      await tx.$queryRaw`SELECT id FROM appointment_type WHERE id = ${type.id} FOR UPDATE`;
       const nearby = await tx.appointment.findMany({
         where: {
           organizationId,

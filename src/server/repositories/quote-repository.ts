@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma, type QuoteStatus, type AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
+import { transaction } from "../database/transaction";
 import { computeQuoteTotals, MoneyBoundsError, totalsWithinColumnBounds } from "@/lib/quotes/totals";
 import { nextDocumentSequence } from "./document-sequence-repository";
 
@@ -69,7 +70,7 @@ export async function createQuote(
   organizationId: string,
   input: QuoteCreateInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  return transaction(async (tx) => {
     const org = await tx.organization.findUnique({
       where: { id: organizationId },
       select: { quotePrefix: true },
@@ -146,7 +147,7 @@ export async function listQuotes(
   if (params.status) where.status = params.status;
   if (params.contactId) where.contactId = params.contactId;
   if (params.search && params.search.trim() !== "") {
-    where.number = { contains: params.search.trim(), mode: "insensitive" };
+    where.number = { contains: params.search.trim() };
   }
 
   const [items, total] = await Promise.all([

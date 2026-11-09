@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createDatabaseAdapter } from "../src/server/database/adapter";
 
 /**
  * Bootstrap d'un administrateur de PLATEFORME (super admin transverse).
@@ -19,7 +19,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL manquant (voir .env).");
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+const prisma = new PrismaClient({ adapter: createDatabaseAdapter(connectionString) });
 
 const args = process.argv.slice(2);
 const revoke = args.includes("--revoke");

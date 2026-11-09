@@ -1,3 +1,4 @@
+import { deleteOrganizations } from "@/server/database/test-cleanup";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../database/client";
 import * as repo from "./document-repository";
@@ -38,7 +39,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.organization.deleteMany({ where: { id: { in: [orgAId, orgBId] } } });
+  await deleteOrganizations({ id: { in: [orgAId, orgBId] } });
   await prisma.user.deleteMany({ where: { id: userId } });
   await prisma.$disconnect();
 });

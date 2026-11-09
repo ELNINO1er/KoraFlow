@@ -4,27 +4,7 @@ import type { InvoiceStatus, AmountKind } from "@prisma/client";
 import { prisma } from "../database/client";
 import { computeQuoteTotals, MoneyBoundsError, totalsWithinColumnBounds } from "@/lib/quotes/totals";
 import { nextDocumentSequence } from "./document-sequence-repository";
-
-/**
- * Transaction SÉRIALISABLE avec rejeu sur conflit (P2034). Garantit qu'un
- * contrôle « existe-t-il déjà une facture pour ce devis ? » suivi d'une
- * création ne peut pas être doublé par deux requêtes concurrentes.
- */
-async function serializableTransaction<T>(
-  operation: (tx: Prisma.TransactionClient) => Promise<T>,
-): Promise<T> {
-  const maxAttempts = 5;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await prisma.$transaction(operation, { isolationLevel: "Serializable" });
-    } catch (error) {
-      const retryable =
-        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
-      if (!retryable || attempt === maxAttempts) throw error;
-    }
-  }
-  throw new Error("Transaction de facture impossible.");
-}
+import { serializableTransaction } from "../database/transaction";
 
 /**
  * Couche d'accès aux factures — enforcement multi-tenant (organizationId
@@ -201,7 +181,7 @@ export async function listInvoices(
     where.status = params.status;
   }
   if (params.search && params.search.trim() !== "") {
-    where.number = { contains: params.search.trim(), mode: "insensitive" };
+    where.number = { contains: params.search.trim() };
   }
 
   const [items, total] = await Promise.all([

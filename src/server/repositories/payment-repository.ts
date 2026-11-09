@@ -1,5 +1,6 @@
 import { Prisma, type PaymentMethod, type PaymentStatus } from "@prisma/client";
 import { prisma } from "../database/client";
+import { serializableTransaction } from "../database/transaction";
 
 /**
  * Couche d'accès aux paiements — enforcement multi-tenant (organizationId
@@ -30,22 +31,6 @@ export class PaymentCreateError extends Error {
     super(code);
     this.name = "PaymentCreateError";
   }
-}
-
-async function serializableTransaction<T>(
-  operation: (tx: Prisma.TransactionClient) => Promise<T>,
-): Promise<T> {
-  const maxAttempts = 5;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await prisma.$transaction(operation, { isolationLevel: "Serializable" });
-    } catch (error) {
-      const retryable =
-        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
-      if (!retryable || attempt === maxAttempts) throw error;
-    }
-  }
-  throw new Error("Transaction de paiement impossible.");
 }
 
 /**
