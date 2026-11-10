@@ -4,6 +4,7 @@ import type { PlatformAdmin } from "../auth/platform";
 import { prisma } from "../database/client";
 import { parseAdminQuery, pagination, type AdminSearchParams } from "@/lib/admin/query";
 import { organizationEditSchema } from "@/lib/admin/validation";
+import { extendTrialEnd } from "@/lib/billing/trial";
 
 /**
  * Service d'administration de PLATEFORME.
@@ -144,7 +145,7 @@ export async function listOrganizations(params: AdminSearchParams = {}) {
   const paging = pagination(await prisma.organization.count({ where }), query.page);
   const orgs = await prisma.organization.findMany({
     where, orderBy: [{ createdAt: query.sort }, { id: query.sort }], skip: paging.skip, take: paging.take,
-    select: { id: true, name: true, slug: true, currency: true, createdAt: true, suspendedAt: true, deletedAt: true },
+    select: { id: true, name: true, slug: true, currency: true, createdAt: true, suspendedAt: true, deletedAt: true, trialEndsAt: true },
   });
   const organizationId = { in: orgs.map((org) => org.id) };
   const [members, contacts, invoices, revenue] = await Promise.all([
@@ -485,6 +486,67 @@ export async function updateOrganization(
     const before = Object.fromEntries(Object.keys(data).map((key) => [key, org[key as keyof typeof data]]));
     const after = Object.fromEntries(Object.keys(data).map((key) => [key, updated[key as keyof typeof data]]));
     await audit(admin.id, "platform.org_updated", "Organization", orgId, { before, after }, orgId);
+  });
+}
+
+/**
+ * Modification de la période d'essai d'une organisation par un admin plateforme :
+ * - `extend` : + N jours à partir de la fin actuelle (ou d'aujourd'hui si échue) ;
+ * - `until`  : nouvelle date de fin (fin de journée UTC, dans le futur) ;
+ * - `unlimited` : lève la limite (trialEndsAt = null, ex. client abonné).
+ */
+export type TrialChange =
+  | { mode: "extend"; days: number }
+  | { mode: "until"; date: string }
+  | { mode: "unlimited" };
+
+export async function setOrganizationTrial(
+  admin: PlatformAdmin,
+  orgId: string,
+  change: TrialChange,
+  now: Date = new Date(),
+) {
+  let next: (current: Date | null) => Date | null;
+  if (change?.mode === "extend") {
+    if (!Number.isInteger(change.days) || change.days < 1 || change.days > 366) {
+      throw new PlatformAdminError("La prolongation doit être comprise entre 1 et 366 jours.");
+    }
+    next = (current) => extendTrialEnd(current, change.days, now);
+  } else if (change?.mode === "until") {
+    const match = /^\d{4}-\d{2}-\d{2}$/.test(String(change.date ?? ""));
+    const date = match ? new Date(`${change.date}T23:59:59.000Z`) : null;
+    if (!date || Number.isNaN(date.getTime())) throw new PlatformAdminError("Date de fin d’essai invalide.");
+    if (date <= now) throw new PlatformAdminError("La date de fin d’essai doit être dans le futur.");
+    next = () => date;
+  } else if (change?.mode === "unlimited") {
+    next = () => null;
+  } else {
+    throw new PlatformAdminError("Modification d’essai invalide.");
+  }
+
+  return adminMutation(admin, async (tx) => {
+    const audit = transactionAudit(tx);
+    const org = await tx.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, trialEndsAt: true },
+    });
+    if (!org) throw new PlatformAdminError("Organisation introuvable.");
+    const trialEndsAt = next(org.trialEndsAt);
+    await tx.organization.update({ where: { id: orgId }, data: { trialEndsAt } });
+    await audit(
+      admin.id,
+      "platform.org_trial_updated",
+      "Organization",
+      orgId,
+      {
+        name: org.name,
+        mode: change.mode,
+        before: org.trialEndsAt?.toISOString() ?? null,
+        after: trialEndsAt?.toISOString() ?? null,
+      },
+      orgId,
+    );
+    return trialEndsAt;
   });
 }
 

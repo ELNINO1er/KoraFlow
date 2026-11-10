@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgSuspendToggle } from "@/features/admin/admin-controls";
 import { OrgDeleteRestore } from "@/features/admin/org-controls";
+import { TrialBadge } from "@/features/admin/trial-badge";
 import { requirePlatformAdmin } from "@/server/auth/platform";
 import { AdminFilters, AdminPagination } from "@/features/admin/list-tools";
 import type { AdminSearchParams } from "@/lib/admin/query";
@@ -19,6 +20,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
   const params = await searchParams;
   const result = await listOrganizations(params);
   const orgs = result.items;
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,7 +41,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
       <Card>
         <CardContent className="pt-6">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground">
                   <th className="pb-2 pr-4">Organisation</th>
@@ -48,6 +50,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
                   <th className="pb-2 pr-4">Factures</th>
                   <th className="pb-2 pr-4">Encaissements</th>
                   <th className="pb-2 pr-4">Créée le</th>
+                  <th className="pb-2 pr-4">Fin d&apos;essai</th>
                   <th className="pb-2 pr-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -80,6 +83,16 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
                       <DateText value={org.createdAt} />
                     </td>
                     <td className="py-3 pr-4">
+                      <div className="flex flex-col items-start gap-1">
+                        <TrialBadge trialEndsAt={org.trialEndsAt} now={now} />
+                        {org.trialEndsAt ? (
+                          <span className="text-xs text-muted-foreground">
+                            <DateText value={org.trialEndsAt} />
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4">
                       <div className="flex justify-end">
                         {org.deletedAt ? <OrgDeleteRestore orgId={org.id} name={org.name} deleted /> : <OrgSuspendToggle orgId={org.id} name={org.name} suspended={Boolean(org.suspendedAt)} />}
                       </div>
@@ -88,7 +101,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
                 ))}
                 {orgs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-6 text-center text-muted-foreground">
                       Aucune organisation.
                     </td>
                   </tr>

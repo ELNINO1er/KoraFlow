@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { PaymentMethod } from "@prisma/client";
 import { z } from "zod";
-import { resolveSession, type AuthContext } from "@/server/auth/context";
+import { resolveSession, TRIAL_EXPIRED_PATH, type AuthContext } from "@/server/auth/context";
 import * as paymentService from "@/server/services/payment-service";
 
 async function getContext(): Promise<AuthContext> {
@@ -12,6 +12,7 @@ async function getContext(): Promise<AuthContext> {
   if (session.status === "unauthenticated") redirect("/login");
   if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
+  if (session.status === "trial-expired") redirect(TRIAL_EXPIRED_PATH);
   return session.context;
 }
 

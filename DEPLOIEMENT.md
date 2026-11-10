@@ -60,6 +60,11 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
       docker compose -f docker-compose.prod.yml exec app node_modules/.bin/tsx scripts/grant-platform-admin.ts votre-email@domaine
       ```
       (ou via la console `/admin` si un autre admin existe déjà.)
+- [ ] Essai gratuit : chaque nouvelle organisation reçoit **15 jours d'essai**, puis son espace est bloqué
+      (données conservées, liens clients publics toujours actifs). Les admins plateforme ne sont jamais limités ;
+      pour exempter d'autres comptes, renseigner `TRIAL_EXEMPT_EMAILS` (e-mails séparés par des virgules).
+      Les organisations créées avant cette fonctionnalité n'ont pas de date de fin (aucune limite).
+      Prolonger ou lever un essai : console `/admin` → Organisations → fiche → « Période d'essai ».
 
 ## 7. Exploitation (avant une vraie mise en service)
 - [ ] **Sauvegardes automatiques** MariaDB (`mariadb-dump` en cron → stockage externe) **et tester une restauration**.
@@ -82,3 +87,12 @@ CI qui build l'image. Il reste surtout à **fournir l'infra, les secrets et un r
 1. VPS + Docker + domaine (DNS).  2. Fournisseur SMTP.  3. Remplir `.env.production`.
 4. `docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`.
 5. Caddy devant pour le HTTPS.  6. `/register` → super-admin via `admin:grant`.
+
+### Abonnements Alymero via Jèko
+
+- Renseigner côté serveur `JEKO_STORE_ID`, `JEKO_API_KEY_ID`, `JEKO_API_KEY` et `JEKO_WEBHOOK_SECRET`.
+  Utiliser le magasin **Alymero** et des identifiants autorisés sur ce magasin. `APP_URL` doit pointer vers le domaine public.
+- Dans Jèko Business, sous **API & Webhooks**, ajouter le webhook du magasin Alymero vers
+  https://alymero.com/api/webhooks/jeko et conserver son secret dans les variables serveur.
+- Après les 15 jours d’essai, le propriétaire peut payer **10 000 F CFA pour un mois calendaire**.
+  Le webhook signé crédite le mois sur l’organisation existante. Les tests locaux simulent Jèko.

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { resolveSession, type AuthContext } from "@/server/auth/context";
+import { resolveSession, TRIAL_EXPIRED_PATH, type AuthContext } from "@/server/auth/context";
 import { PermissionError } from "@/server/permissions/permissions";
 import { commitContactImport, type ContactImportResult } from "@/server/services/contacts-excel";
 
@@ -12,6 +12,7 @@ async function getContext(): Promise<AuthContext> {
   if (session.status === "unauthenticated") redirect("/login");
   if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
+  if (session.status === "trial-expired") redirect(TRIAL_EXPIRED_PATH);
   return session.context;
 }
 

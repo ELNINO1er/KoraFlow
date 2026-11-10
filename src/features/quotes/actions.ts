@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { QuoteStatus } from "@prisma/client";
-import { resolveSession, type AuthContext } from "@/server/auth/context";
+import { resolveSession, TRIAL_EXPIRED_PATH, type AuthContext } from "@/server/auth/context";
 import * as quoteService from "@/server/services/quote-service";
 import { InvalidQuoteError } from "@/server/services/quote-service";
 import { generateQuotePdf } from "@/server/services/quote-pdf";
@@ -20,6 +20,7 @@ async function getContext(): Promise<AuthContext> {
   if (session.status === "unauthenticated") redirect("/login");
   if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
+  if (session.status === "trial-expired") redirect(TRIAL_EXPIRED_PATH);
   return session.context;
 }
 

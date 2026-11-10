@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { ContactStage } from "@prisma/client";
-import { resolveSession, type AuthContext } from "@/server/auth/context";
+import { resolveSession, TRIAL_EXPIRED_PATH, type AuthContext } from "@/server/auth/context";
 import * as contactService from "@/server/services/contact-service";
 import { createContactSchema } from "@/lib/validation/contact";
 import { PermissionError } from "@/server/permissions/permissions";
@@ -14,6 +14,7 @@ async function getContext(): Promise<AuthContext> {
   if (session.status === "unauthenticated") redirect("/login");
   if (session.status === "suspended") redirect("/compte-suspendu");
   if (session.status === "no-organization") redirect("/create-organization");
+  if (session.status === "trial-expired") redirect(TRIAL_EXPIRED_PATH);
   return session.context;
 }
 

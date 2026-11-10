@@ -124,6 +124,18 @@ export async function updateOrgAction(
   }
 }
 
+export async function updateOrgTrialAction(orgId: string, change: svc.TrialChange): Promise<Result> {
+  const admin = await requirePlatformAdmin();
+  try {
+    await svc.setOrganizationTrial(admin, orgId, change);
+    revalidatePath(`/admin/organizations/${orgId}`);
+    revalidatePath("/admin/organizations");
+    return { ok: true };
+  } catch (e) {
+    return toResult(e);
+  }
+}
+
 export async function deleteOrgAction(orgId: string, confirmation?: SensitiveConfirmation): Promise<Result> {
   const admin = await requirePlatformAdmin();
   try {

@@ -138,6 +138,12 @@ model Organization {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime? // suppression logique
   suspendedAt DateTime? // suspension par un admin plateforme (accès bloqué)
+  // Fin de la période d'essai gratuite. NULL = aucune limite (organisations
+  // antérieures à l'essai, organisations d'un compte exempté, ou essai levé par
+  // un admin plateforme). Voir src/lib/billing/trial.ts.
+  trialEndsAt DateTime?
+  subscriptionEndsAt DateTime?
+  subscriptionPayments SubscriptionPayment[]
 
   memberships       Membership[]
   invitations       Invitation[]
@@ -1213,4 +1219,20 @@ model PrivateFile {
   createdAt DateTime @default(now())
 
   @@map("private_file")
+}
+
+model SubscriptionPayment {
+  reference        String @id @db.VarChar(80)
+  organizationId   String
+  pendingOrgId     String? @unique
+  storeId          String
+  providerId       String? @unique
+  checkoutUrl      String? @db.Text
+  transactionId    String? @unique
+  createdAt        DateTime @default(now())
+  paidAt           DateTime?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("subscription_payment")
 }

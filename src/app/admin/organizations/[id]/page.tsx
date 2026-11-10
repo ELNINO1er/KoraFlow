@@ -15,6 +15,8 @@ import {
   AddMemberForm,
   MemberRoleControl,
 } from "@/features/admin/org-controls";
+import { OrgTrialControl } from "@/features/admin/trial-controls";
+import { TrialBadge } from "@/features/admin/trial-badge";
 
 export const metadata: Metadata = { title: "Fiche organisation" };
 
@@ -30,6 +32,7 @@ export default async function AdminOrganizationDetailPage({
 
   const { org, stats, recentAudit } = data;
   const deleted = Boolean(org.deletedAt);
+  const now = new Date();
 
   const cards = [
     { label: "Contacts", value: stats.contactCount },
@@ -97,6 +100,28 @@ export default async function AdminOrganizationDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            Période d&apos;essai <TrialBadge trialEndsAt={org.trialEndsAt} now={now} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            {org.trialEndsAt ? (
+              <>
+                Fin d&apos;essai : <strong className="text-foreground"><DateText value={org.trialEndsAt} variant="datetime" /></strong>.
+                Après cette date, l&apos;espace de l&apos;organisation est bloqué (données conservées, liens clients
+                publics toujours actifs). Les admins plateforme et les comptes exemptés ne sont jamais limités.
+              </>
+            ) : (
+              <>Aucune limite d&apos;essai : l&apos;organisation a un accès sans échéance.</>
+            )}
+          </p>
+          <OrgTrialControl orgId={org.id} limited={Boolean(org.trialEndsAt)} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

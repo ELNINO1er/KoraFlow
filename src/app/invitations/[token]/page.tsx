@@ -44,7 +44,7 @@ export default async function InvitationPage({
   const loggedInEmail =
     session.status === "ok"
       ? session.context.user.email
-      : session.status === "no-organization"
+      : session.status === "no-organization" || session.status === "trial-expired"
         ? session.user.email
         : null;
 

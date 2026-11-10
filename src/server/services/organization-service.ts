@@ -4,6 +4,7 @@ import type { AuthContext } from "../auth/context";
 import { prisma } from "../database/client";
 import { assertCan } from "../permissions/permissions";
 import { slugify } from "@/lib/formatting/slug";
+import { computeTrialEnd, isTrialExemptAccount } from "@/lib/billing/trial";
 
 export interface CreateOrganizationInput {
   /** Utilisateur qui crée l'organisation ; il en devient PROPRIÉTAIRE. */
@@ -37,6 +38,37 @@ async function generateUniqueSlug(
 }
 
 /**
+ * Fin d'essai d'une nouvelle organisation créée par `userId` :
+ * - compte exempté (admin plateforme / TRIAL_EXEMPT_EMAILS) → null (aucune limite) ;
+ * - sinon création + 15 jours, sans jamais dépasser l'essai déjà en cours d'une
+ *   autre organisation dont il est propriétaire (créer une nouvelle organisation
+ *   ne relance pas un essai échu).
+ */
+async function initialTrialEnd(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  now: Date,
+): Promise<Date | null> {
+  const user = await tx.user.findUnique({
+    where: { id: userId },
+    select: { email: true, isPlatformAdmin: true },
+  });
+  if (user && isTrialExemptAccount(user)) return null;
+
+  const trialEnd = computeTrialEnd(now);
+  const owned = await tx.organization.findFirst({
+    where: {
+      trialEndsAt: { not: null },
+      memberships: { some: { userId, role: "OWNER" } },
+    },
+    orderBy: { trialEndsAt: "desc" },
+    select: { trialEndsAt: true },
+  });
+  if (owned?.trialEndsAt && owned.trialEndsAt < trialEnd) return owned.trialEndsAt;
+  return trialEnd;
+}
+
+/**
  * Crée une organisation et rattache son créateur comme PROPRIÉTAIRE.
  * Opération transactionnelle : organisation + appartenance + journal d'audit
  * sont créés atomiquement (tout ou rien).
@@ -44,6 +76,7 @@ async function generateUniqueSlug(
 export async function createOrganization(input: CreateOrganizationInput) {
   return prisma.$transaction(async (tx) => {
     const slug = await generateUniqueSlug(tx, input.name);
+    const trialEndsAt = await initialTrialEnd(tx, input.userId, new Date());
 
     const organization = await tx.organization.create({
       data: {
@@ -53,6 +86,7 @@ export async function createOrganization(input: CreateOrganizationInput) {
         currency: input.currency ?? "XOF",
         locale: input.locale ?? "fr",
         timezone: input.timezone ?? "Africa/Abidjan",
+        trialEndsAt,
       },
     });
 
@@ -71,6 +105,7 @@ export async function createOrganization(input: CreateOrganizationInput) {
         action: "organization.created",
         targetType: "Organization",
         targetId: organization.id,
+        metadata: { trialEndsAt: trialEndsAt?.toISOString() ?? null },
       },
     });
 
